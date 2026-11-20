@@ -28,3 +28,5 @@ The duel stage floor now includes seeded, baked material weathering, and attack 
 - **Visored Helm** by Lorc, [upstream SVG](https://github.com/game-icons/icons/blob/master/lorc/visored-helm.svg), upstream blob `acd470fcf4060f87f3aa779d2797499c4dd5da04`. [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Recolored and black background removed; used as a locally served HUD emblem.
 
 The score briefly ducks under hits, interruptions, pistol discharge, and round bells, independently of the player's saved music volume.
+
+Combat foley uses three original precomputed takes for cut, heavy, quickstep, impact, interrupt and discharge. Metal resonance is more pronounced on interrupts; the pistol has a separate short crack layered into its synthesis. [Brian MacIntosh’s Metal Impact Sounds](https://opengameart.org/content/metal-impact-sounds) (CC0) was evaluated as a candidate but no sample was downloaded or bundled.

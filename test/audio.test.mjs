@@ -34,3 +34,9 @@ test('caption attribution follows fighter slots rather than screen position',()=
  const a=state(10), b=state(13,{x:720,act:'shot',age:3});
  assert.deepEqual(soundChanges(a,b,true),[{name:'cock',x:720,actor:0}]);
 });
+
+test('foley variants are bounded, repeatable and distinct',()=>{
+ const a=synth('interrupt',8000,1),b=synth('interrupt',8000,2);
+ assert.deepEqual(a,synth('interrupt',8000,1));assert.notDeepEqual(a,b);
+ assert.equal(a[0],0);assert(a.every(x=>Number.isFinite(x)&&Math.abs(x)<=1));
+});

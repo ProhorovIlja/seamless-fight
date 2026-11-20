@@ -8,20 +8,25 @@ const recipes={
  feint:[.13,620,250,.42,1900],hit:[.24,145,39,.61,760],
  interrupt:[.35,330,82,.67,2100],bell:[1.2,196,192,.025,1700],
 };
-export function synth(name,rate){
+export function synth(name,rate,variant=0){
  const [duration,start,end,noise,cutoff]=recipes[name];
  const data=new Float32Array(Math.ceil(duration*rate));
- let seed=843721,lp=0,phase=0;
+ let seed=843721+variant*15791,lp=0,phase=0;
+ const detune=1+variant*.035;
  const alpha=1-Math.exp(-2*Math.PI*cutoff/rate);
  for(let i=0;i<data.length;i++){
    const u=i/data.length;
    seed=(Math.imul(seed,1664525)+1013904223)>>>0;
    lp+=alpha*(seed/2147483648-1-lp);
-   phase+=2*Math.PI*start*(end/start)**u/rate;
+   phase+=2*Math.PI*detune*start*(end/start)**u/rate;
    const tone=name==='bell'?.66*Math.sin(phase)+.22*Math.sin(phase*2.41)+.12*Math.sin(phase*4.08):.81*Math.sin(phase)+.19*Math.sin(phase*2.15);
    const env=Math.min(1,i/(rate*.006))*Math.exp(-5*u)*Math.min(1,(1-u)*12);
    if(i===0)continue;
-   data[i]=env*(noise*lp+(1-noise)*tone);
+   const t=i/rate;
+   const metal=name==='interrupt'?.17*Math.exp(-21*t)*(Math.sin(2*Math.PI*1088*detune*t)+.46*Math.sin(2*Math.PI*1727*detune*t)):
+     name==='hit'?.09*Math.exp(-43*t)*Math.sin(2*Math.PI*640*detune*t):0;
+   const crack=name==='shot'?.31*Math.exp(-100*t)*lp:0;
+   data[i]=Math.max(-1,Math.min(1,env*(noise*lp+(1-noise)*tone+metal+crack)));
  }
  return data;
 }
@@ -46,7 +51,7 @@ export function createAudio(Context=globalThis.AudioContext){
  let ctx,master,effects,ambience,music,musicDuck,voice,pulseGain,wind,enabled=false,arena='lantern',score=[],intensity=0;
  const scores=new Map();
  const beds=new Map();
- const bank=new Map(),playing=new Set();
+ const bank=new Map(),playing=new Set(), takes=new Map();
  const set=(node,value)=>node.gain.setTargetAtTime(value,ctx.currentTime,.025);
  function build(){
    ctx=new Context({latencyHint:'interactive'});
@@ -60,10 +65,16 @@ export function createAudio(Context=globalThis.AudioContext){
    master.gain.value=0;effects.gain.value=.65;ambience.gain.value=.15;
    for(const name of Object.keys(recipes)){
      const data=synth(name,ctx.sampleRate), buffer=ctx.createBuffer(1,data.length,ctx.sampleRate);
-     buffer.copyToChannel(data,0);bank.set(name,buffer);
+     buffer.copyToChannel(data,0);
+     const variants=[buffer];
+     if(['cut','hew','step','hit','interrupt','shot'].includes(name))for(let j=1;j<=2;j++){
+       const pcm=synth(name,ctx.sampleRate,j), take=ctx.createBuffer(1,pcm.length,ctx.sampleRate);
+       take.copyToChannel(pcm,0);variants.push(take);
+     }
+     bank.set(name,variants);
    }
    for(const [i,name] of ['grunt-low','grunt-high'].entries()){
-     const pcm=exertionPCM(ctx.sampleRate,Boolean(i)),buf=ctx.createBuffer(1,pcm.length,ctx.sampleRate);buf.copyToChannel(pcm,0);bank.set(name,buf);
+     const pcm=exertionPCM(ctx.sampleRate,Boolean(i)),buf=ctx.createBuffer(1,pcm.length,ctx.sampleRate);buf.copyToChannel(pcm,0);bank.set(name,[buf]);
    }
  }
  function stopScore(){for(const source of score){source.stop();source.disconnect();}score=[];}
@@ -114,7 +125,8 @@ export function createAudio(Context=globalThis.AudioContext){
        gain.setTargetAtTime(.58,now,.012);gain.setTargetAtTime(1,now+.14,.16);
      }
      const source=ctx.createBufferSource(),pan=ctx.createStereoPanner();
-     source.buffer=bank.get(name);pan.pan.value=Math.max(-.65,Math.min(.65,(x-480)/480));source.connect(pan);pan.connect(name.startsWith('grunt-')?voice:effects);
+     const clips=bank.get(name), take=takes.get(name)||0;
+     source.buffer=clips[take];takes.set(name,(take+1)%clips.length);pan.pan.value=Math.max(-.65,Math.min(.65,(x-480)/480));source.connect(pan);pan.connect(name.startsWith('grunt-')?voice:effects);
      playing.add(source);source.onended=()=>{playing.delete(source);source.disconnect();pan.disconnect();};source.start();
    }
  };
