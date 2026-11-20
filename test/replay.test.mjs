@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {blank,match,step} from '../public/engine.mjs';
-import {RULESET,MAX_TICKS,packTick,createReview} from '../public/replay.mjs';
+import {RULESET,LEGACY_RULESET,MAX_TICKS,packTick,createReview} from '../public/replay.mjs';
 test('replay checkpoints restore exact states across countdown, movement and combat',()=>{
  const s=match(), states=[structuredClone(s)];let tape='';
  for(let t=0;t<350;t++){
@@ -32,4 +32,27 @@ test('completed matches contain ordered round markers and reject appended ticks'
  assert.equal(r.events.filter(e=>e.label.endsWith('starts')).length,2);
  assert.equal(r.events.at(-1).label,'Veil wins match');
  assert.throws(()=>createReview({rules:RULESET,tape:tape+'AA'}),/ended/);
+});
+
+test('new replays end after six drawn rounds and still reconstruct exact authoritative ticks',()=>{
+ const s=match(),tape=[];let ticks=0;
+ while(!s.over&&ticks<MAX_TICKS){
+   const cmds=[blank(),blank()];tape.push(packTick(cmds));step(s,cmds);ticks++;
+ }
+ assert(s.over&&ticks<MAX_TICKS);
+ const view=createReview({rules:RULESET,tape:tape.join('')});
+ assert(view.complete);assert.deepEqual(view.at(view.total),s);
+ assert.equal(view.events.at(-1).label,'Match drawn');
+ assert.throws(()=>createReview({rules:RULESET,tape:tape.join('')+'YY'}),/ended/);
+});
+test('old lantern-court/1 inputs remain replayable after the draw-limit rule change',()=>{
+ const s=match(),tape=[];let ticks=0;
+ while(s.round<=6&&ticks<MAX_TICKS){
+   const cmds=[blank(),blank()];tape.push(packTick(cmds));step(s,cmds,undefined,undefined,true);ticks++;
+ }
+ assert.equal(s.over,false);
+ assert.equal(s.round,7);
+ const view=createReview({rules:LEGACY_RULESET,tape:tape.join('')});
+ assert.equal(view.complete,false);
+ assert.deepEqual(view.at(view.total),s);
 });

@@ -28,3 +28,19 @@ test('feint fails without the additional stamina',()=>{
  const s=close();s.p[0].st=35;tick(s,1,act('hew'));tick(s,5);tick(s,1,act('feint'));
  assert.equal(s.p[0].act,'hew');assert.equal(s.p[0].st,5);
 });
+
+test('six drawn rounds conclude a finite unranked match',()=>{
+ const s=match();let ticks=0;
+ while(!s.over&&ticks<32000){step(s,[blank(),blank()]);ticks++;}
+ assert.equal(s.over,true);
+ assert.equal(s.round,6);
+ assert.equal(s.winner,-1);
+ assert.deepEqual(s.score,[0,0]);
+ assert(ticks<32000);
+});
+test('sixth-round tiebreak awards higher round score when no one reached two',()=>{
+ const s=match();s.ready=0;s.round=6;s.score=[1,0];s.clock=1;
+ step(s,[blank(),blank()]);
+ assert.equal(s.over,true);assert.equal(s.winner,0);
+ assert.deepEqual(s.score,[1,0]);
+});

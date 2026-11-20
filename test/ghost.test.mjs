@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {blank,match} from '../public/engine.mjs';
-import {createReview,packTick,RULESET} from '../public/replay.mjs';
+import {createReview,packTick,RULESET,LEGACY_RULESET} from '../public/replay.mjs';
 import {createGhost,trainGhost,restoreGhost,ghostInsights,serializeGhost,parseGhost,shouldAutoLearn} from '../public/ghost.mjs';
 const view=(side=0,action='')=>createReview({rules:RULESET,tape:Array.from({length:320},(_,i)=>{
  const inputs=[blank(),blank()];
@@ -32,6 +32,7 @@ test('portable ghost validates rules, counters, duplicate filenames and corrupte
  assert.throws(()=>parseGhost('{'),/JSON/);
  assert.throws(()=>parseGhost('x'.repeat(48001)),/too large/);
  assert.throws(()=>parseGhost(JSON.stringify({...JSON.parse(json),rules:'older-rules'})),/compatible/);
+ assert.deepEqual(parseGhost(JSON.stringify({...JSON.parse(json),rules:LEGACY_RULESET})),model);
  assert.throws(()=>parseGhost(JSON.stringify({...JSON.parse(json),model:{...model,counts:[Infinity]}})),/corrupted/);
  assert.equal(json.includes('seamlesshunt.com'),false);
 });

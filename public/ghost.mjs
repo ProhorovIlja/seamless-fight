@@ -1,6 +1,6 @@
 import {blank,match,step,moves,canAct,canFeint} from './engine.mjs';
 import {createSparring} from './tactics.mjs';
-import {RULESET} from './replay.mjs';
+import {RULESET,LEGACY_RULESET} from './replay.mjs';
 
 export const GHOST_KEY='seamless-fight.ghost.v1';
 const DIR=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
@@ -120,7 +120,7 @@ export function serializeGhost(model){
 export function parseGhost(text){
  if(typeof text!=='string'||text.length>maxGhostFile)throw Error('Ghost file is too large.');
  let file;try{file=JSON.parse(text);}catch{throw Error('Ghost file is not valid JSON.');}
- if(file?.kind!==fileKind||file.rules!==RULESET)throw Error('This ghost file is not compatible with the current duel rules.');
+ if(file?.kind!==fileKind||![RULESET,LEGACY_RULESET].includes(file.rules))throw Error('This ghost file is not compatible with the current duel rules.');
  const model=restoreGhost(file.model);
  if(!model)throw Error('Invalid or corrupted ghost profile.');
  return model;

@@ -262,7 +262,7 @@ function practice(){
  sparHost=exhibition?createSparring('duelist',$('spar-level').value,0):null;
  if(!exhibition&&$('drill').value==='lesson'){lesson=0;showLesson();}
  $('capture').disabled=false;
- status(exhibition?'Exhibition · '+$('spar-level').selectedOptions[0].textContent+' AI vs trained ghost · first to two.':'Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');
+ status(exhibition?'Exhibition · '+$('spar-level').selectedOptions[0].textContent+' AI vs trained ghost · first to two.':'Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins (6-round limit).');
  document.activeElement?.blur();
 }
 function startLab(kind, recording=[]){
@@ -395,7 +395,7 @@ function attachOnline(c){
      if(s.tick===0)status('Spectating live · read-only.');
      const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,null,at);s=m.s;feedback(s,m.cues);return;
    }
-   if(m.t==='state'){const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,m.ack,at);if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
+   if(m.t==='state'){const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,m.ack,at);if(mode!=='online')status('Online duel · first to two round wins (6-round limit).');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
      const continuous=mode==='online'&&playable(s)&&playable(m.s)&&m.s.round===s.round&&m.s.tick>s.tick;
      mode='online';s=m.s;$('capture').disabled=false;feedback(s,m.cues);
      const next=reconcile(s,slot,continuous?pending:[],m.ack);pending=next.pending;predicted=next.p;

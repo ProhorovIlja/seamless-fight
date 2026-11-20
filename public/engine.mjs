@@ -1,5 +1,5 @@
 const engine = function engine(){
- const W=960,H=540,HZ=60, LIMIT=75*HZ;
+ const W=960,H=540,HZ=60, LIMIT=75*HZ, MAX_ROUNDS=6;
  const FEINT={from:5,until:15,cost:8};
  const moves={cut:[10,5,16,18,86,19],hew:[22,7,24,30,114,33],shot:[8,1,25,24,190,8],step:[0,10,12,22,0,0],stun:[0,0,31,0,0,0],feint:[0,0,13,0,0,0]};
  const clamp=(x,a,b)=>Math.min(b,Math.max(x,a));
@@ -38,7 +38,7 @@ const engine = function engine(){
    p.spent=true;
    return {damage:m[5],stun:p.act==='shot'&&(q.act==='cut'||q.act==='hew')&&q.age<moves[q.act][0]};
  }
- function step(s,inputs,events,cues){
+ function step(s,inputs,events,cues,legacy=false){
    s.tick++;
    if(s.over)return;
    if(s.end){if(!--s.end){s.p=[fighter(0),fighter(1)];s.clock=LIMIT;s.ready=120;s.round++;s.winner=null;}return;}
@@ -66,8 +66,8 @@ const engine = function engine(){
    }
    for(let i=0;i<2;i++)if(hits[i]){const p=s.p[i];p.hp=Math.max(0,p.hp-hits[i].damage);if(hits[i].stun){p.act='stun';p.age=0;}}
    for(const p of s.p)if(p.act)p.age++;
-   if(--s.clock<=0||!a.hp||!b.hp){s.winner=a.hp===b.hp?-1:a.hp>b.hp?0:1;if(s.winner>=0)s.score[s.winner]++;s.over=s.score.includes(2);s.end=s.over?0:150;}
+   if(--s.clock<=0||!a.hp||!b.hp){s.winner=a.hp===b.hp?-1:a.hp>b.hp?0:1;if(s.winner>=0)s.score[s.winner]++;s.over=s.score.includes(2)||(!legacy&&s.round>=MAX_ROUNDS);if(s.over&&s.score.every(n=>n<2)){s.winner=s.score[0]===s.score[1]?-1:s.score[0]>s.score[1]?0:1;}s.end=s.over?0:150;}
  }
- return {W,H,HZ,blank,match,step,moves,predictMotion,FEINT,canFeint,canAct};
+ return {W,H,HZ,MAX_ROUNDS,blank,match,step,moves,predictMotion,FEINT,canFeint,canAct};
 };
-export const {W,H,HZ,blank,match,step,moves,predictMotion,FEINT,canFeint,canAct}=engine();
+export const {W,H,HZ,MAX_ROUNDS,blank,match,step,moves,predictMotion,FEINT,canFeint,canAct}=engine();
