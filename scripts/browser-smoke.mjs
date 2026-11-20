@@ -31,7 +31,10 @@ try{
  await host.locator('#arena-select').selectOption('reliquary');
  assert.match(await host.locator('#arena-title').textContent(),/Ashen Reliquary/);
  await host.locator('#practice').click();
- await sleep(180);
+ // Allow the non-interactive opening count-in to finish before art QA.
+ // Otherwise the large Round plate masks both combat silhouettes.
+ await until(async()=>await host.locator('#status').textContent().then(text=>/Practice|Sparring|duel/i.test(text)),'Reliquary practice session');
+ await sleep(2250);
  await host.screenshot({path:'artifacts/duel-reliquary-stage.png'});
  await host.locator('#arena').screenshot({path:'artifacts/duel-reliquary-canvas.png'});
  await host.locator('#arena-select').selectOption('lantern');
