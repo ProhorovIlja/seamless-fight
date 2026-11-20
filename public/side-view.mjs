@@ -254,7 +254,7 @@ function runTick(){
  if(mode==='live'){
   if(s.over)return; // Do not append inputs after a completed match.
   const own=sample(),enemy=sidePrefs.level==='dummy'?sideInput():bot(s),pair=[own,enemy],events=[];
-  if(tape.length<SIDE_TAPE_LIMIT)tape.push(packSideTick(pair));
+  if(tape.length<SIDE_TAPE_LIMIT){tape.push(packSideTick(pair));if(tape.length===1)updateButtons();}
   sideStep(s,pair,events);effectsFrom(events);
   if(own.act&&s.p[0].act===own.act)soundEvent(own.act==='shot'?'cock':own.act,s.p[0].x);
   if(s.over)updateButtons();
