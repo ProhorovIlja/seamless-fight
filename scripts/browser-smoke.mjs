@@ -200,7 +200,9 @@ try{
  const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,reducedMotion:'reduce'});
  await phone.goto(url);
  assert(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
- await phone.locator('#arena').screenshot({path:'artifacts/duel-mobile-reduced-motion.png'});
+ assert(await phone.locator('#readable-score').isVisible());
+ assert.match(await phone.locator('#fighter-score-0').textContent(),/100 HP/);
+ await phone.screenshot({path:'artifacts/duel-mobile-reduced-motion.png'});
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}

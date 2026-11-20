@@ -37,3 +37,5 @@ Hunter Wardrobe provides four coat dyes and three sigil options (including none)
 Online neutral footwork uses a bounded presentation buffer targeting 50–100 ms from the received snapshot stream. Local prediction, authoritative combat and effects are not buffered. Attacks and round transitions discard buffered neutral poses. The diagnostics target is not measured one-way network latency.
 
 The pistol has separate preparation and discharge cues. Its muzzle flash and report share one trigger derived from the authoritative firing phase, including when the firing tick is between snapshots. Damage feedback can still play on the same snapshot.
+
+The presentation pass adds an adaptive synthesized score, nonverbal exertion cues, animated armor/weapon and hit details, and a larger mobile text scoreboard. Music and exertion have independent saved mix settings; the master sound toggle still requires a gesture. Chromium CI captures screenshots of both arenas and the reduced-motion mobile layout.
