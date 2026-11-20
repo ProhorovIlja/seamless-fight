@@ -28,7 +28,11 @@ export function writeTape(tape, input) {
  return tape.length<MAX_TAPE;
 }
 export const tapeInput=(tape,tick)=>tape[tick]||blank();
-export function preset(name) {
+export const MIXUP_VARIANTS=Object.freeze(['whiff','bait','interrupt']);
+export function preset(name,variant=0) {
+ // Choose one concealed scenario per attempt; the selected tape remains exact
+ // for scrubbing and takeover. Randomness never enters the combat simulation.
+ if(name==='mixup')name=MIXUP_VARIANTS[Number.isSafeInteger(variant)?((variant%3)+3)%3:0];
  const tape=Array.from({length:120},blank);
  if(name==='whiff')tape[18].act='hew';
  else if(name==='bait'){tape[18].act='hew';tape[28].act='feint';tape[54].act='cut';}
