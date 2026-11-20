@@ -14,8 +14,8 @@ async function until(fn,label){
 try{
  await until(async()=>{try{return (await fetch(url+'health')).ok;}catch{return false;}},'server health');
  browser=await chromium.launch();
- const host=await browser.newPage(), guest=await browser.newPage();
- for(const page of [host,guest]){
+ const host=await browser.newPage(), guest=await browser.newPage(), viewer=await browser.newPage();
+ for(const page of [host,guest,viewer]){
    page.on('pageerror',err=>errors.push(err.message));
    page.on('response',res=>{if(res.url().startsWith(url)&&res.status()>=400)errors.push(res.status()+' '+res.url());});
  }
@@ -57,6 +57,14 @@ try{
  await host.keyboard.down('ArrowRight');
  try{await until(()=>snapshot?.p[0].x>x+12,'authoritative movement from browser keyboard');}
  finally{await host.keyboard.up('ArrowRight');}
+ await host.locator('#gallery-toggle').click();
+ await until(async()=>Boolean(await host.locator('#watch-link').inputValue()),'watch link issued');
+ const watchUrl=new URL(await host.locator('#watch-link').inputValue());
+ assert.equal(watchUrl.origin,origin);assert(!watchUrl.searchParams.has('room'));
+ await viewer.goto(watchUrl.href);
+ await status(viewer,/Spectating live/);assert(await viewer.locator('#rematch').isHidden());
+ await host.locator('#gallery-toggle').click();
+ await status(viewer,/host closed the gallery/);
  await guest.close();
  await status(host,/Opponent disconnected/);
  assert.deepEqual(errors,[]);

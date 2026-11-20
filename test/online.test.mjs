@@ -21,6 +21,14 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const a=await open();a.send({t:'hello'});const room=await a.get(m=>m.t==='room');assert.equal(room.slot,0);
  const b=await open();b.send({t:'hello',code:room.code});assert.equal((await b.get(m=>m.t==='room')).slot,1);
  const full=await open();full.send({t:'hello',code:room.code});assert.match((await full.get(m=>m.t==='error')).message,/full/);
+ const denied=await open();denied.send({t:'watch',code:room.code});
+ assert.match((await denied.get(m=>m.t==='error')).message,/closed/);
+ a.send({t:'gallery',open:true});const gallery=await a.get(m=>m.t==='gallery');assert.notEqual(gallery.code,room.code);
+ const spectator=await open();spectator.send({t:'watch',code:gallery.code});await spectator.get(m=>m.t==='watching');
+ const watched=await spectator.get(m=>m.t==='state'&&!m.s.ready);assert.equal(watched.ack,undefined);
+ spectator.send({t:'input',x:1,y:0,act:'shot',seq:1});
+ const unchanged=await spectator.get(m=>m.t==='state'&&m.s.tick>watched.s.tick+12);
+ assert.equal(unchanged.s.p[0].x,watched.s.p[0].x);assert.equal(unchanged.s.p[0].ammo,3);
  const state=await a.get(m=>m.t==='state'&&!m.s.ready);
  b.send({t:'input',x:-1,y:0,act:'',seq:1,hp:0});
  const moved=await a.get(m=>m.t==='state'&&m.s.p[1].x<state.s.p[1].x);assert.equal(moved.s.p[1].hp,100);assert.equal(moved.ack,0);
@@ -31,5 +39,12 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  await b.get(m=>m.t==='state'&&m.s.p[1].act==='hew'&&m.s.p[1].age>=5&&m.s.p[1].age<12);
  b.send({t:'input',x:0,y:0,act:'feint',seq:3});
  const feinted=await b.get(m=>m.t==='state'&&m.ack===3&&m.s.p[1].act==='feint');assert.equal(feinted.s.p[1].st,62);
- b.c.close();assert.match((await a.get(m=>m.t==='error')).message,/disconnected/);
+ a.send({t:'gallery',open:false});assert.equal((await a.get(m=>m.t==='gallery')).code,null);
+ assert.match((await spectator.get(m=>m.t==='error')).message,/closed/);
+ const revoked=await open();revoked.send({t:'watch',code:gallery.code});
+ assert.match((await revoked.get(m=>m.t==='error')).message,/closed/);
+ a.send({t:'gallery',open:true});const replacement=await a.get(m=>m.t==='gallery');
+ assert.notEqual(replacement.code,gallery.code);
+ const remaining=await open();remaining.send({t:'watch',code:replacement.code});await remaining.get(m=>m.t==='watching');
+ b.c.close();assert.match((await remaining.get(m=>m.t==='error')).message,/disconnected/);assert.match((await a.get(m=>m.t==='error')).message,/disconnected/);
 });

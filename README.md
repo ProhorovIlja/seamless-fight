@@ -13,3 +13,5 @@ Shared fixed-step ES modules and Canvas 2D keep the browser slice small; the Nod
 See [deployment](docs/DEPLOY.md) and [references and asset credits](ASSET_CREDITS.md). The prototype visuals are procedural original art, not final sprite animation.
 
 The **Duel lab** lets you practice a committed heavy, feint into cut, or pistol interrupt. Pick a starting distance or record up to six seconds as Cinder, then replay as Veil. Replay resets spacing and resources; the frame strip shows both fighters' simulated phases. This is local training, not online replay storage.
+
+The room host can open a **spectator gallery** for up to six viewers. Share the watch link rather than the player invite; viewers cannot move fighters or vote on rematches. Closing the gallery disconnects viewers and invalidates the link. Opening it again issues a different link. Watch links grant live access to anyone who receives them; there is no public directory or broadcast delay.

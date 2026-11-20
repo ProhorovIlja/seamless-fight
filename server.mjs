@@ -15,7 +15,9 @@ const assets = new Map([
   ['lab.mjs',['lab.mjs','text/javascript']],
   ['audio.mjs',['audio.mjs','text/javascript']]
 ].map(([path,[file,type]])=>['/fight/'+path,[readFileSync(new URL('./public/'+file,import.meta.url)),type]]));
-const rooms=new Map();
+const rooms=new Map(), galleries=new Map();
+const MAX_VIEWERS=6;
+const token=()=>randomBytes(9).toString('base64url');
 const origin=process.env.PUBLIC_ORIGIN;
 const http=createServer((req,res)=>{
   const path=req.url?.split('?')[0];
@@ -35,7 +37,13 @@ http.on('upgrade',(req,socket,head)=>{
   }
   ws.handleUpgrade(req,socket,head,c=>ws.emit('connection',c));
 });
-function send(c,o){if(c.readyState===1){if(c.bufferedAmount>65536)c.terminate();else c.send(JSON.stringify(o));}}
+function send(c,o){if(c.readyState===1){if(c.bufferedAmount>65536)c.terminate();else c.send(typeof o==='string'?o:JSON.stringify(o));}}
+function closeGallery(r,message){
+  if(r.watchCode)galleries.delete(r.watchCode);
+  r.watchCode=null;
+  for(const viewer of r.viewers){send(viewer,{t:'error',message});viewer.close(1000);}
+  r.viewers.clear();
+}
 function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.votes.clear();for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
 ws.on('connection',c=>{
   let room, slot, quota=0, quotaAt=performance.now();
@@ -49,11 +57,18 @@ ws.on('connection',c=>{
     let m;try{m=JSON.parse(data);}catch{return;}
     if(!m||typeof m!=='object')return;
     if(!room){
+      if(m.t==='watch'){
+        const target=typeof m.code==='string'&&galleries.get(m.code);
+        if(!target||target.viewers.size>=MAX_VIEWERS){send(c,{t:'error',message:'Gallery is full or closed.'});c.close(1008);return;}
+        clearTimeout(deadline);room=target;slot=-1;room.viewers.add(c);
+        send(c,{t:'watching'});if(room.peers.length===2)send(c,{t:'state',s:room.s});
+        return;
+      }
       if(m.t!=='hello')return;
       if(m.code==null){
         if(rooms.size>=96){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
-        let code;do{code=randomBytes(9).toString('base64url');}while(rooms.has(code));
-        room={code,peers:[],votes:new Set(),s:match(),at:now};rooms.set(code,room);
+        let code;do{code=token();}while(rooms.has(code)||galleries.has(code));
+        room={code,peers:[],viewers:new Set(),watchCode:null,votes:new Set(),s:match(),at:now};rooms.set(code,room);
       }else{
         const existing=typeof m.code==='string'&&rooms.get(m.code);
         if(!existing||existing.peers.length!==1){send(c,{t:'error',message:'Room is full or no longer exists.'});c.close(1008);return;}
@@ -64,6 +79,14 @@ ws.on('connection',c=>{
       return;
     }
     if(m.t==='ping'&&Number.isFinite(m.id)){send(c,{t:'pong',id:m.id});return;}
+    if(slot===-1)return;
+    if(slot===0&&m.t==='gallery'&&typeof m.open==='boolean'){
+      if(m.open&&!room.watchCode){
+        let code;do{code=token();}while(galleries.has(code)||rooms.has(code));
+        room.watchCode=code;galleries.set(code,room);
+      }else if(!m.open&&room.watchCode)closeGallery(room,'The host closed the gallery.');
+      send(c,{t:'gallery',code:room.watchCode});return;
+    }
     if(m.t==='rematch'&&room.s.over){room.votes.add(slot);if(room.votes.size===2)reset(room);else for(const p of room.peers)send(p,{t:'vote',slot});return;}
     if(m.t!=='input'||![-1,0,1].includes(m.x)||![-1,0,1].includes(m.y)||!Number.isSafeInteger(m.seq)||m.seq<=c.seq)return;
     c.seq=m.seq;
@@ -72,7 +95,10 @@ ws.on('connection',c=>{
     if(['cut','hew','shot','step'].includes(m.act)&&c.actions.length<3)c.actions.push({act:m.act,until:now+110});
   });
   c.on('close',()=>{
-    clearTimeout(deadline);if(!room||!rooms.delete(room.code))return;
+    clearTimeout(deadline);if(!room)return;
+    if(slot===-1){room.viewers.delete(c);return;}
+    if(!rooms.delete(room.code))return;
+    closeGallery(room,'The duel ended because a fighter disconnected.');
     for(const other of room.peers)if(other!==c){send(other,{t:'error',message:'Opponent disconnected. Create a new room.'});other.close(1000);}
   });
 });
@@ -97,7 +123,10 @@ setInterval(()=>{
         });
         step(r.s,inputs);
       }
-      if(ticks%3===0)for(const c of r.peers)send(c,{t:'state',s:r.s,ack:c.ack});
+      if(ticks%3===0){
+        for(const c of r.peers)send(c,{t:'state',s:r.s,ack:c.ack});
+        if(r.viewers.size){const frame=JSON.stringify({t:'state',s:r.s});for(const viewer of r.viewers)send(viewer,frame);}
+      }
     }
   }
   if(now-next>dt*4)next=now+dt;

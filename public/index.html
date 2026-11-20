@@ -3,6 +3,7 @@
 <title>Seamless Fight — Lantern Court</title><link rel="stylesheet" href="./style.css"><script type="module" src="./game.mjs"></script></head>
 <body><main><header><p>SEAMLESS HUNT / DUEL SERIES</p><h1>Seamless Fight</h1><p>LANTERN COURT · PRIVATE DUEL / 01</p></header>
 <section class="controls" aria-label="Match controls"><button id="practice">Practice</button><select id="drill" aria-label="Practice opponent"><option value="duelist">Sparring partner</option><option value="evasions">Evasion drill</option><option value="dummy">Still target</option></select><button id="online">Create online room</button><button id="copy" hidden>Copy invite</button><button id="rematch" hidden>Rematch</button><button id="sound" aria-pressed="false">Sound off</button><input id="invite" readonly hidden aria-label="Invite link"></section>
+<section id="gallery" class="controls" aria-label="Spectator invitations" hidden><button id="gallery-toggle" aria-expanded="false">Open gallery</button><button id="watch-copy" hidden>Copy watch link</button><input id="watch-link" readonly hidden aria-label="Read-only watch link"></section>
 <p id="status" role="status">Choose practice or invite an opponent.</p>
 <canvas width="960" height="540" id="arena" aria-label="Lantern Court duel arena">The duel requires Canvas support.</canvas>
 <footer>WASD / ARROWS <b>Move</b> · J <b>Cut</b> · K <b>Hew</b> · L <b>Pistol</b> · I <b>Feint heavy</b> · SPACE <b>Quickstep</b></footer>

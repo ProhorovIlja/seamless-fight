@@ -20,9 +20,10 @@ const vignette=b.createRadialGradient(480,280,150,480,280,540);vignette.addColor
 const status=t=>{$('status').textContent=t;};
 let s=match(), prev=null, at=0, mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null;
 const audio=createAudio(), flashes=[0,0];
+let watching=false, watchLink=null;
 let seq=0,pending=[],predicted=null,correction={x:0,y:0};
 function sendInput(input){
- if(ws?.readyState!==1||ws.bufferedAmount>=2048)return;
+ if(watching||ws?.readyState!==1||ws.bufferedAmount>=2048)return;
  const cmd={...input,seq:++seq};ws.send(JSON.stringify({t:'input',...cmd}));
  if(mode==='online'&&playable(s)){
    pending.push(cmd);if(pending.length>HISTORY_LIMIT)pending.shift();
@@ -35,10 +36,10 @@ function read(){const on=(a,b)=>Number(pressed.has(a)||pressed.has(b));const i={
 function flush(){pressed.clear();action='';sendInput(blank());}
 addEventListener('blur',flush);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)flush();});
-addEventListener('keydown',e=>{if(e.target.matches?.('input,button,select')||!mode)return;if(moveKeys.includes(e.code)||keys[e.code])e.preventDefault();if(!e.repeat&&keys[e.code])action=keys[e.code];pressed.add(e.code);});
+addEventListener('keydown',e=>{if(e.target.matches?.('input,button,select')||!mode||watching)return;if(moveKeys.includes(e.code)||keys[e.code])e.preventDefault();if(!e.repeat&&keys[e.code])action=keys[e.code];pressed.add(e.code);});
 addEventListener('keyup',e=>pressed.delete(e.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
-function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;watching=false;ping=0;$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -96,15 +97,30 @@ addEventListener('keydown',e=>{
  if(e.code==='KeyT'){e.preventDefault();replayLab();}
  if(e.code==='KeyR'&&labKind==='record'){e.preventDefault();stopLab();}
 });
-function online(code){
- leave();mode='connecting';status('Connecting to Lantern Court…');
+function setGallery(code){
+ watchLink=code;$('gallery-toggle').textContent=code?'Close gallery':'Open gallery';
+ $('gallery-toggle').setAttribute('aria-expanded',String(Boolean(code)));
+ const link=new URL('./',location.href);if(code)link.searchParams.set('watch',code);
+ $('watch-link').value=code?link.href:'';$('watch-link').hidden=$('watch-copy').hidden=!code;
+}
+$('gallery-toggle').onclick=()=>{if(ws?.readyState===1)ws.send(JSON.stringify({t:'gallery',open:!watchLink}));};
+$('watch-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('watch-link').value);status('Watch link copied.');}catch{$('watch-link').focus();$('watch-link').select();}};
+function online(code,watch=false){
+ leave();watching=watch;mode='connecting';status('Connecting to Lantern Court…');
  const url=new URL('./socket',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';
  const c=ws=new WebSocket(url);
- c.onopen=()=>c.send(JSON.stringify({t:'hello',code}));
+ c.onopen=()=>c.send(JSON.stringify({t:watch?'watch':'hello',code}));
  c.onmessage=e=>{
    if(c!==ws)return;const m=JSON.parse(e.data);
    if(m.t==='room'){
-     slot=m.slot;const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
+     slot=m.slot;$('gallery').hidden=slot!==0;const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
+   }
+   if(m.t==='gallery')setGallery(m.code);
+   if(m.t==='watching'){slot=-1;mode='spectate';status('Spectating · waiting for both fighters.');}
+   if(m.t==='state'&&watching){
+     prev=m.s.tick>s.tick&&m.s.round===s.round&&m.s.ready<=s.ready?s:null;
+     if(s.tick===0)status('Spectating live · read-only.');
+     at=performance.now();s=m.s;feedback(s);return;
    }
    if(m.t==='state'){prev=m.s.tick>=s.tick&&m.s.round===s.round?s:null;at=performance.now();if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
      const continuous=mode==='online'&&playable(s)&&playable(m.s)&&m.s.round===s.round&&m.s.tick>s.tick;
@@ -143,7 +159,8 @@ function feedback(state){
  }
  lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age})=>({hp,act,age}))};
 }
-const invite=new URLSearchParams(location.search).get('room');if(invite&&/^[\w-]{12}$/.test(invite))online(invite);
+const params=new URLSearchParams(location.search), watch=params.get('watch'), invite=params.get('room');
+if(watch&&/^[\w-]{12}$/.test(watch))online(watch,true);else if(invite&&/^[\w-]{12}$/.test(invite))online(invite);
 setInterval(()=>{if(ws?.readyState===1)ws.send(JSON.stringify({t:'ping',id:performance.now()}));},2000);
 for(const [label,id] of [['Cut','cut'],['Hew','hew'],['Pistol','shot'],['Quickstep','step'],['Feint recovery','feint']]){
  const row=$('frames').insertRow();for(const value of [label,...moves[id].slice(0,4)])row.insertCell().textContent=value;
@@ -187,7 +204,7 @@ function render(now){
  for(let i=0;i<2;i++)flashes[i]=Math.max(0,flashes[i]-elapsed/220);
  g.drawImage(bg,0,0);
  if(!reduced){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=i%3?'#e3d6dc1d':'#e7a16082';g.fillRect(x,y,2,2);}}
- const blend=mode==='online'&&prev?Math.min(1,(now-at)/50):1;
+ const blend=(mode==='online'||mode==='spectate')&&prev?Math.min(1,(now-at)/50):1;
  const decay=Math.exp(-elapsed/43);correction.x*=decay;correction.y*=decay;
  const poses=s.p.map((p,i)=>({p,i,x:prev?prev.p[i].x+(p.x-prev.p[i].x)*blend:p.x,y:prev?prev.p[i].y+(p.y-prev.p[i].y)*blend:p.y})).map(o=>mode==='online'&&o.i===slot&&predicted?{...o,x:predicted.x+correction.x,y:predicted.y+correction.y}:o).sort((a,b)=>a.y-b.y);
  for(const {p,i,x,y} of poses){
@@ -204,12 +221,14 @@ function render(now){
    for(let j=0;j<trace.length;j++)for(let i=0;i<2;i++){g.fillStyle=palette[trace[j][i]];g.fillRect(287+(TIMELINE-trace.length+j)*4,498+i*10,3,7);}
    g.font='13px system-ui';g.fillStyle='#f3dfbc';g.fillText((labKind==='record'?'REC ':'DRILL ')+labTick+(labKind==='record'?'/'+MAX_TAPE:'')+(labNote?'  ·  '+labNote:''),480,478);
  }
+ if(mode==='spectate'){g.font='13px system-ui';g.fillText('SPECTATING',480,59);}
  if(mode==='online'){g.font='13px system-ui';g.fillText(ping?ping+' ms RTT':'ONLINE',480,59);}
  let msg='';
  if(mode==='connecting')msg='Waiting for challenger';
- else if(mode&&mode!=='lab'){if(s.over)msg=s.winner===slot?'Victory':'Defeat';else if(s.end)msg=s.winner<0?'Draw':s.winner===slot?'Round won':'Round lost';else if(s.ready)msg='Round '+s.round+'  /  '+Math.ceil(s.ready/HZ);}
+ else if(mode==='spectate'&&s.tick===0)msg='Waiting for fighters';
+ else if(mode&&mode!=='lab'){if(s.over)msg=watching?(s.winner===0?'Veil wins':'Cinder wins'):s.winner===slot?'Victory':'Defeat';else if(s.end)msg=s.winner<0?'Draw':watching?(s.winner===0?'Veil takes the round':'Cinder takes the round'):s.winner===slot?'Round won':'Round lost';else if(s.ready)msg='Round '+s.round+'  /  '+Math.ceil(s.ready/HZ);}
  if(msg){g.fillStyle='#13101bd4';g.fillRect(250,222,460,76);g.fillStyle='#f5ddaf';g.font='36px Georgia';g.fillText(msg,480,270);}
- $('rematch').hidden=!s.over;
+ $('rematch').hidden=watching||!s.over;
  requestAnimationFrame(render);
 }
 requestAnimationFrame(render);

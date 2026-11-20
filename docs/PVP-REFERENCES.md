@@ -10,3 +10,5 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - [Ikemen GO replay issue](https://github.com/ikemen-engine/Ikemen-GO/issues/3457): a reminder to regression-test replay reconstruction. Local drill playback is not online rollback or a match replay format.
 
 - [Tekken 8: My Replays & Tips](https://tk8.tekken-official.jp/en/mode/replay.php): retry a specific moment rather than restart the entire practice sequence. Duel Lab reconstructs the chosen tick from the original inputs, then replaces only Veil’s future inputs. Cinder keeps following the same tape, not reacting as a human would. This is a short local drill, not a saved online match; a future match replay format needs simulation versioning and tests across updates.
+
+- [Brawlhalla custom-lobby spectating](https://www.brawlhalla.com/news/battle-pass-season-11-patch-9-04): keep watching separate from fighter participation. Seamless Fight uses distinct, revocable watch links and a bounded read-only gallery. No third-party code or assets were imported.
