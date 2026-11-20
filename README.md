@@ -93,3 +93,5 @@ Competitive best-of-three set rules are documented in [the set policy](docs/COMP
 The Canvas HUD displays a compact gold-and-slate competitive-set badge (current game and games won) while the surrounding interface shows completed game archives. Private room creation is explicitly labeled *Create player room* to distinguish unlimited mutual rematches from the capped competitive set.
 
 Private and casual rematch votes are explicitly unlimited and are never permitted to advance or settle competitive sets. Exporting a previously finished competitive game preserves its game number in the JSON and uses a distinct filename, while legacy replays and ordinary online captures retain their original names and format.
+
+After an unrated competitive BO3 set ends, a **Find next competitive set** control exits the finished room and resumes practice-while-queued matchmaking without making players manually return to the main menu. Ranked points remain disabled, and completed match replay exports should be downloaded before leaving the old room.

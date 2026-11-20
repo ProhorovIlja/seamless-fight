@@ -94,3 +94,5 @@ details summary{letter-spacing:.035em}
 #set-replay-controls{justify-content:center;margin:.6rem 0}
 .set-note{color:#aea590;font-size:.83rem;line-height:1.5;margin:.4rem auto}
 @media(max-width:600px){.queue-format-label{width:100%}.set-panel{padding:.6rem}}
+
+#set-next{margin:.35rem auto;border-color:#c9a86a88;color:var(--hunt-gold);background:#1a2029;font-family:var(--hunt-serif)}#set-next:hover{background:#30323b}

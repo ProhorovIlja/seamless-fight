@@ -345,6 +345,7 @@ $('queue-format').onchange=()=>{
 queueLabel();
 function showSet(phase='',nextIn=0){
  $('set-panel').hidden=!competitive||!setState;
+ $('set-next').hidden=!competitive||!setState?.complete;
  if(!competitive||!setState)return;
  const score=setState.wins.join(' – ');
  $('set-title').textContent='Competitive BO3 · '+score+' games';
@@ -367,6 +368,11 @@ function showSet(phase='',nextIn=0){
  }
  $('set-replay-controls').hidden=slot<0||setState.games===0;
 }
+$('set-next').onclick=()=>{
+ if(!competitive||!setState?.complete)return;
+ prefs.setFormat='set-preview';$('queue-format').value=prefs.setFormat;persist();queueLabel();
+ leave();mode='';queue();
+};
 $('set-load-replay').onclick=()=>{
  if(ws?.readyState===1&&competitive&&slot>=0){
    ws.send(JSON.stringify({t:'replay',game:Number($('set-game').value)}));
@@ -517,7 +523,8 @@ function feedback(state,confirmed){
 }
 function loadCapture(data){
  const clip={rules:data.rules,tape:data.tape,arena:arenaId(data.arena),outfits:pair(data.outfits)};
- const setGame=Number.isSafeInteger(data.game)&&data.game>=1&&data.game<=5?data.game:null;
+ const archivedGame=Number.isSafeInteger(data.setGame)?data.setGame:data.game;
+ const setGame=Number.isSafeInteger(archivedGame)&&archivedGame>=1&&archivedGame<=5?archivedGame:null;
  if(setGame)clip.setGame=setGame;
  const view=createReview(clip);
  view.arena=clip.arena;view.outfits=clip.outfits;
