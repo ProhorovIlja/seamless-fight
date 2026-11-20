@@ -24,8 +24,9 @@ export function sideDepthCamera(state){
  if(!Array.isArray(p)||p.length!==2)return Object.freeze({far:0,mid:0,near:0,focus:480});
  const left=Number.isFinite(p[0]?.x)?p[0].x:480,right=Number.isFinite(p[1]?.x)?p[1].x:480;
  const focus=clamp((left+right)*.5,120,840);
- const shift=(focus-480);
- return {focus,far:-shift*.045,mid:-shift*.095,near:-shift*.16};
+ const shift=focus-480;
+ // Canonical +0 avoids needless camera differences in serialized tests.
+ return {focus,far:shift===0?0:-shift*.045,mid:shift===0?0:-shift*.095,near:shift===0?0:-shift*.16};
 }
 function roundedVault(g,cx,top,w,h,stroke){
  g.beginPath();g.moveTo(cx-w/2,top+h);
