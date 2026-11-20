@@ -53,6 +53,8 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  assert.deepEqual(rankedPair.map(m=>m.format),['set-preview','set-preview']);
  assert.deepEqual(rankedPair.map(m=>m.set),[{games:0,wins:[0,0],draws:0,complete:false,winner:null,reason:'in-progress'},{games:0,wins:[0,0],draws:0,complete:false,winner:null,reason:'in-progress'}]);
  assert.equal(rankedPair[0].code,null);
+ ranked1.send({t:'replay',game:1});
+ assert.match((await ranked1.get(m=>m.t==='notice')).message,/unlock after the set concludes/);
  ranked1.send({t:'rematch'});
  assert.equal((await ranked1.get(m=>m.t==='state')).set,undefined,'per-game state is not a rating verdict');
  ranked1.c.close();await ranked2.get(m=>m.t==='error');

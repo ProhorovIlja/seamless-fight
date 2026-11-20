@@ -366,7 +366,7 @@ function showSet(phase='',nextIn=0){
    }
    if(setState.games)select.value=String(setState.games);
  }
- $('set-replay-controls').hidden=slot<0||setState.games===0;
+ $('set-replay-controls').hidden=slot<0||!setState.complete||setState.games===0;
 }
 $('set-next').onclick=()=>{
  if(!competitive||!setState?.complete)return;

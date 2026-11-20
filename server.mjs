@@ -180,6 +180,9 @@ ws.on('connection',c=>{
     if(m.t==='ping'&&Number.isFinite(m.id)){send(c,{t:'pong',id:m.id});return;}
     if(slot===-1)return;
     if(m.t==='replay'){
+      if(room.format==='set-preview'&&!room.set.complete){
+        send(c,{t:'notice',message:'Competitive set replays unlock after the set concludes.'});return;
+      }
       if(room.peers.length===2&&(room.tape.length||room.archive.length)&&now-(c.lastReplay??-Infinity)>1500){
         const game=Number.isSafeInteger(m.game)?m.game:null;
         const archived=room.format==='set-preview'&&game!==null?room.archive[game-1]:null;
