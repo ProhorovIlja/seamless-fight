@@ -95,8 +95,20 @@ try{
  assert.equal(await viewer.locator('#arena').evaluate(el=>el.width),1920);assert(await viewer.locator('#rematch').isHidden());
  await host.locator('#gallery-toggle').click();
  await status(viewer,/host closed the gallery/);
+ await host.locator('#match-review summary').click();
+ await host.locator('#capture').click();
+ await until(async()=>await host.locator('#review-open').isEnabled(),'authoritative replay captured');
+ const downloadEvent=host.waitForEvent('download');
+ await host.locator('#review-save').click();
+ assert.equal((await downloadEvent).suggestedFilename(),'seamless-fight-replay.json');
  await guest.close();
  await status(host,/Opponent disconnected/);
+ await host.locator('#review-open').click();
+ await status(host,/Online match review/);
+ await host.locator('#review-step').click();
+ assert.match(await host.locator('#review-tick').textContent(),/^Tick 1 /);
+ await host.locator('#review-veil').click();
+ await until(async()=>!/^Tick 1 /.test(await host.locator('#review-tick').textContent()),'match takeover advances');
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}

@@ -5,6 +5,8 @@ import { performance } from 'node:perf_hooks';
 import { WebSocketServer } from 'ws';
 import { HZ, blank, match, step, canFeint, canAct } from './public/engine.mjs';
 
+import {RULESET,MAX_TICKS,packTick} from './public/replay.mjs';
+
 const assets = new Map([
   ['', ['index.html','text/html; charset=utf-8']],
   ['style.css',['style.css','text/css']],
@@ -13,7 +15,8 @@ const assets = new Map([
   ['prediction.mjs',['prediction.mjs','text/javascript']],
   ['tactics.mjs',['tactics.mjs','text/javascript']],
   ['lab.mjs',['lab.mjs','text/javascript']],
-  ['audio.mjs',['audio.mjs','text/javascript']]
+  ['audio.mjs',['audio.mjs','text/javascript']],
+  ['replay.mjs',['replay.mjs','text/javascript']]
 ].map(([path,[file,type]])=>['/fight/'+path,[readFileSync(new URL('./public/'+file,import.meta.url)),type]]));
 const rooms=new Map(), galleries=new Map();
 const MAX_VIEWERS=6;
@@ -44,7 +47,7 @@ function closeGallery(r,message){
   for(const viewer of r.viewers){send(viewer,{t:'error',message});viewer.close(1000);}
   r.viewers.clear();
 }
-function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.votes.clear();for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
+function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.tape=[];r.votes.clear();for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
 ws.on('connection',c=>{
   let room, slot, quota=0, quotaAt=performance.now();
   c.alive=true;c.input=blank();c.actions=[];c.cancel=false;c.at=0;c.seq=0;c.ack=0;
@@ -68,7 +71,7 @@ ws.on('connection',c=>{
       if(m.code==null){
         if(rooms.size>=96){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
         let code;do{code=token();}while(rooms.has(code)||galleries.has(code));
-        room={code,peers:[],viewers:new Set(),watchCode:null,votes:new Set(),s:match(),at:now};rooms.set(code,room);
+        room={code,peers:[],viewers:new Set(),watchCode:null,tape:[],votes:new Set(),s:match(),at:now};rooms.set(code,room);
       }else{
         const existing=typeof m.code==='string'&&rooms.get(m.code);
         if(!existing||existing.peers.length!==1){send(c,{t:'error',message:'Room is full or no longer exists.'});c.close(1008);return;}
@@ -80,6 +83,12 @@ ws.on('connection',c=>{
     }
     if(m.t==='ping'&&Number.isFinite(m.id)){send(c,{t:'pong',id:m.id});return;}
     if(slot===-1)return;
+    if(m.t==='replay'){
+      if(room.peers.length===2&&room.tape.length&&now-(c.lastReplay??-Infinity)>1500){
+        c.lastReplay=now;send(c,{t:'replay',rules:RULESET,tape:room.tape.join('')});
+      }
+      return;
+    }
     if(slot===0&&m.t==='gallery'&&typeof m.open==='boolean'){
       if(m.open&&!room.watchCode){
         let code;do{code=token();}while(galleries.has(code)||rooms.has(code));
@@ -121,6 +130,7 @@ setInterval(()=>{
           if(!live)c.actions.length=0;
           return {...(now-c.at<260?c.input:blank()),act};
         });
+        if(r.tape.length<MAX_TICKS)r.tape.push(packTick(inputs));
         step(r.s,inputs);
       }
       if(ticks%3===0){

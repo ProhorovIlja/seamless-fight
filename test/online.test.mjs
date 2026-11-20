@@ -4,6 +4,7 @@ import {spawn} from 'node:child_process';
 import {createServer} from 'node:net';
 import {once} from 'node:events';
 import WebSocket from 'ws';
+import {createReview} from '../public/replay.mjs';
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
 test('health, origin rejection, private invite, authoritative snapshots and disconnect', {timeout:10000},async t=>{
  const probe=createServer().listen(0,'127.0.0.1');await once(probe,'listening');const port=probe.address().port;await new Promise(r=>probe.close(r));
@@ -39,6 +40,11 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  await b.get(m=>m.t==='state'&&m.s.p[1].act==='hew'&&m.s.p[1].age>=5&&m.s.p[1].age<12);
  b.send({t:'input',x:0,y:0,act:'feint',seq:3});
  const feinted=await b.get(m=>m.t==='state'&&m.ack===3&&m.s.p[1].act==='feint');assert.equal(feinted.s.p[1].st,62);
+ b.send({t:'replay'});
+ const capture=await b.get(m=>m.t==='replay'), review=createReview(capture);
+ const restored=review.at(review.total);assert.equal(restored.p[1].ammo,3);
+ assert.equal(restored.p[1].act,'feint');assert.equal(restored.p[1].st,62);
+ assert(restored.p[1].x<688);assert.equal(review.complete,false);
  a.send({t:'gallery',open:false});assert.equal((await a.get(m=>m.t==='gallery')).code,null);
  assert.match((await spectator.get(m=>m.t==='error')).message,/closed/);
  const revoked=await open();revoked.send({t:'watch',code:gallery.code});

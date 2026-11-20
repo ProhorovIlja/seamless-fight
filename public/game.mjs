@@ -3,6 +3,7 @@ import {HISTORY_LIMIT,playable,reconcile} from './prediction.mjs';
 import {trainingInput} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges} from './audio.mjs';
+import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -51,7 +52,9 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)flush();});
 addEventListener('keydown',e=>{if(e.target.matches?.('input,button,select')||!mode||watching)return;if(moveKeys.includes(e.code)||keys[e.code])e.preventDefault();if(!e.repeat&&keys[e.code])action=keys[e.code];pressed.add(e.code);});
 addEventListener('keyup',e=>pressed.delete(e.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
-function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;watching=false;ping=0;$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
+const reviewInfo=msg=>{$('review-info').textContent=msg;};
+function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -127,6 +130,7 @@ function online(code,watch=false){
    if(m.t==='room'){
      slot=m.slot;$('gallery').hidden=slot!==0;const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
    }
+   if(m.t==='replay'){try{loadCapture(m);}catch(e){reviewInfo(e.message);}return;}
    if(m.t==='gallery')setGallery(m.code);
    if(m.t==='watching'){slot=-1;mode='spectate';status('Spectating · waiting for both fighters.');}
    if(m.t==='state'&&watching){
@@ -136,7 +140,7 @@ function online(code,watch=false){
    }
    if(m.t==='state'){prev=m.s.tick>=s.tick&&m.s.round===s.round?s:null;at=performance.now();if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
      const continuous=mode==='online'&&playable(s)&&playable(m.s)&&m.s.round===s.round&&m.s.tick>s.tick;
-     mode='online';s=m.s;feedback(s);
+     mode='online';s=m.s;$('capture').disabled=false;feedback(s);
      const next=reconcile(s,slot,continuous?pending:[],m.ack);pending=next.pending;predicted=next.p;
      const dx=old?old.x+correction.x-predicted.x:0,dy=old?old.y+correction.y-predicted.y:0;
      correction=continuous&&!predicted.act&&Math.hypot(dx,dy)<28?{x:dx,y:dy}:{x:0,y:0};
@@ -170,6 +174,62 @@ function feedback(state){
    if(cue.index!==undefined)flashes[cue.index]=1;
  }
  lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age})=>({hp,act,age}))};
+}
+function loadCapture(data){
+ const clip={rules:data.rules,tape:data.tape}, view=createReview(clip);
+ capture=view;
+ if(saveUrl)URL.revokeObjectURL(saveUrl);
+ saveUrl=URL.createObjectURL(new Blob([JSON.stringify(clip)],{type:'application/json'}));
+ $('review-save').href=saveUrl;$('review-save').hidden=false;$('review-open').disabled=false;
+ reviewInfo(view.complete?'Completed match captured.':'Partial match captured · '+view.total+' ticks.');
+}
+$('capture').onclick=()=>{
+ if(mode!=='online'||ws?.readyState!==1)return;
+ ws.send('{"t":"replay"}');
+};
+$('review-file').onchange=async e=>{
+ const file=e.target.files[0];e.target.value='';if(!file)return;
+ try{
+   if(file.size>MAX_TICKS*2+512)throw Error('Replay file is too large.');
+   loadCapture(JSON.parse(await file.text()));
+ }catch(err){reviewInfo('Could not open replay: '+err.message);}
+};
+function syncReview(){
+ $('review-seek').value=reviewTick;$('review-tick').textContent='Tick '+reviewTick+' / '+review.total;
+ $('review-play').textContent=replayPlaying?'Pause':'Play';
+ $('review-play').disabled=reviewTick>=review.total;
+ $('review-step').disabled=replayPlaying||reviewTick>=review.total;
+ for(const id of ['review-veil','review-cinder'])$(id).disabled=replayPlaying||s.over||reviewTick>=review.total;
+}
+function seekReview(t){
+ s=review.at(t);reviewTick=t;replayPlaying=false;forkSlot=-1;
+ lastSound=null;flashes.fill(0);flush();syncReview();
+ reviewInfo('Reviewing original duel.');
+}
+$('review-open').onclick=()=>{
+ if(!capture)return;
+ if((mode==='online'||mode==='connecting'||mode==='spectate')&&!window.confirm('Leave the current room and open the replay?'))return;
+ leave();mode='review';review=capture;
+ $('review-seek').max=review.total;$('review-controls').hidden=false;seekReview(0);
+ status('Online match review · seek, step, or take over either fighter.');
+};
+$('review-seek').oninput=()=>seekReview(Number($('review-seek').value));
+$('review-play').onclick=()=>{
+ if(forkSlot>=0){const t=reviewTick;seekReview(t);}
+ replayPlaying=!replayPlaying;syncReview();
+};
+$('review-step').onclick=()=>seekReview(Math.min(review.total,reviewTick+1));
+for(const [id,i] of [['review-veil',0],['review-cinder',1]])$(id).onclick=()=>{
+ seekReview(reviewTick);forkSlot=i;replayPlaying=true;document.activeElement?.blur();syncReview();
+ reviewInfo('Takeover as '+(i?'Cinder':'Veil')+' · opponent follows recorded inputs.');
+};
+function reviewStep(){
+ if(!replayPlaying)return;
+ const inputs=review.inputs(reviewTick);
+ if(forkSlot>=0)inputs[forkSlot]=read();
+ step(s,inputs);reviewTick++;feedback(s);
+ if(s.over||reviewTick>=review.total){replayPlaying=false;reviewInfo(forkSlot>=0?'Takeover finished. Seek to retry.':'End of capture.');}
+ syncReview();
 }
 const params=new URLSearchParams(location.search), watch=params.get('watch'), invite=params.get('room');
 if(watch&&/^[\w-]{12}$/.test(watch))online(watch,true);else if(invite&&/^[\w-]{12}$/.test(invite))online(invite);
@@ -211,7 +271,7 @@ function bar(x,y,w,v,color){g.fillStyle='#171420';g.fillRect(x,y,w,8);g.fillStyl
 function render(now){
  const elapsed=Math.min(100,now-prevFrame);prevFrame=now;acc+=elapsed;
  let budget=5;
- while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){step(s,[read(),trainingInput(s,$('drill').value)]);feedback(s);}else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
+ while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){step(s,[read(),trainingInput(s,$('drill').value)]);feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  for(let i=0;i<2;i++)flashes[i]=Math.max(0,flashes[i]-elapsed/220);
  g.drawImage(bg,0,0);
@@ -226,7 +286,7 @@ function render(now){
      g.beginPath();g.ellipse(x,y+5,28+(reduced?0:(1-flashes[i])*17),17,0,0,Math.PI*2);g.stroke();g.restore();
    }
  }
- for(let i=0;i<2;i++){const p=s.p[i],x=i?674:36,c=i?'#e39774':'#8fc8c0';g.fillStyle=c;g.font='15px system-ui';g.textAlign='left';g.fillText((i?'CINDER':'VEIL')+' · '+s.score[i]+'   /   '+p.ammo+' SHOTS'+(i===(mode==='lab'&&labKind==='record'?1:slot)&&mode?'   /   YOU':''),x,27);bar(x,35,250,p.hp,c);bar(x,47,250,p.st,'#d1aa60');}
+ for(let i=0;i<2;i++){const p=s.p[i],x=i?674:36,c=i?'#e39774':'#8fc8c0';g.fillStyle=c;g.font='15px system-ui';g.textAlign='left';g.fillText((i?'CINDER':'VEIL')+' · '+s.score[i]+'   /   '+p.ammo+' SHOTS'+(i===(mode==='review'?forkSlot:mode==='lab'&&labKind==='record'?1:slot)&&mode?'   /   YOU':''),x,27);bar(x,35,250,p.hp,c);bar(x,47,250,p.st,'#d1aa60');}
  g.textAlign='center';g.fillStyle='#eee1c8';g.font='24px Georgia';g.fillText(String(Math.ceil(s.clock/HZ)),480,38);
  if(mode==='lab'){
    const palette=['#434454','#dbad66','#ed7869','#9b87be','#78cdb8','#e8dfaf'];
@@ -238,9 +298,9 @@ function render(now){
  let msg='';
  if(mode==='connecting')msg='Waiting for challenger';
  else if(mode==='spectate'&&s.tick===0)msg='Waiting for fighters';
- else if(mode&&mode!=='lab'){if(s.over)msg=watching?(s.winner===0?'Veil wins':'Cinder wins'):s.winner===slot?'Victory':'Defeat';else if(s.end)msg=s.winner<0?'Draw':watching?(s.winner===0?'Veil takes the round':'Cinder takes the round'):s.winner===slot?'Round won':'Round lost';else if(s.ready)msg='Round '+s.round+'  /  '+Math.ceil(s.ready/HZ);}
+ else if(mode&&mode!=='lab'&&mode!=='review'){if(s.over)msg=watching?(s.winner===0?'Veil wins':'Cinder wins'):s.winner===slot?'Victory':'Defeat';else if(s.end)msg=s.winner<0?'Draw':watching?(s.winner===0?'Veil takes the round':'Cinder takes the round'):s.winner===slot?'Round won':'Round lost';else if(s.ready)msg='Round '+s.round+'  /  '+Math.ceil(s.ready/HZ);}
  if(msg){g.fillStyle='#13101bd4';g.fillRect(250,222,460,76);g.fillStyle='#f5ddaf';g.font='36px Georgia';g.fillText(msg,480,270);}
- $('rematch').hidden=watching||!s.over;
+ $('rematch').hidden=watching||mode==='review'||!s.over;
  requestAnimationFrame(render);
 }
 requestAnimationFrame(render);
