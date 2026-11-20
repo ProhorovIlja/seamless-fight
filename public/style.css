@@ -11,3 +11,5 @@ select{border:1px solid #856c59;border-radius:4px;background:#221d24;color:#f1e4
 .inspector{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.inspector>div{background:#171520;padding:.8rem}.inspector output{display:block;margin:.45rem 0;color:#e6c899}.inspector pre{font-size:.85rem;white-space:pre-wrap;min-height:4em}
 
 #look-preview{width:112px;height:64px;box-shadow:none;background:#161520}#wardrobe input[type=checkbox]{justify-self:start}
+
+#arena{border-color:#a27a53;border-radius:3px}header{padding-bottom:.6rem}#arena-title{display:inline-block;padding:.36rem 1.3rem;border-block:1px solid #806243;background:#211923;color:#f3d6a7}#status{padding:.45rem .8rem;border-inline:2px solid #9e7954;background:#1c1620;color:#eedbc3}.controls label{display:inline-flex;align-items:center;gap:.5rem}details>p:has(#music){display:flex;flex-wrap:wrap;gap:.65rem 1.15rem}details>p:has(#music) label{display:inline-flex;gap:.4rem;align-items:center}

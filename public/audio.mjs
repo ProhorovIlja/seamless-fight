@@ -1,3 +1,4 @@
+import {scorePCM,exertionPCM} from './score.mjs';
 import {moves} from './engine.mjs';
 
 // Original synthesized sound bank. No sample downloads or per-frame synthesis.
@@ -41,13 +42,17 @@ export function soundChanges(before,after){
  return out;
 }
 export function createAudio(Context=globalThis.AudioContext){
- let ctx,master,effects,ambience,wind,enabled=false,arena='lantern';
+ let ctx,master,effects,ambience,music,voice,pulseGain,wind,enabled=false,arena='lantern',score=[],intensity=0;
+ const scores=new Map();
  const beds=new Map();
  const bank=new Map(),playing=new Set();
  const set=(node,value)=>node.gain.setTargetAtTime(value,ctx.currentTime,.025);
  function build(){
    ctx=new Context({latencyHint:'interactive'});
    master=ctx.createGain();effects=ctx.createGain();ambience=ctx.createGain();
+   music=ctx.createGain();voice=ctx.createGain();pulseGain=ctx.createGain();
+   pulseGain.connect(music);music.connect(master);voice.connect(effects);
+   music.gain.value=.22;voice.gain.value=.35;pulseGain.gain.value=0;
    const compressor=ctx.createDynamicsCompressor();
    compressor.threshold.value=-16;compressor.ratio.value=5;
    effects.connect(compressor);ambience.connect(compressor);compressor.connect(master);master.connect(ctx.destination);
@@ -56,6 +61,20 @@ export function createAudio(Context=globalThis.AudioContext){
      const data=synth(name,ctx.sampleRate), buffer=ctx.createBuffer(1,data.length,ctx.sampleRate);
      buffer.copyToChannel(data,0);bank.set(name,buffer);
    }
+   for(const [i,name] of ['grunt-low','grunt-high'].entries()){
+     const pcm=exertionPCM(ctx.sampleRate,Boolean(i)),buf=ctx.createBuffer(1,pcm.length,ctx.sampleRate);buf.copyToChannel(pcm,0);bank.set(name,buf);
+   }
+ }
+ function stopScore(){for(const source of score){source.stop();source.disconnect();}score=[];}
+ function startScore(){
+   if(score.length)return;
+   let buffers=scores.get(arena);
+   if(!buffers){
+     buffers=['drone','pulse'].map(layer=>{const pcm=scorePCM(ctx.sampleRate,arena,layer),buf=ctx.createBuffer(1,pcm.length,ctx.sampleRate);buf.copyToChannel(pcm,0);return buf;});
+     scores.set(arena,buffers);
+   }
+   const when=ctx.currentTime+.02;
+   score=buffers.map((buffer,i)=>{const source=ctx.createBufferSource();source.buffer=buffer;source.loop=true;source.connect(i?pulseGain:music);source.start(when);return source;});
  }
  function startWind(){
    if(wind)return;
@@ -76,19 +95,20 @@ export function createAudio(Context=globalThis.AudioContext){
  return {
    setArena(value){
      if(value===arena)return;
-     arena=value;if(wind){wind.stop();wind.disconnect();wind=null;}if(enabled)startWind();
+     arena=value;stopScore();if(wind){wind.stop();wind.disconnect();wind=null;}if(enabled){startWind();startScore();}
    },
    async enable(){
      if(!Context)return false;
-     try{if(!ctx)build();await ctx.resume();enabled=ctx.state==='running';if(enabled){startWind();set(master,.7);}return enabled;}
+     try{if(!ctx)build();await ctx.resume();enabled=ctx.state==='running';if(enabled){startWind();startScore();set(master,.7);}return enabled;}
      catch{return false;}
    },
    mute(){enabled=false;if(ctx)set(master,0);},
-   mix(sfx,bed){if(ctx){set(effects,sfx);set(ambience,bed);}},
+   mix(sfx,bed,scoreLevel,grunts){if(ctx){set(effects,sfx);set(ambience,bed);set(music,scoreLevel);set(voice,grunts);}},
+   tension(n){if(n===intensity)return;intensity=n;if(ctx)pulseGain.gain.setTargetAtTime(n,ctx.currentTime,.35);},
    play(name,x){
      if(!enabled||ctx.state!=='running'||playing.size>=12||!bank.has(name))return;
      const source=ctx.createBufferSource(),pan=ctx.createStereoPanner();
-     source.buffer=bank.get(name);pan.pan.value=Math.max(-.65,Math.min(.65,(x-480)/480));source.connect(pan);pan.connect(effects);
+     source.buffer=bank.get(name);pan.pan.value=Math.max(-.65,Math.min(.65,(x-480)/480));source.connect(pan);pan.connect(name.startsWith('grunt-')?voice:effects);
      playing.add(source);source.onended=()=>{playing.delete(source);source.disconnect();pan.disconnect();};source.start();
    }
  };

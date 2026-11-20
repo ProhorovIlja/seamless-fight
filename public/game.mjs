@@ -11,6 +11,7 @@ import {logInput,describe,eventLabel} from './analysis.mjs';
 import {dyes,sigils,outfit,pair,paintOutfit} from './wardrobe.mjs';
 import {footwork} from './footwork.mjs';
 const remoteMotion=footwork();
+import {drawHUD,drawImpact,drawMail,paintAtmosphere} from './presentation.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -94,7 +95,7 @@ function cancelBinding(){if(binding){binding='';$('bind-status').textContent='Bi
 $('input-settings').addEventListener('toggle',()=>{if(!$('input-settings').open)cancelBinding();});
 $('reset-keys').onclick=()=>{cancelBinding();prefs.keys={...DEFAULT_KEYS};persist();refresh();$('bind-status').textContent='Default keys restored.';};
 for(const id of ['reduce','contrast']){$(id).checked=prefs[id];$(id).onchange=()=>{prefs[id]=$(id).checked;persist();};}
-$('sfx').value=prefs.sfx;$('ambience').value=prefs.ambience;$('deadzone').value=prefs.deadzone;
+$('sfx').value=prefs.sfx;$('ambience').value=prefs.ambience;$('music').value=prefs.music;$('voice').value=prefs.voice;$('deadzone').value=prefs.deadzone;
 $('deadzone-value').textContent=prefs.deadzone+'%';
 $('deadzone').oninput=()=>{prefs.deadzone=Number($('deadzone').value);$('deadzone-value').textContent=prefs.deadzone+'%';persist();};
 refresh();
@@ -153,7 +154,7 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();showArena($('arena-select').value);mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -258,8 +259,9 @@ $('practice').onclick=practice;$('drill').onchange=()=>{if(mode==='practice')pra
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('invite').value);status('Invite copied.');}catch{$('invite').focus();$('invite').select();}};
 $('rematch').onclick=()=>{document.activeElement?.blur();if(mode==='practice')practice();else if(ws?.readyState===1&&!vote){vote=true;$('rematch').textContent='Waiting for opponent';ws.send('{"t":"rematch"}');}};
 let soundOn=false,soundBusy=false;
-function mix(){audio.mix(Number($('sfx').value)/100,Number($('ambience').value)/100);}
-$('sfx').oninput=$('ambience').oninput=()=>{prefs.sfx=Number($('sfx').value);prefs.ambience=Number($('ambience').value);mix();persist();};
+const mixIds=['sfx','ambience','music','voice'];
+function mix(){audio.mix(...mixIds.map(id=>Number($(id).value)/100));}
+for(const id of mixIds)$(id).oninput=()=>{prefs[id]=Number($(id).value);mix();persist();};
 $('sound').onclick=async()=>{
  if(soundBusy)return;
  const btn=$('sound');
@@ -271,8 +273,10 @@ $('sound').onclick=async()=>{
  }finally{soundBusy=false;}
 };
 function feedback(state){
+ audio.tension(!state.ready&&!state.end&&!state.over&&state.p.some(p=>p.hp<=35)?1:0);
  for(const cue of soundChanges(lastSound,state)){
    audio.play(cue.name,cue.x);
+   if(cue.index!==undefined)audio.play(cue.index?'grunt-high':'grunt-low',cue.x);
    if(cue.muzzle!==undefined)muzzle[cue.muzzle]=1;
    if(cue.index!==undefined)flashes[cue.index]=1;
  }
@@ -368,6 +372,8 @@ function drawFighter(p,i,x,y,time){
  g.save();g.translate(x,y);
  g.fillStyle='#09090dcc';g.beginPath();g.ellipse(0,8,26,12,0,0,Math.PI*2);g.fill();
  g.rotate(f);
+ const energy=reduced()?0:(p.act==='step'?Math.min(1,Math.hypot(p.vx,p.vy)/8):0);
+ if(energy>.12){g.fillStyle=color+'32';for(let j=1;j<=3;j++){g.beginPath();g.ellipse(-j*13*energy,0,17-j,8-j,0,0,Math.PI*2);g.fill();}}
  if(p.act==='step'&&active)g.globalAlpha=.56;
  if(m&&m[5]&&p.age<m[0]+m[1]){
    g.beginPath();g.moveTo(0,0);const arc=Math.acos(p.act==='shot'?.88:.45);g.arc(0,0,m[4],-arc,arc);g.closePath();g.fillStyle=active?color+'6b':color+'15';g.fill();g.strokeStyle=active?color:color+'68';g.lineWidth=active?2:1;g.stroke();
@@ -379,7 +385,7 @@ function drawFighter(p,i,x,y,time){
  paintOutfit(g,look);
  g.strokeStyle=color;g.lineWidth=prefs.contrast?3.5:2;g.stroke();
  g.fillStyle='#12141b';g.beginPath();g.ellipse(3,0,11,10,0,0,Math.PI*2);g.fill();
- g.fillStyle=color;g.fillRect(8,-5,3,10);
+ drawMail(g,color,p.act==='stun');
  const melee=p.act==='cut'||p.act==='hew';
  let sweep=.42;
  if(melee){const arc=Math.acos(.45);sweep=p.age<m[0]?-arc*p.age/m[0]:active?-arc+2*arc*Math.min(1,(p.age-m[0]+1)/m[1]):arc*(1-Math.min(1,(p.age-m[0]-m[1])/m[2]));}
@@ -414,19 +420,17 @@ function render(now){
  for(let i=0;i<2;i++){flashes[i]=Math.max(0,flashes[i]-elapsed/220);muzzle[i]=Math.max(0,muzzle[i]-elapsed/95);}
  inspect(now);
  g.drawImage(backdrop,0,0);
+ paintAtmosphere(g,arena,now,reduced());
  if(!reduced()){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=arena==='cistern'?(i%3?'#b3d9dd19':'#a7d3d447'):(i%3?'#e3d6dc1d':'#e7a16082');g.fillRect(x,y,2,2);}}
  const foot=(mode==='online'||mode==='spectate')?remoteMotion.sample(now):null;
  const decay=Math.exp(-elapsed/43);correction.x*=decay;correction.y*=decay;
  const poses=s.p.map((p,i)=>({p,i,x:foot?.[i].x??p.x,y:foot?.[i].y??p.y})).map(o=>mode==='online'&&o.i===slot&&predicted?{...o,x:predicted.x+correction.x,y:predicted.y+correction.y}:o).sort((a,b)=>a.y-b.y);
  for(const {p,i,x,y} of poses){
    drawFighter(p,i,x,y,now);
-   if(flashes[i]>0){
-     g.save();g.globalAlpha=reduced()?.6:flashes[i]*.85;g.strokeStyle='#ffd5a0';g.lineWidth=2;
-     g.beginPath();g.ellipse(x,y+5,28+(reduced()?0:(1-flashes[i])*17),17,0,0,Math.PI*2);g.stroke();g.restore();
-   }
+   if(flashes[i]>0)drawImpact(g,x,y,flashes[i],reduced(),i);
  }
- for(let i=0;i<2;i++){const p=s.p[i],x=i?674:36,c=i?'#e39774':'#8fc8c0';g.fillStyle=c;g.font='15px system-ui';g.textAlign='left';g.fillText((i?'CINDER':'VEIL')+' · '+s.score[i]+'   /   '+p.ammo+' SHOTS'+(i===(mode==='review'?forkSlot:mode==='lab'&&labKind==='record'?1:slot)&&mode?'   /   YOU':''),x,27);bar(x,35,250,p.hp,c);bar(x,47,250,p.st,'#d1aa60');}
- g.textAlign='center';g.fillStyle='#eee1c8';g.font='24px Georgia';g.fillText(String(Math.ceil(s.clock/HZ)),480,38);
+ const localSlot=mode==='review'?forkSlot:mode==='lab'&&labKind==='record'?1:slot;
+ drawHUD(g,s,mode&&!watching?localSlot:-1,Math.ceil(s.clock/HZ),prefs.contrast);
  if(mode==='lab'){
    const palette=['#434454','#dbad66','#ed7869','#9b87be','#78cdb8','#e8dfaf'];
    for(let j=0;j<trace.length;j++)for(let i=0;i<2;i++){g.fillStyle=palette[trace[j][i]];g.fillRect(287+(TIMELINE-trace.length+j)*4,498+i*10,3,7);}

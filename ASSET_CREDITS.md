@@ -13,3 +13,9 @@ Art direction: dusk courtyard, warm lanterns and cold stone, distinct silhouette
 ## Lantern Court audio
 
 The shipped combat cues, round bell and arena bed are original synthesis. No samples, recordings, voices or music tracks are bundled. [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds) is a verified CC0 foley candidate for listening comparisons, not an imported dependency. [MDN AudioContext](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext) informed use of a shared context and interactive latency hint; latency is not guaranteed. The separate combat and ambience controls preserve combat cues when the atmospheric layer is turned down. Online cues follow server snapshots, not local input prediction; the sound layer does not modify simulation timing.
+
+## Presentation pass
+
+Original code draws armor details, dodge streaks, impact sparks, HUD plates and arena reflections. Original synthesis supplies an arena-dependent score (drone and threat pulse) and two nonverbal exertion cues. No recorded dialogue or third-party tracks are bundled. Reduced effects suppress moving decoration and streaks. Palette and arena layering were compared with Riot’s [map environment guidance](https://playvalorant.com/en-us/news/dev/the-art-of-valorant-map-environments/).
+
+Candidates screened but not bundled: [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds), [Paul Wortmann’s Dark Cavern Ambient](https://opengameart.org/content/dark-cavern-ambient), [yd’s Dungeon Ambience](https://opengameart.org/content/dungeon-ambience) (each listed as CC0). See the upstream terms before importing any additional files. No runtime third-party asset requests.

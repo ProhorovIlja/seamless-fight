@@ -39,6 +39,10 @@ try{
  await host.locator('#reset-keys').click();
  assert.match(await host.locator('#key-guide').textContent(),/J Cut/);
  assert(await host.locator('#gallery').isHidden());
+ await host.locator('summary').filter({hasText:'Sound mix'}).click();
+ await host.locator('#music').fill('31');
+ await host.locator('#voice').fill('27');
+ assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.settings.v1')).music),31);
  await host.locator('#sound').click();
  await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='true','user-enabled Web Audio');
  await host.locator('#sound').click();
