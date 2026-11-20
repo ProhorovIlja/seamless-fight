@@ -7,3 +7,5 @@ select{border:1px solid #856c59;border-radius:4px;background:#221d24;color:#f1e4
 [hidden]{display:none!important}
 
 #review-controls{margin-top:.7rem}#match-review a{color:#f4d19c;padding:.5rem}#review-tick{font-variant-numeric:tabular-nums;min-width:11ch;color:#d7cab5}
+
+.inspector{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.inspector>div{background:#171520;padding:.8rem}.inspector output{display:block;margin:.45rem 0;color:#e6c899}.inspector pre{font-size:.85rem;white-space:pre-wrap;min-height:4em}

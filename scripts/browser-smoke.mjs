@@ -162,8 +162,11 @@ try{
  assert.match(await host.locator('#review-tick').textContent(),/^Tick 1 /);
  await host.locator('#review-veil').click();
  await until(async()=>!/^Tick 1 /.test(await host.locator('#review-tick').textContent()),'match takeover advances');
+ await host.locator('#combat-analysis summary').click();
  await host.locator('#review-event').selectOption('120');
  assert.match(await host.locator('#review-tick').textContent(),/^Tick 120 /);
+ await until(async()=>/120/.test(await host.locator('#inputs-0').textContent()),'inspector rebuilt input history after seek');
+ assert.equal(await host.locator('#phase-0').textContent(),'Ready');
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}

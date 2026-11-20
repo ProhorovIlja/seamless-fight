@@ -13,6 +13,10 @@
 <p id="review-info" role="status"></p>
 <section id="review-controls" class="lab-controls" aria-label="Playback controls" hidden><label>Seek <input id="review-seek" type="range" min="0" max="0" value="0"></label><output id="review-tick">Tick 0</output><label>Jump to event <select id="review-event"><option value="">Select an event</option></select></label><button id="review-play">Play</button><button id="review-step">Next tick</button><button id="review-veil">Take over as Veil</button><button id="review-cinder">Take over as Cinder</button></section>
 </details>
+<details id="combat-analysis"><summary>Combat inspector · training and replay</summary>
+<p>Inspect fighter phases and inputs in practice, the Duel Lab, and match review. In takeover, the opponent column shows recorded inputs. An input is not proof that a move started.</p>
+<section class="inspector"><div><strong>Veil</strong><output id="phase-0">—</output><pre id="inputs-0"></pre></div><div><strong>Cinder</strong><output id="phase-1">—</output><pre id="inputs-1"></pre></div></section>
+</details>
 <details id="diagnostics"><summary>Performance and connection</summary>
 <p>Rolling browser measurements. Input acknowledgment is not hit confirmation or key-to-screen latency. Frame interval is not GPU render time.</p>
 <output id="diagnostic-values" aria-live="off">Collecting samples…</output>

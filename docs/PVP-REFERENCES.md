@@ -22,3 +22,5 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - [VALORANT gameplay consistency](https://playvalorant.com/en-us/news/game-updates/valorant-gameplay-consistency-update-2/) and [Rocket League network graphs](https://www.epicgames.com/help/c-37599050/a11386071?lang=en-US): present latency variation separately from frame pacing and input processing. The panel reports browser-observed values, not one-way delay, packet loss, or input-to-photon. GGPO remains a comparison point, not a dependency.
 
 - [The Art of VALORANT Map Environments](https://playvalorant.com/en-us/news/dev/the-art-of-valorant-map-environments/): place stronger decoration outside the fighting area and keep materials in the play space lower-contrast than the fighters. The Cistern changes presentation only; no assets were imported.
+
+- [Street Fighter 6 input history](https://www.playstation.com/en-us/games/street-fighter-6/everything-you-need-to-know-about-street-fighter-6/) and [Tekken 8 Practice](https://tk8.tekken-official.jp/mode/offline.php): make inputs and combat phase separately inspectable when repeating a setup. No third-party code or assets used.

@@ -23,3 +23,5 @@ Controls and presentation settings support action-key remapping, standard gamepa
 Performance and connection diagnostics run locally and report rolling frame intervals, RTT, snapshot gaps, input receipt acknowledgments and footwork correction size. Acknowledgment means the server processed an input sequence, not that an attack started or connected. The Chromium test applies ordered asymmetric message delay and exercises both fighters’ pistol inputs; this is not a WAN loss or reaction-time test.
 
 Choose Lantern Court or The Drowned Cistern for a new duel, practice or the lab. The host's choice is fixed for the room and shared with guests and gallery viewers. Captures retain the arena; old captures default to Lantern Court. Arena visuals and ambient audio are original; both stages have identical geometry and combat rules.
+
+Open Combat inspector in practice, Duel Lab or match review to see both fighters’ input history and current combat phases, including the usable heavy-feint window. Seeking reconstructs recent inputs; takeover replaces only the controlled side going forward. The inspector does not show opponent input during live play.

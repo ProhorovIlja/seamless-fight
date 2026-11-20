@@ -7,6 +7,7 @@ import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
 import {DEFAULT_KEYS,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
 import {createMetrics} from './metrics.mjs';
 import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
+import {logInput,describe} from './analysis.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -122,7 +123,18 @@ addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
-function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+let histories=[[],[]], nextInspect=0;
+function observeInputs(tick,inputs){for(let i=0;i<2;i++)logInput(histories[i],tick,inputs[i]);}
+function inspect(now){
+ if(!$('combat-analysis').open||now<nextInspect)return;
+ nextInspect=now+100;
+ const enabled=['practice','lab','review'].includes(mode);
+ for(let i=0;i<2;i++){
+   $('phase-'+i).textContent=enabled?describe(s.p[i]):'Available in training or replay';
+   $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
+ }
+}
+function leave(){histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();showArena($('arena-select').value);mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -140,7 +152,8 @@ function seekLab(){
  if(mode!=='lab'||labKind!=='play')return;
  labHold=true;flush();
  const frame=restoreDrill(spacing,tape,attempt,Number($('seek').value));
- s=frame.state;trace=frame.trace;labTick=frame.tick;labNote='';lastSound=null;flashes.fill(0);muzzle.fill(0);
+ s=frame.state;trace=frame.trace;labTick=frame.tick;
+ histories=[[],[]];for(let j=Math.max(0,labTick-120);j<labTick;j++)observeInputs(j+1,[tapeInput(attempt,j),tapeInput(tape,j)]);nextInspect=0;labNote='';lastSound=null;flashes.fill(0);muzzle.fill(0);
  syncScrub();status('Paused at tick '+labTick+'. Take over to try a different response.');
 }
 $('seek').oninput=seekLab;
@@ -167,7 +180,8 @@ function labStep(){
  const keep=recording?writeTape(tape,input):true;
  if(!recording)attempt[labTick]=input;
  const before=s.p.map(p=>p.hp);
- practiceTick(s,recording?[blank(),input]:[input,tapeInput(tape,labTick)]);
+ const inputs=recording?[blank(),input]:[input,tapeInput(tape,labTick)];
+ observeInputs(labTick+1,inputs);practiceTick(s,inputs);
  if(s.p.some((p,i)=>p.hp<before[i]))labNote=s.p.map((p,i)=>before[i]-p.hp).map((hp,i)=>hp?(i?'Cinder':'Veil')+' −'+hp+' HP':'').filter(Boolean).join(' · ');
  trace.push(s.p.map(phase));if(trace.length>TIMELINE)trace.shift();
  labTick++;
@@ -282,7 +296,8 @@ function syncReview(){
  for(const id of ['review-veil','review-cinder'])$(id).disabled=replayPlaying||s.over||reviewTick>=review.total;
 }
 function seekReview(t){
- s=review.at(t);reviewTick=t;replayPlaying=false;forkSlot=-1;
+ s=review.at(t);reviewTick=t;
+ histories=[[],[]];for(let j=Math.max(0,t-120);j<t;j++)observeInputs(j+1,review.inputs(j));nextInspect=0;replayPlaying=false;forkSlot=-1;
  lastSound=null;flashes.fill(0);muzzle.fill(0);flush();syncReview();
  reviewInfo('Reviewing original duel.');
 }
@@ -313,7 +328,7 @@ function reviewStep(){
  if(!replayPlaying)return;
  const inputs=review.inputs(reviewTick);
  if(forkSlot>=0)inputs[forkSlot]=read();
- step(s,inputs);reviewTick++;feedback(s);
+ observeInputs(reviewTick+1,inputs);step(s,inputs);reviewTick++;feedback(s);
  if(s.over||reviewTick>=review.total){replayPlaying=false;reviewInfo(forkSlot>=0?'Takeover finished. Seek to retry.':'End of capture.');}
  syncReview();
 }
@@ -369,9 +384,10 @@ function render(now){
  const elapsed=Math.min(100,now-prevFrame);prevFrame=now;acc+=elapsed;
  pollPad();
  let budget=5;
- while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){step(s,[read(),trainingInput(s,$('drill').value)]);feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
+ while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){const inputs=[read(),trainingInput(s,$('drill').value)];if(!s.over)observeInputs(s.tick+1,inputs);step(s,inputs);feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  for(let i=0;i<2;i++){flashes[i]=Math.max(0,flashes[i]-elapsed/220);muzzle[i]=Math.max(0,muzzle[i]-elapsed/95);}
+ inspect(now);
  g.drawImage(backdrop,0,0);
  if(!reduced()){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=arena==='cistern'?(i%3?'#b3d9dd19':'#a7d3d447'):(i%3?'#e3d6dc1d':'#e7a16082');g.fillRect(x,y,2,2);}}
  const blend=(mode==='online'||mode==='spectate')&&prev?Math.min(1,(now-at)/50):1;
