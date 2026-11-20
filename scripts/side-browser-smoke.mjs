@@ -82,6 +82,27 @@ try{
  await phone.locator('#begin').click();
  await phone.locator('#touch [data-held=right]').tap();
  await phone.screenshot({path:'artifacts/side-mobile-reduced-motion.png'});
+ // New 1v1 side-view socket is separate from legacy overhead matchmaking.
+ await page.locator('#side-host').click();
+ await until(async()=>/^[A-Za-z0-9_-]{12}$/.test(await page.locator('#side-code').inputValue()),'side room created');
+ const code=await page.locator('#side-code').inputValue();
+ const guest=await browser.newPage({viewport:{width:1140,height:780}});
+ guest.on('pageerror',e=>errors.push('side guest: '+e.message));
+ await guest.goto(base+'/fight/side/?room='+code);
+ await until(async()=>await page.locator('#fight-canvas').getAttribute('data-mode')==='online','host joined real side duel');
+ await until(async()=>await guest.locator('#fight-canvas').getAttribute('data-mode')==='online','guest joined real side duel');
+ assert.match(await page.locator('#stage-mode').textContent(),/AUTHORITATIVE/);
+ assert.equal(await guest.locator('#stage-select').inputValue(),await page.locator('#stage-select').inputValue());
+ await until(async()=>Number(await page.locator('#fight-canvas').getAttribute('data-tick'))>108,'server countdown concluded');
+ const startX=Number(await page.locator('#fight-canvas').getAttribute('data-veil-x'));
+ await page.keyboard.down('d');await sleep(340);await page.keyboard.up('d');
+ await until(async()=>Number(await page.locator('#fight-canvas').getAttribute('data-veil-x'))>startX+25,'authoritative server movement');
+ await until(async()=>Math.abs(Number(await guest.locator('#fight-canvas').getAttribute('data-veil-x'))-
+     Number(await page.locator('#fight-canvas').getAttribute('data-veil-x')))<12,'guest sees same hunter state');
+ assert.match(await page.locator('#side-network').textContent(),/input receipt ACK/);
+ await page.locator('#fight-canvas').screenshot({path:'artifacts/side-online-authoritative-1v1.png'});
+ await guest.close();
+ await until(async()=>await page.locator('#fight-canvas').getAttribute('data-mode')==='idle','private opponent disconnect closes match');
  assert.deepEqual(errors,[]);
  console.log('Side-view Chromium: horizontal movement, jump, crouch, combat hitbox, replay seek/takeover, bindings, all stages, mobile touch and reduced effects passed.');
 }finally{try{await browser?.close();}finally{server.kill();}}
