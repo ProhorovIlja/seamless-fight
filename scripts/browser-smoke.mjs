@@ -82,6 +82,9 @@ try{
  await host.locator('#replay').click();
  await until(async()=>/Cinder Heavy missed/.test(await host.locator('#exchange-log').textContent()),'lab detects a heavy that fell short');
  await host.locator('#combat-analysis summary').click();
+ await host.locator('#script').selectOption('mixup');
+ await host.locator('#replay').click();
+ assert(await host.locator('#lab-meter').isVisible(),'unseen mix-up can be practiced in the existing lab');
  await host.locator('#record').click();
  await host.keyboard.down('ArrowLeft');
  await sleep(300);
