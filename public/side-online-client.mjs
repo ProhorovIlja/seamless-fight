@@ -29,6 +29,7 @@ export function createSideTransport(handlers={},Factory=globalThis.WebSocket){
    }else if(m.t==='start'){sequence=0;notify('start',m);}
    else if(m.t==='state')notify('state',m);
    else if(m.t==='replay')notify('replay',m);
+   else if(m.t==='pong'&&Number.isFinite(m.id))notify('pong',m);
    else if(m.t==='notice'||m.t==='error')notify('notice',m);
   };
   current.onerror=()=>{if(socket===current)notify('error');};
