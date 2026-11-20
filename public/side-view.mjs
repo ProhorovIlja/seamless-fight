@@ -248,6 +248,7 @@ for(const [key,m]of Object.entries(SIDE_MOVES))if(m.damage){
 }
 function runTick(){
  if(mode==='live'){
+  if(s.over)return; // Do not append inputs after a completed match.
   const own=sample(),enemy=sidePrefs.level==='dummy'?sideInput():bot(s),pair=[own,enemy],events=[];
   if(tape.length<SIDE_TAPE_LIMIT)tape.push(packSideTick(pair));
   sideStep(s,pair,events);effectsFrom(events);
