@@ -56,8 +56,10 @@ const assets = new Map([
   ['art/visored-helm.svg',['art/visored-helm.svg','image/svg+xml']]
 ].map(([path,[file,type]])=>['/fight/'+path,[readFileSync(new URL('./public/'+file,import.meta.url)),type]]));
 if(process.env.SITE_ART==='1'){
-  const [html,type]=assets.get('/fight/');
-  assets.set('/fight/',[Buffer.from(html.toString('utf8').replace('data-site-art="off"','data-site-art="on"')),type]);
+ for(const route of ['/fight/','/fight/side/']){
+  const [html,type]=assets.get(route);
+  assets.set(route,[Buffer.from(html.toString('utf8').replace('data-site-art="off"','data-site-art="on"')),type]);
+ }
 }
 const validators=new Map([...assets].map(([path,[body]])=>[path,'"'+createHash('sha256').update(body).digest('hex')+'"']));
 const rooms=new Map(), galleries=new Map(), casual=new Map();
