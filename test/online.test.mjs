@@ -17,12 +17,19 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const sidePage=await fetch(origin+'/fight/side/');
  assert.equal(sidePage.status,200);
  assert.match(await sidePage.text(),/SIDE-VIEW LAB/);
- for(const name of ['side.css','side-view.mjs','side-engine.mjs','side-ai.mjs','side-art.mjs','side-depth.mjs','side-cinema.mjs','side-pose.mjs','side-replay.mjs','side-inspector.mjs']){
+ for(const name of ['side.css','side-view.mjs','side-engine.mjs','side-ai.mjs','side-art.mjs','side-depth.mjs','side-cinema.mjs','side-pose.mjs','side-painted.mjs','side-replay.mjs','side-inspector.mjs']){
   const asset=await fetch(origin+'/fight/'+name);
   assert.equal(asset.status,200,'side-view module '+name+' served from isolated route');
   assert(asset.headers.get('content-length')>100);
   assert.match(asset.headers.get('content-security-policy'),/default-src 'self'/);
  }
+ const painting=await fetch(origin+'/fight/art/reliquary-painted.webp');
+ assert.equal(painting.status,200,'original painted environment delivered with game');
+ assert.equal(painting.headers.get('content-type'),'image/webp');
+ const paintedBytes=Buffer.from(await painting.arrayBuffer());
+ assert(paintedBytes.length>100000&&paintedBytes.length<420000,'bounded original artwork size');
+ assert.equal(paintedBytes.toString('ascii',0,4),'RIFF');
+ assert.equal(paintedBytes.toString('ascii',8,12),'WEBP');
  const health=await (await fetch(origin+'/fight/health')).json();
  assert.deepEqual(health,{ok:true,simulation:'running'});
  const page=await fetch(origin+'/fight/');assert.match(await page.text(),/data-site-art="on"/);
