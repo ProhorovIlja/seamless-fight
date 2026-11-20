@@ -39,6 +39,8 @@ try{
  assert.equal(await page.locator('#depth-quality').inputValue(),'cinematic');
  await until(async()=>await page.locator('#fight-canvas').getAttribute('data-depth-quality')==='cinematic','next render reflects selected 2.5D quality');
  assert.match(await page.locator('#stage-title').textContent(),/ASHEN RELIQUARY/);
+ assert(Number(await page.locator('#fight-canvas').getAttribute('data-render-scale'))>=1,'high-DPI canvas backing initialized');
+ assert(await page.locator('#fight-canvas').evaluate(c=>c.width>960),'full-width desktop renders original artwork above prototype 960px resolution');
  assert.equal(await page.locator('#fight-canvas').getAttribute('data-mode'),'idle');
  assert.match(await page.locator('#live-spacing').textContent(),/Center distance/);
  await page.locator('#opponent').selectOption('dummy');
