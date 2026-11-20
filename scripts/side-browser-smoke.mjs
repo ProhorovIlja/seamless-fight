@@ -40,7 +40,9 @@ try{
  await page.locator('#show-boxes').uncheck();
  const start=Number(await page.locator('#fight-canvas').getAttribute('data-veil-x'));
  assert(start>200,'current fighter world X is valid');
- await page.keyboard.down('d');await sleep(1100);await page.keyboard.up('d');
+ await page.keyboard.down('d');
+ await until(async()=>Number(await page.locator('#fight-canvas').getAttribute('data-veil-x'))>=610,'close to genuine side-view hitbox range');
+ await page.keyboard.up('d');
  await page.keyboard.press('j');await sleep(250);
  assert(Number(await page.locator('#fight-canvas').getAttribute('data-cinder-hp'))<100,'real side-view hitbox attack damages opponent');
  await page.screenshot({path:'artifacts/side-reliquary-duel.png'});
