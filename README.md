@@ -2,6 +2,12 @@
 
 Seamless Fight is a playable, in-development standalone original gothic 2D browser dueling game for Seamless Hunt. It does not use Bloodborne assets, executable files, or accounts.
 
+## New genuine side-view combat lab (in-development)
+
+The next combat direction is a **true 2D side-on fighter**, not the existing overhead duel. The draft now includes a separate playable **`/fight/side/`** local lab, linked from the main duel page. It runs `seamless-side/1`, an independent deterministic 60 Hz simulation with horizontal spacing, gravity and jump edges, crouching high/low hurtboxes, forward attack rectangles, stamina, dodges, heavy feints, guard and perfect deflects. It has 3 original procedurally layered Gothic arenas, side-profile hunter/coat/sword/pistol animation, display-only hitboxes, Easy/Normal/Hard delayed-observation sparring, keyboard remapping, gamepad and touch, generated audio, versioned replay export/import, frame scrubbing, and Veil-side takeover.
+
+**Boundary:** `/fight/` remains the **older overhead online prototype** until side rules have an independently verified server protocol, preserved legacy replay support, network quality tests and migration. The side-view lab is local only, does not enter the matchmaker or award ranked points, and is not final AAA production art. See [side-view foundation and migration gates](docs/SIDE-VIEW-FOUNDATION.md). The current `/fight/side/` route is developed in a draft PR; the live seamlesshunt.com site was not changed.
+
 ## Run
 Use Node.js 22+. Run `npm install`, `npm test`, then `npm start`. Open `http://127.0.0.1:8080/fight/`. Choose Practice or create an online room and open its invite in a second tab or browser. Local development accepts the matching HTTP origin; for HTTPS set PUBLIC_ORIGIN to the exact browser origin.
 
