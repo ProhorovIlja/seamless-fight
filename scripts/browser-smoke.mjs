@@ -61,7 +61,9 @@ try{
  await host.locator('#takeover').click();
  await status(host,/Takeover/);
  await until(async()=>Number(await seek.inputValue())>5,'live takeover advances from the rewind point');
+ await host.locator('#arena-select').selectOption('cistern');
  await host.locator('#online').click();
+ await until(async()=>/Drowned Cistern/.test(await host.locator('#arena-title').textContent()),'host arena accepted');
  await status(host,/Waiting for an opponent/);
  const invite=await host.locator('#invite').inputValue();
  assert.equal(new URL(invite).origin,origin);
@@ -90,6 +92,7 @@ try{
  await guest.goto(invite);
  await status(host,/Online duel/);
  await status(guest,/Online duel/);
+ assert.equal(await guest.locator('#arena').getAttribute('aria-label'),'The Drowned Cistern duel arena');
  await until(()=>snapshot?.ready===0,'round live');
  await guest.locator('#diagnostics summary').click();
  await until(async()=>/RTT median [0-9.]+ ms/.test(await guest.locator('#diagnostic-values').textContent()),'guest RTT measured');
@@ -135,6 +138,7 @@ try{
  assert.equal(watchUrl.origin,origin);assert(!watchUrl.searchParams.has('room'));
  await viewer.goto(watchUrl.href);
  await status(viewer,/Spectating live/);
+ assert.match(await viewer.locator('#arena-title').textContent(),/Drowned Cistern/);
  assert(await viewer.locator('#gallery').isHidden());
  assert.equal(await viewer.locator('#arena').evaluate(el=>el.width),1920);assert(await viewer.locator('#rematch').isHidden());
  await host.locator('#gallery-toggle').click();
@@ -153,6 +157,7 @@ try{
  await until(async()=>/Replay file loaded/.test(await host.locator('#review-info').textContent()),'replay file imported');
  await host.locator('#review-open').click();
  await status(host,/Online match review/);
+ assert.match(await host.locator('#arena-title').textContent(),/Drowned Cistern/);
  await host.locator('#review-step').click();
  assert.match(await host.locator('#review-tick').textContent(),/^Tick 1 /);
  await host.locator('#review-veil').click();

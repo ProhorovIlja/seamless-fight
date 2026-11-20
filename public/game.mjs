@@ -6,6 +6,7 @@ import {createAudio,soundChanges} from './audio.mjs';
 import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
 import {DEFAULT_KEYS,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
 import {createMetrics} from './metrics.mjs';
+import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -32,6 +33,14 @@ for(let i=0;i<7;i++){b.beginPath();b.ellipse(480,325,67+i*11,46+i*8,0,0,Math.PI*
 for(const x of [81,230,730,879]){const p=b.createRadialGradient(x,156,0,x,156,110);p.addColorStop(0,'#eb9a5264');p.addColorStop(1,'#e9753800');b.fillStyle=p;b.fillRect(x-110,46,220,220);b.fillStyle='#0f1017';b.fillRect(x-2,153,4,50);b.fillStyle='#ffce87';b.fillRect(x-4,149,8,12);}
 const vignette=b.createRadialGradient(480,280,150,480,280,540);vignette.addColorStop(0,'#0000');vignette.addColorStop(1,'#07050cb9');b.fillStyle=vignette;b.fillRect(0,0,W,H);
 
+const backdrops=new Map([['lantern',bg]]);
+let arena='lantern', backdrop=bg;
+function showArena(value){
+ arena=arenaId(value);$('arena-title').textContent=ARENAS[arena];canvas.setAttribute('aria-label',ARENAS[arena]+' duel arena');
+ if(!backdrops.has(arena)){const layer=document.createElement('canvas');layer.width=W;layer.height=H;paintCistern(layer.getContext('2d'),W,H);backdrops.set(arena,layer);}
+ backdrop=backdrops.get(arena);audio.setArena(arena);
+}
+$('arena-select').onchange=()=>{if(mode==='practice')practice();else if(!mode)showArena($('arena-select').value);};
 const status=t=>{$('status').textContent=t;};
 let s=match(), prev=null, at=0, mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null;
 const audio=createAudio(), flashes=[0,0];
@@ -114,9 +123,9 @@ let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],atte
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
 function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
-function practice(){leave();mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
+function practice(){leave();showArena($('arena-select').value);mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
- leave();mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
+ leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
  $('lab-meter').hidden=false;
  $('takeover-controls').hidden=kind==='record';syncScrub();
  status(kind==='record'?'Recording Cinder. Press R or Stop to save (6 seconds max).':'Respond to Cinder. Press T or Replay to reset the same setup.');
@@ -180,18 +189,18 @@ function setGallery(code){
 $('gallery-toggle').onclick=()=>{if(ws?.readyState===1)ws.send(JSON.stringify({t:'gallery',open:!watchLink}));};
 $('watch-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('watch-link').value);status('Watch link copied.');}catch{$('watch-link').focus();$('watch-link').select();}};
 function online(code,watch=false){
- leave();watching=watch;mode='connecting';status('Connecting to Lantern Court…');
+ leave();watching=watch;mode='connecting';status('Connecting to the duel…');
  const url=new URL('./socket',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';
  const c=ws=new WebSocket(url);
- c.onopen=()=>c.send(JSON.stringify({t:watch?'watch':'hello',code}));
+ c.onopen=()=>c.send(JSON.stringify({t:watch?'watch':'hello',code,arena:$('arena-select').value}));
  c.onmessage=e=>{
    if(c!==ws)return;const m=JSON.parse(e.data);
    if(m.t==='room'){
-     slot=m.slot;$('gallery').hidden=slot!==0;const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
+     showArena(m.arena);slot=m.slot;$('gallery').hidden=slot!==0;const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
    }
    if(m.t==='replay'){try{loadCapture(m);}catch(e){reviewInfo(e.message);}return;}
    if(m.t==='gallery')setGallery(m.code);
-   if(m.t==='watching'){slot=-1;mode='spectate';status('Spectating · waiting for both fighters.');}
+   if(m.t==='watching'){showArena(m.arena);slot=-1;mode='spectate';status('Spectating · waiting for both fighters.');}
    if(m.t==='state'&&watching){
      prev=m.s.tick>s.tick&&m.s.round===s.round&&m.s.ready<=s.ready?s:null;
      if(s.tick===0)status('Spectating live · read-only.');
@@ -245,7 +254,8 @@ function feedback(state){
  lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age})=>({hp,act,age}))};
 }
 function loadCapture(data){
- const clip={rules:data.rules,tape:data.tape}, view=createReview(clip);
+ const clip={rules:data.rules,tape:data.tape,arena:arenaId(data.arena)}, view=createReview(clip);
+ view.arena=clip.arena;
  capture=view;
  if(saveUrl)URL.revokeObjectURL(saveUrl);
  saveUrl=URL.createObjectURL(new Blob([JSON.stringify(clip)],{type:'application/json'}));
@@ -279,7 +289,7 @@ function seekReview(t){
 $('review-open').onclick=()=>{
  if(!capture)return;
  if((mode==='online'||mode==='connecting'||mode==='spectate')&&!window.confirm('Leave the current room and open the replay?'))return;
- leave();mode='review';review=capture;
+ leave();mode='review';review=capture;showArena(review.arena);
  const events=$('review-event');events.length=1;
  for(const {tick,label} of review.events){const option=document.createElement('option');option.value=tick;option.textContent='Tick '+tick+' · '+label;events.append(option);}
  events.disabled=review.events.length===0;
@@ -362,8 +372,8 @@ function render(now){
  while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){step(s,[read(),trainingInput(s,$('drill').value)]);feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  for(let i=0;i<2;i++){flashes[i]=Math.max(0,flashes[i]-elapsed/220);muzzle[i]=Math.max(0,muzzle[i]-elapsed/95);}
- g.drawImage(bg,0,0);
- if(!reduced()){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=i%3?'#e3d6dc1d':'#e7a16082';g.fillRect(x,y,2,2);}}
+ g.drawImage(backdrop,0,0);
+ if(!reduced()){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=arena==='cistern'?(i%3?'#b3d9dd19':'#a7d3d447'):(i%3?'#e3d6dc1d':'#e7a16082');g.fillRect(x,y,2,2);}}
  const blend=(mode==='online'||mode==='spectate')&&prev?Math.min(1,(now-at)/50):1;
  const decay=Math.exp(-elapsed/43);correction.x*=decay;correction.y*=decay;
  const poses=s.p.map((p,i)=>({p,i,x:prev?prev.p[i].x+(p.x-prev.p[i].x)*blend:p.x,y:prev?prev.p[i].y+(p.y-prev.p[i].y)*blend:p.y})).map(o=>mode==='online'&&o.i===slot&&predicted?{...o,x:predicted.x+correction.x,y:predicted.y+correction.y}:o).sort((a,b)=>a.y-b.y);

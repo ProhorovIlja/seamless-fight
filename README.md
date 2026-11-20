@@ -21,3 +21,5 @@ Online Match Review captures the server's applied inputs for both fighters (up t
 Controls and presentation settings support action-key remapping, standard gamepads, adjustable stick dead zone, reduced effects and high-contrast outlines. Preferences and volume levels persist locally; sound still requires a user gesture. Gamepads submit the same discrete inputs as keyboards, without changing combat or replay rules.
 
 Performance and connection diagnostics run locally and report rolling frame intervals, RTT, snapshot gaps, input receipt acknowledgments and footwork correction size. Acknowledgment means the server processed an input sequence, not that an attack started or connected. The Chromium test applies ordered asymmetric message delay and exercises both fighters’ pistol inputs; this is not a WAN loss or reaction-time test.
+
+Choose Lantern Court or The Drowned Cistern for a new duel, practice or the lab. The host's choice is fixed for the room and shared with guests and gallery viewers. Captures retain the arena; old captures default to Lantern Court. Arena visuals and ambient audio are original; both stages have identical geometry and combat rules.

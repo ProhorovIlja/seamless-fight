@@ -34,7 +34,8 @@ export function soundChanges(before,after){
  return out;
 }
 export function createAudio(Context=globalThis.AudioContext){
- let ctx,master,effects,ambience,wind,enabled=false;
+ let ctx,master,effects,ambience,wind,enabled=false,arena='lantern';
+ const beds=new Map();
  const bank=new Map(),playing=new Set();
  const set=(node,value)=>node.gain.setTargetAtTime(value,ctx.currentTime,.025);
  function build(){
@@ -51,17 +52,25 @@ export function createAudio(Context=globalThis.AudioContext){
  }
  function startWind(){
    if(wind)return;
-   const n=ctx.sampleRate*8,buf=ctx.createBuffer(1,n,ctx.sampleRate),a=buf.getChannelData(0);
+   let buf=beds.get(arena);
+   if(!buf){
+   const n=ctx.sampleRate*8;buf=ctx.createBuffer(1,n,ctx.sampleRate);const a=buf.getChannelData(0);
    let seed=21381,lo=0,hi=0;
    for(let i=0;i<n;i++){
      seed=(Math.imul(seed,1664525)+1013904223)>>>0;
      const r=seed/2147483648-1;lo+=.022*(r-lo);hi+=.002*(r-hi);
      const t=i/ctx.sampleRate,env=Math.min(1,t*3,(8-t)*3);
-     a[i]=env*(.55*(lo-hi)+.052*Math.sin(2*Math.PI*49*t)+.025*Math.sin(2*Math.PI*73.5*t))*(.8+.2*Math.sin(2*Math.PI*t/8));
+     a[i]=arena==='cistern'?env*(.32*(lo-hi)+.04*Math.sin(2*Math.PI*55*t)+.018*Math.sin(2*Math.PI*110*t))*(.65+.35*Math.cos(2*Math.PI*t/2)):env*(.55*(lo-hi)+.052*Math.sin(2*Math.PI*49*t)+.025*Math.sin(2*Math.PI*73.5*t))*(.8+.2*Math.sin(2*Math.PI*t/8));
+   }
+   beds.set(arena,buf);
    }
    wind=ctx.createBufferSource();wind.buffer=buf;wind.loop=true;wind.connect(ambience);wind.start();
  }
  return {
+   setArena(value){
+     if(value===arena)return;
+     arena=value;if(wind){wind.stop();wind.disconnect();wind=null;}if(enabled)startWind();
+   },
    async enable(){
      if(!Context)return false;
      try{if(!ctx)build();await ctx.resume();enabled=ctx.state==='running';if(enabled){startWind();set(master,.7);}return enabled;}

@@ -20,3 +20,5 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - [Street Fighter 6 configurable controls](https://game.capcom.com/manual/SF6/en/steam/page/2/1) informed action rebinding. [MDN Gamepad API](https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API) documents standardized browser mappings. No third-party gameplay code or assets imported.
 
 - [VALORANT gameplay consistency](https://playvalorant.com/en-us/news/game-updates/valorant-gameplay-consistency-update-2/) and [Rocket League network graphs](https://www.epicgames.com/help/c-37599050/a11386071?lang=en-US): present latency variation separately from frame pacing and input processing. The panel reports browser-observed values, not one-way delay, packet loss, or input-to-photon. GGPO remains a comparison point, not a dependency.
+
+- [The Art of VALORANT Map Environments](https://playvalorant.com/en-us/news/dev/the-art-of-valorant-map-environments/): place stronger decoration outside the fighting area and keep materials in the play space lower-contrast than the fighters. The Cistern changes presentation only; no assets were imported.

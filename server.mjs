@@ -7,6 +7,8 @@ import { HZ, blank, match, step, canFeint, canAct } from './public/engine.mjs';
 
 import {RULESET,MAX_TICKS,packTick} from './public/replay.mjs';
 
+import {arenaId} from './public/arenas.mjs';
+
 const assets = new Map([
   ['', ['index.html','text/html; charset=utf-8']],
   ['style.css',['style.css','text/css']],
@@ -18,7 +20,8 @@ const assets = new Map([
   ['audio.mjs',['audio.mjs','text/javascript']],
   ['replay.mjs',['replay.mjs','text/javascript']],
   ['controls.mjs',['controls.mjs','text/javascript']],
-  ['metrics.mjs',['metrics.mjs','text/javascript']]
+  ['metrics.mjs',['metrics.mjs','text/javascript']],
+  ['arenas.mjs',['arenas.mjs','text/javascript']]
 ].map(([path,[file,type]])=>['/fight/'+path,[readFileSync(new URL('./public/'+file,import.meta.url)),type]]));
 const rooms=new Map(), galleries=new Map();
 const MAX_VIEWERS=6;
@@ -66,20 +69,20 @@ ws.on('connection',c=>{
         const target=typeof m.code==='string'&&galleries.get(m.code);
         if(!target||target.viewers.size>=MAX_VIEWERS){send(c,{t:'error',message:'Gallery is full or closed.'});c.close(1008);return;}
         clearTimeout(deadline);room=target;slot=-1;room.viewers.add(c);
-        send(c,{t:'watching'});if(room.peers.length===2)send(c,{t:'state',s:room.s});
+        send(c,{t:'watching',arena:room.arena});if(room.peers.length===2)send(c,{t:'state',s:room.s});
         return;
       }
       if(m.t!=='hello')return;
       if(m.code==null){
         if(rooms.size>=96){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
         let code;do{code=token();}while(rooms.has(code)||galleries.has(code));
-        room={code,peers:[],viewers:new Set(),watchCode:null,tape:[],votes:new Set(),s:match(),at:now};rooms.set(code,room);
+        room={code,arena:arenaId(m.arena),peers:[],viewers:new Set(),watchCode:null,tape:[],votes:new Set(),s:match(),at:now};rooms.set(code,room);
       }else{
         const existing=typeof m.code==='string'&&rooms.get(m.code);
         if(!existing||existing.peers.length!==1){send(c,{t:'error',message:'Room is full or no longer exists.'});c.close(1008);return;}
         room=existing;
       }
-      clearTimeout(deadline);slot=room.peers.length;room.peers.push(c);send(c,{t:'room',code:room.code,slot});
+      clearTimeout(deadline);slot=room.peers.length;room.peers.push(c);send(c,{t:'room',code:room.code,slot,arena:room.arena});
       if(room.peers.length===2)reset(room);
       return;
     }
@@ -87,7 +90,7 @@ ws.on('connection',c=>{
     if(slot===-1)return;
     if(m.t==='replay'){
       if(room.peers.length===2&&room.tape.length&&now-(c.lastReplay??-Infinity)>1500){
-        c.lastReplay=now;send(c,{t:'replay',rules:RULESET,tape:room.tape.join('')});
+        c.lastReplay=now;send(c,{t:'replay',rules:RULESET,arena:room.arena,tape:room.tape.join('')});
       }
       return;
     }
