@@ -73,8 +73,7 @@ $('rig-apply').onclick=async()=>{
  const manifestFile=$('rig-manifest').files?.[0],imageFile=$('rig-image').files?.[0];
  const status=$('rig-status');
  if(!manifestFile||!imageFile||manifestFile.size>65536||imageFile.size>8000000||
-    !/\.json$/i.test(manifestFile.name)||!/\.webp$/i.test(imageFile.name))
-
+    !/\.json$/i.test(manifestFile.name)||!/\.webp$/i.test(imageFile.name)){
   status.textContent='Choose a JSON manifest (≤64 KiB) and a WebP atlas (≤8 MB).';return;
  }
  const signature=new Uint8Array(await imageFile.slice(0,12).arrayBuffer());
