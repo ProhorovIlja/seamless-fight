@@ -100,6 +100,7 @@ try{
  await until(async()=>Math.abs(Number(await guest.locator('#fight-canvas').getAttribute('data-veil-x'))-
      Number(await page.locator('#fight-canvas').getAttribute('data-veil-x')))<12,'guest sees same hunter state');
  assert.match(await page.locator('#side-network').textContent(),/input receipt ACK/);
+ assert.match(await page.locator('#side-network').textContent(),/RTT median/);
  await page.locator('#fight-canvas').screenshot({path:'artifacts/side-online-authoritative-1v1.png'});
  await guest.close();
  await until(async()=>await page.locator('#fight-canvas').getAttribute('data-mode')==='idle','private opponent disconnect closes match');
