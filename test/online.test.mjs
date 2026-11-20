@@ -42,9 +42,10 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const feinted=await b.get(m=>m.t==='state'&&m.ack===3&&m.s.p[1].act==='feint');assert.equal(feinted.s.p[1].st,62);
  b.send({t:'replay'});
  const capture=await b.get(m=>m.t==='replay'), review=createReview(capture);
- const restored=review.at(review.total);assert.equal(restored.p[1].ammo,3);
- assert.equal(restored.p[1].act,'feint');assert.equal(restored.p[1].st,62);
- assert(restored.p[1].x<688);assert.equal(review.complete,false);
+ assert.deepEqual(review.at(feinted.s.tick),feinted.s);
+ assert.equal(review.complete,false);
+ spectator.send({t:'replay'});spectator.send({t:'ping',id:999});
+ assert.equal((await spectator.get(m=>m.t==='replay'||(m.t==='pong'&&m.id===999))).t,'pong');
  a.send({t:'gallery',open:false});assert.equal((await a.get(m=>m.t==='gallery')).code,null);
  assert.match((await spectator.get(m=>m.t==='error')).message,/closed/);
  const revoked=await open();revoked.send({t:'watch',code:gallery.code});
