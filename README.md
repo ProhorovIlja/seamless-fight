@@ -53,3 +53,5 @@ Canvas backing resolution follows its displayed width, capped at 2× device pixe
 Controls and presentation saves independent combat mappings for keyboard and standard gamepads, plus movement letters and a left/right stick choice. Arrow keys and D-pad remain fixed fallbacks. A used gamepad button swaps assignments; invalid saved layouts fall back to defaults. Changing mappings clears input and requires a neutral controller before combat resumes.
 
 Mouse buttons can be assigned independently to combat actions. They are unbound by default and only fire on the arena during active play. Mouse movement does not aim or move the hunter; the server input format remains the same.
+
+Practice offers balanced, pressure, and range-keeping opponents alongside the evasion and still-target drills. Bots act on delayed simulated positions and moves, not player input. Capture a local practice session with the same review, export, and takeover tools used for online matches. Takeover keeps the other side's recorded inputs; the bot does not replan inside a replay.

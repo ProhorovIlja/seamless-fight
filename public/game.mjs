@@ -1,9 +1,9 @@
 import {W,H,HZ,match,step,blank,moves} from './engine.mjs';
 import {HISTORY_LIMIT,playable,reconcile} from './prediction.mjs';
-import {trainingInput} from './tactics.mjs';
+import {createSparring} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges,rangeBand} from './audio.mjs';
-import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
+import {RULESET,MAX_TICKS,createReview,packTick} from './replay.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,PAD_LABELS,MOUSE_BUTTONS,mouseAction,swapBinding,STORAGE_KEY,allowed,settings,samplePad,touchDirection} from './controls.mjs';
 import {createMetrics} from './metrics.mjs';
 import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
@@ -216,6 +216,7 @@ addEventListener('keydown',ev=>{
 },true);
 addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
+let spar=createSparring(), practiceTape=[];
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
 let histories=[[],[]], nextInspect=0, reviewPulse=0, exchanges=[], selectedEvent=null;
@@ -232,8 +233,8 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
-function practice(){leave();showArena($('arena-select').value);mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
+function leave(){practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function practice(){leave();showArena($('arena-select').value);mode='practice';spar=createSparring($('drill').value);$('capture').disabled=false;status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
  $('lab-meter').hidden=false;
@@ -395,6 +396,10 @@ function loadCapture(data){
  reviewInfo(view.complete?'Completed match captured.':view.total===MAX_TICKS?'Capture limit reached · review the recorded opening of this match.':'Partial match captured · '+view.total+' ticks.');
 }
 $('capture').onclick=()=>{
+ if(mode==='practice'){
+   if(practiceTape.length)loadCapture({rules:RULESET,tape:practiceTape.join(''),arena,outfits:[prefs.classic?classic:prefs.outfit,classic]});
+   return;
+ }
  if(mode!=='online'||ws?.readyState!==1)return;
  ws.send('{"t":"replay"}');
 };
@@ -515,7 +520,7 @@ function render(now){
  const elapsed=Math.min(100,now-prevFrame);prevFrame=now;acc+=elapsed;
  pollPad();
  let budget=5;
- while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){const inputs=[read(),trainingInput(s,$('drill').value)];if(!s.over&&!s.end&&!s.ready)observeInputs(s.tick+1,inputs);collect(events=>step(s,inputs,events));feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
+ while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){if(s.over){read();continue;}const inputs=[read(),spar(s)];if(practiceTape.length<MAX_TICKS)practiceTape.push(packTick(inputs));if(!s.over&&!s.end&&!s.ready)observeInputs(s.tick+1,inputs);collect(events=>step(s,inputs,events));feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  for(let i=0;i<2;i++){flashes[i]=Math.max(0,flashes[i]-elapsed/220);muzzle[i]=Math.max(0,muzzle[i]-elapsed/95);}
  const touchVisible=touchUI.matches&&touchLive();

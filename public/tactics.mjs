@@ -21,3 +21,44 @@ export function trainingInput(s, style='duelist'){
  if(q.st<28&&d<105)return {x:-sign(dx),y:-sign(dy),act:''};
  return d>77?{x:sign(dx),y:sign(dy),act:''}:circle;
 }
+
+const profiles={
+ duelist:{delay:12,range:81,cut:35,heavy:53,gun:true},
+ pressure:{delay:16,range:69,cut:26,heavy:49,gun:false},
+ sentinel:{delay:10,range:119,cut:42,heavy:61,gun:true}
+};
+// The sparring partner sees past positions and animation, never queued inputs.
+// Sample at a fixed delay; reset on countdown, rewind or a round boundary.
+export function createSparring(style='duelist'){
+ const rules=Object.hasOwn(profiles,style)?profiles[style]:profiles.duelist;
+ const ring=new Array(rules.delay+1);
+ let round=-1, previous=-1, seenTick=-1;
+ return function spar(s){
+   if(style==='dummy')return blank();
+   if(s.round!==round||s.tick!==previous+1||s.ready||s.end||s.over){ring.fill(undefined);seenTick=-1;}
+   previous=s.tick;round=s.round;
+   if(s.ready||s.end||s.over)return blank();
+   const [p,q]=s.p;
+   ring[s.tick%ring.length]={x:p.x,y:p.y,act:p.act,age:p.age};
+   const at=s.tick-rules.delay;
+   const target=at>=0?ring[at%ring.length]:null;
+   if(!target)return blank();
+   if(!canAct(q))return blank();
+   const dx=target.x-q.x,dy=target.y-q.y,d=Math.hypot(dx,dy);
+   const axis=v=>Math.abs(v)>9?Math.sign(v):0;
+   const dir=s.tick%144<72?1:-1;
+   const circle={x:axis(-dy*dir),y:axis(dx*dir),act:''};
+   const m=moves[target.act], startup=m?.[5]&&target.age<m[0];
+   const fresh=startup&&seenTick!==at-target.age;
+   if(fresh){
+     seenTick=at-target.age;
+     if(style!=='evasions'&&rules.gun&&target.act==='hew'&&d<=153&&d>=65&&q.ammo&&q.st>=24&&s.tick%4!==0)return {...blank(),act:'shot'};
+     if(d<=m[4]+9&&q.st>=22&&s.tick%3===0)return {...circle,act:'step'};
+   }
+   if(style==='evasions')return d>102?{x:axis(dx),y:axis(dy),act:''}:circle;
+   if(d<82&&q.st>=18&&(s.tick%rules.cut===0||m?.[5]&&target.age===m[0]+m[1]))return {...blank(),act:'cut'};
+   if(d<=109&&q.st>=38&&s.tick%rules.heavy===0)return {...blank(),act:'hew'};
+   if(q.st<24||style==='sentinel'&&d<89)return {x:-axis(dx),y:-axis(dy),act:''};
+   return d>rules.range?{x:axis(dx),y:axis(dy),act:''}:circle;
+ };
+}

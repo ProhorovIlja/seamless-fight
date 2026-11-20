@@ -213,6 +213,13 @@ try{
  await host.locator('#practice').click();
  await host.locator('#arena-select').selectOption('lantern');
  await until(async()=>/Lantern Court/.test(await host.locator('#arena-title').textContent()),'Lantern Court selected');
+ await host.locator('#drill').selectOption('pressure');
+ await until(async()=>/Pressure fighter/.test(await host.locator('#status').textContent()),'pressure sparring selected');
+ await until(async()=>/74 seconds/.test(await host.locator('#round-score').textContent()),'practice round running');
+ await host.locator('#capture').click();
+ assert.match(await host.locator('#review-info').textContent(),/Partial match captured/);
+ await host.locator('#review-open').click();
+ assert(await host.locator('#review-controls').isVisible());
  await host.locator('#arena').screenshot({path:'artifacts/duel-lantern-practice.png'});
  const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,reducedMotion:'reduce',hasTouch:true,isMobile:true});
  await phone.goto(url);
