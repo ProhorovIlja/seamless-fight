@@ -137,7 +137,8 @@ try{
  await page.locator('#rig-manifest').setInputFiles({name:'qa.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(rig))});
  await page.locator('#rig-image').setInputFiles('public/art/reliquary-painted.webp');
  await page.locator('#rig-apply').click();
- await until(async()=>/Local authored atlas active/.test(await page.locator('#rig-status').textContent()),'local sprite atlas preview successfully decoded');
+ await sleep(250);
+ assert.match(await page.locator('#rig-status').textContent(),/Local authored atlas active/,'artist preview must decode the validated WebP locally');
  await page.locator('#rig-reset').click();
  assert.match(await page.locator('#rig-status').textContent(),/Prototype fighter fallback/);
  assert.deepEqual(errors,[]);
