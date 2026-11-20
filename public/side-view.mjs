@@ -10,6 +10,7 @@ import {SIDE_DEPTH_QUALITY,paintSideDepthStatic,paintSideDepthBack,paintSideDept
 import {sideCameraImpact,sideScoreTension,sideIsFootstep,sideWorldLens} from './side-cinema.mjs';
 import {drawPaintedStage,loadPaintedStage,paintIllustratedAir} from './side-painted.mjs';
 import {validateSideSpriteManifest,decodeSideSpriteRig,paintSideSprite} from './side-sprite-rig.mjs';
+import {chooseSideBacking} from './side-resolution.mjs';
 import {createAudio} from './audio.mjs';
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
@@ -135,13 +136,10 @@ function setStage(next){
 }
 setStage(sidePrefs.stage);
 function resizeStageCanvas(){
- const cssWidth=canvas.getBoundingClientRect().width||960;
- const requested=cssWidth/960*(devicePixelRatio||1);
- const limit=sidePrefs.depthQuality==='performance'?1.35:sidePrefs.depthQuality==='balanced'?2.15:2.7;
- const next=Math.round(Math.max(1,Math.min(limit,requested))*100)/100;
- if(next===renderScale&&canvas.width===Math.round(960*next))return;
- renderScale=next;
- canvas.width=Math.round(960*renderScale);canvas.height=Math.round(540*renderScale);
+ const sizing=chooseSideBacking(canvas.getBoundingClientRect().width,devicePixelRatio,sidePrefs.depthQuality);
+ if(sizing.scale===renderScale&&canvas.width===sizing.backingWidth)return;
+ renderScale=sizing.scale;
+ canvas.width=sizing.backingWidth;canvas.height=sizing.backingHeight;
  g.setTransform(renderScale,0,0,renderScale,0,0);
  sceneMap.clear();setStage(scene);
 }
