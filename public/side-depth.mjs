@@ -172,6 +172,43 @@ export function paintSideDepthBack(g,stage='reliquary',now=0,state=null,quality=
   g.restore();
  }
  floating(g,now,stage,shift.focus,c,limit.dust,reduced);
+ if(quality!=='performance'){
+  if(stage==='cistern'){
+   // Rain stays behind the collision plane and does not hide silhouettes.
+   g.save();g.beginPath();g.rect(0,141,960,279);g.clip();
+   g.strokeStyle='#a6dbe873';g.lineWidth=.8;g.globalAlpha=.22;
+   for(let i=0;i<(quality==='cinematic'?45:19);i++){
+    const seed=(Math.imul(i+13,9419)>>>0);
+    const x=(seed%1090+(reduced?0:now*.09))%1050-45;
+    const y=141+((Math.floor(seed/71)+(reduced?0:now*.18))%296);
+    g.beginPath();g.moveTo(x,y);g.lineTo(x-8,y+25);g.stroke();
+   }
+   g.restore();
+  }else if(stage==='lantern'){
+   g.save();g.globalCompositeOperation='screen';
+   for(let i=0;i<(quality==='cinematic'?6:3);i++){
+    const x=120+i*148+shift.far,yy=177+(i*23)%96;
+    const strength=reduced?1:Math.sin(now*.002+i*.9)*.18+1;
+    const flame=g.createRadialGradient(x,yy,0,x,yy,23*strength);
+    flame.addColorStop(0,'#eabd8660');flame.addColorStop(1,'#eabd8600');
+    g.fillStyle=flame;g.fillRect(x-25,yy-25,50,50);
+   }
+   g.restore();
+  }else{
+   // Slow, radial refracted reflections from the reliquary rose window.
+   g.save();g.globalCompositeOperation='screen';
+   const shimmer=reduced?.085:.07+.025*Math.sin(now/1900);
+   g.fillStyle='rgba(216,173,138,'+shimmer.toFixed(4)+')';
+   for(let i=0;i<5;i++){
+    const a=i*TAU/5+Math.PI/10;
+    g.beginPath();g.moveTo(480+Math.cos(a)*52,236+Math.sin(a)*52);
+    g.lineTo(480+Math.cos(a)*58,236+Math.sin(a)*58);
+    g.lineTo(480+Math.cos(a+.15)*84,236+Math.sin(a+.15)*84);
+    g.closePath();g.fill();
+   }
+   g.restore();
+  }
+ }
  g.restore();
 }
 export function paintSideDepthFront(g,stage='reliquary',now=0,state=null,quality='balanced',reduced=false){
