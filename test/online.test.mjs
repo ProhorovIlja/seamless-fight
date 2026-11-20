@@ -1,0 +1,28 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {createServer} from 'node:net';
+import {once} from 'node:events';
+import WebSocket from 'ws';
+const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+test('health, origin rejection, private invite, authoritative snapshots and disconnect', {timeout:10000},async t=>{
+ const probe=createServer().listen(0,'127.0.0.1');await once(probe,'listening');const port=probe.address().port;await new Promise(r=>probe.close(r));
+ const origin='http://127.0.0.1:'+port;
+ const child=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:String(port),HOST:'127.0.0.1',PUBLIC_ORIGIN:origin},stdio:'inherit'});
+ t.after(()=>child.kill());
+ let ready=false;for(let i=0;i<50;i++){try{ready=(await fetch(origin+'/fight/health')).ok;if(ready)break;}catch{}await sleep(50);}assert(ready);
+ const bad=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin:'https://example.invalid'});const [err]=await once(bad,'error');assert.match(err.message,/403/);
+ const open=async()=>{
+   const c=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin});t.after(()=>c.terminate());
+   const pending=[];c.on('message',x=>pending.push(JSON.parse(x)));
+   await once(c,'open');
+   return {c,send:m=>c.send(JSON.stringify(m)),get:async pred=>{for(let i=0;i<110;i++){const k=pending.findIndex(pred);if(k>=0)return pending.splice(k,1)[0];await sleep(35);}throw Error('Missing expected server message');}};
+ };
+ const a=await open();a.send({t:'hello'});const room=await a.get(m=>m.t==='room');assert.equal(room.slot,0);
+ const b=await open();b.send({t:'hello',code:room.code});assert.equal((await b.get(m=>m.t==='room')).slot,1);
+ const full=await open();full.send({t:'hello',code:room.code});assert.match((await full.get(m=>m.t==='error')).message,/full/);
+ const state=await a.get(m=>m.t==='state'&&!m.s.ready);
+ b.send({t:'input',x:-1,y:0,act:'',hp:0});
+ const moved=await a.get(m=>m.t==='state'&&m.s.p[1].x<state.s.p[1].x);assert.equal(moved.s.p[1].hp,100);
+ b.c.close();assert.match((await a.get(m=>m.t==='error')).message,/disconnected/);
+});
