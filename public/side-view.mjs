@@ -6,6 +6,7 @@ import {footwork} from './footwork.mjs';
 import {reconcileSide,SIDE_PREDICTION_LIMIT} from './side-prediction.mjs';
 import {createSideTransport,SIDE_INVITE_PATTERN} from './side-online-client.mjs';
 import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTraining,drawSideHUD,drawSideImpact} from './side-art.mjs';
+import {SIDE_DEPTH_QUALITY,paintSideDepthStatic,paintSideDepthBack,paintSideDepthFront} from './side-depth.mjs';
 import {createAudio} from './audio.mjs';
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
@@ -20,6 +21,7 @@ let stored={};try{stored=JSON.parse(localStorage.getItem(STORAGE))||{};}catch{}
 let sidePrefs={stage:Object.hasOwn(SIDE_STAGES,stored.stage)?stored.stage:'reliquary',
  level:['easy','normal','hard','dummy'].includes(stored.level)?stored.level:'normal',
  boxes:stored.boxes===true,reduce:stored.reduce===true,contrast:stored.contrast===true,
+ depthQuality:SIDE_DEPTH_QUALITY.includes(stored.depthQuality)?stored.depthQuality:'balanced',
  keys:{...original.keys},move:{...original.move},guard:'KeyO',look:outfit(stored.look||original.outfit)};
 function validateBindings(candidate){
  const keys={...sidePrefs.keys,...candidate?.keys},move={...sidePrefs.move,...candidate?.move},guard=candidate?.guard??sidePrefs.guard;
@@ -33,6 +35,8 @@ const persist=()=>{try{localStorage.setItem(STORAGE,JSON.stringify(sidePrefs));}
 $('stage-select').value=sidePrefs.stage;$('opponent').value=sidePrefs.level;
 $('show-boxes').checked=sidePrefs.boxes;$('reduce-motion').checked=sidePrefs.reduce;
 $('high-contrast').checked=sidePrefs.contrast;
+$('depth-quality').value=sidePrefs.depthQuality;
+$('depth-quality').onchange=()=>{sidePrefs.depthQuality=SIDE_DEPTH_QUALITY.includes($('depth-quality').value)?$('depth-quality').value:'balanced';persist();};
 // Customization is an appearance-only, bounded local setting.
 const preview=$('look-preview'),previewG=preview.getContext('2d');
 for(const [id,table,current]of [['look-dye',dyes,sidePrefs.look.dye],['look-sigil',sigils,sidePrefs.look.sigil]]){
@@ -75,6 +79,7 @@ function setStage(next){
  if(!sceneMap.has(scene)){
   const off=document.createElement('canvas');off.width=960;off.height=540;
   const ctx=off.getContext('2d');paintSideStage(ctx,scene);
+  paintSideDepthStatic(ctx,scene);
   if(siteSkyImages)bakeSiteSky(ctx,siteSkyImages,960);
   sceneMap.set(scene,off);
  }
@@ -424,7 +429,8 @@ function paint(now,elapsed){
  canvas.dataset.cinderHp=String(Math.round(s.p[1].hp));
  canvas.dataset.mode=mode;
  g.drawImage(stageCanvas,0,0);
- paintSideWeather(g,now,scene,reduced());
+ paintSideDepthBack(g,scene,now,s,sidePrefs.depthQuality,reduced());
+ paintSideWeather(g,now,scene,reduced()||sidePrefs.depthQuality==='performance');
  const appearance=mode==='online'&&Array.isArray(onlineLooks)&&onlineLooks.length===2?onlineLooks:(mode==='review'||mode==='takeover')&&replayLooks?replayLooks:[sidePrefs.look,outfit({dye:'oxblood',sigil:'thorn'})];
  const neutralFoot=mode==='online'?sideFootwork.sample(now):null;
  const ownPrediction=mode==='online'&&onlineSlot>=0?reconcileSide(s,onlineSlot,onlinePending,onlineAck):null;
@@ -437,6 +443,7 @@ function paint(now,elapsed){
    mode==='online'&&i!==onlineSlot&&smooth?{...p,x:smooth.x,y:smooth.y}:p;
   paintSideFighter(g,pose,appearance[i],now,reduced(),sidePrefs.contrast);
  }
+ paintSideDepthFront(g,scene,now,s,sidePrefs.depthQuality,reduced());
  if(sidePrefs.boxes&&mode!=='online'&&mode!=='connecting')drawSideTraining(g,s);
  for(const item of effects)drawSideImpact(g,item.e,item.life,reduced());
  drawSideHUD(g,s,mode==='online'?onlineSlot:0);
