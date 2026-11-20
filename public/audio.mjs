@@ -17,6 +17,7 @@ export function synth(name,rate){
    phase+=2*Math.PI*start*(end/start)**u/rate;
    const tone=name==='bell'?.66*Math.sin(phase)+.22*Math.sin(phase*2.41)+.12*Math.sin(phase*4.08):.81*Math.sin(phase)+.19*Math.sin(phase*2.15);
    const env=Math.min(1,i/(rate*.006))*Math.exp(-5*u)*Math.min(1,(1-u)*12);
+   if(i===0)continue;
    data[i]=env*(noise*lp+(1-noise)*tone);
  }
  return data;
