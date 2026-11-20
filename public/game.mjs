@@ -2,7 +2,7 @@ import {W,H,HZ,match,step,blank,moves} from './engine.mjs';
 import {HISTORY_LIMIT,playable,reconcile} from './prediction.mjs';
 import {trainingInput} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
-import {createAudio,soundChanges} from './audio.mjs';
+import {createAudio,soundChanges,rangeBand} from './audio.mjs';
 import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
 import {DEFAULT_KEYS,STORAGE_KEY,allowed,settings,samplePad,touchDirection} from './controls.mjs';
 import {createMetrics} from './metrics.mjs';
@@ -57,6 +57,7 @@ $('arena-select').onchange=()=>{if(mode==='practice')practice();else if(!mode)sh
 const status=t=>{$('status').textContent=t;};
 let s=match(), mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null;
 const audio=createAudio(), flashes=[0,0];
+let lastRange=null,lastRangeAt=-Infinity;
 let watching=false, watchLink=null;
 let metrics=createMetrics(), nextDiagnostic=0, skipFrameSample=false;
 const muzzle=[0,0], impactAngle=[null,null];
@@ -186,7 +187,7 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();showArena($('arena-select').value);mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -292,7 +293,11 @@ $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('invite').
 $('rematch').onclick=()=>{document.activeElement?.blur();if(mode==='practice')practice();else if(ws?.readyState===1&&!vote){vote=true;$('rematch').textContent='Waiting for opponent';ws.send('{"t":"rematch"}');}};
 let soundOn=false,soundBusy=false;
 const mixIds=['sfx','ambience','music','voice'];
-function mix(){audio.mix(...mixIds.map(id=>Number($(id).value)/100));}
+function mix(){audio.mix(...mixIds.map(id=>Number($(id).value)/100));audio.assist(prefs.rangeVolume/100,prefs.centerCues);}
+for(const id of ['rangeAudio','centerCues','rangeVolume']){
+ const node=$(id);if(node.type==='checkbox')node.checked=prefs[id];else node.value=prefs[id];
+ node.oninput=()=>{prefs[id]=node.type==='checkbox'?node.checked:Number(node.value);lastRange=null;mix();persist();};
+}
 for(const id of mixIds)$(id).oninput=()=>{prefs[id]=Number($(id).value);mix();persist();};
 $('sound').onclick=async()=>{
  if(soundBusy)return;
@@ -304,7 +309,18 @@ $('sound').onclick=async()=>{
    mix();btn.textContent=soundOn?'Sound on':'Sound off';btn.setAttribute('aria-pressed',String(soundOn));
  }finally{soundBusy=false;}
 };
+function spacingAudio(state){
+ if(!soundOn||!prefs.rangeAudio||!prefs.rangeVolume||document.hidden||!['practice','lab'].includes(mode)||state.ready||state.end||state.over){
+   lastRange=null;return;
+ }
+ const [a,b]=state.p, band=rangeBand(Math.hypot(a.x-b.x,a.y-b.y),lastRange),now=performance.now();
+ if(lastRange===null){lastRange=band;return;}
+ if(band===lastRange||now-lastRangeAt<230)return;
+ lastRange=band;lastRangeAt=now;
+ audio.play(band==='cut'?'rangeCut':band==='shot'?'rangeShot':'rangeExit',480);
+}
 function feedback(state,confirmed){
+ spacingAudio(state);
  audio.tension(!state.ready&&!state.end&&!state.over&&state.p.some(p=>p.hp<=35)?1:0);
  const inferred=soundChanges(lastSound,state,true);
  const cues=confirmed?[...inferred.filter(c=>c.index===undefined&&c.muzzle===undefined),...confirmed]:inferred;
@@ -317,8 +333,8 @@ function feedback(state,confirmed){
    cueUntil=performance.now()+1100;
  }
  for(const cue of cues){
-   audio.play(cue.name,cue.x);
-   if(cue.index!==undefined)audio.play(cue.index?'grunt-high':'grunt-low',cue.x);
+   if(!document.hidden)audio.play(cue.name,cue.x);
+   if(!document.hidden&&cue.index!==undefined)audio.play(cue.index?'grunt-high':'grunt-low',cue.x);
    if(cue.muzzle!==undefined)muzzle[cue.muzzle]=1;
    if(cue.index!==undefined){flashes[cue.index]=1;impactAngle[cue.index]=cue.angle??null;}
  }

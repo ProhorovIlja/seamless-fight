@@ -3,6 +3,7 @@ import {moves} from './engine.mjs';
 
 // Original synthesized sound bank. No sample downloads or per-frame synthesis.
 const recipes={
+ rangeCut:[.14,565,770,.04,1800],rangeShot:[.13,272,348,.035,1500],rangeExit:[.12,385,244,.03,1400],
  cut:[.16,490,110,.52,1800],hew:[.29,390,54,.62,1100],
  cock:[.085,930,385,.58,2200],shot:[.24,160,43,.9,2400],step:[.14,200,72,.68,520],
  feint:[.13,620,250,.42,1900],hit:[.24,145,39,.61,760],
@@ -47,8 +48,16 @@ export function soundChanges(before,after,withActor=false){
  }
  return out;
 }
+export function rangeBand(distance,previous){
+ // Hysteresis prevents chatter as snapshots straddle a boundary.
+ const margin=previous==='cut'?8:0;
+ if(distance<=moves.cut[4]+margin)return 'cut';
+ if(distance<=moves.shot[4]+(previous==='shot'?8:0))return 'shot';
+ return 'far';
+}
 export function createAudio(Context=globalThis.AudioContext){
- let ctx,master,effects,ambience,music,musicDuck,voice,pulseGain,wind,enabled=false,arena='lantern',score=[],intensity=0;
+ let ctx,master,effects,ambience,assist,music,musicDuck,voice,pulseGain,wind,enabled=false,arena='lantern',score=[],intensity=0;
+ let center=false;
  const scores=new Map();
  const beds=new Map();
  const bank=new Map(),playing=new Set(), takes=new Map();
@@ -56,12 +65,12 @@ export function createAudio(Context=globalThis.AudioContext){
  function build(){
    ctx=new Context({latencyHint:'interactive'});
    master=ctx.createGain();effects=ctx.createGain();ambience=ctx.createGain();
-   music=ctx.createGain();voice=ctx.createGain();pulseGain=ctx.createGain();
+   music=ctx.createGain();voice=ctx.createGain();assist=ctx.createGain();assist.gain.value=.26;pulseGain=ctx.createGain();
    musicDuck=ctx.createGain();pulseGain.connect(music);music.connect(musicDuck);musicDuck.connect(master);
    music.gain.value=.22;voice.gain.value=.35;pulseGain.gain.value=intensity;
    const compressor=ctx.createDynamicsCompressor();
    compressor.threshold.value=-16;compressor.ratio.value=5;
-   effects.connect(compressor);voice.connect(compressor);ambience.connect(compressor);compressor.connect(master);master.connect(ctx.destination);
+   effects.connect(compressor);voice.connect(compressor);assist.connect(compressor);ambience.connect(compressor);compressor.connect(master);master.connect(ctx.destination);
    master.gain.value=0;effects.gain.value=.65;ambience.gain.value=.15;
    for(const name of Object.keys(recipes)){
      const data=synth(name,ctx.sampleRate), buffer=ctx.createBuffer(1,data.length,ctx.sampleRate);
@@ -126,6 +135,7 @@ export function createAudio(Context=globalThis.AudioContext){
    },
    mix(sfx,bed,scoreLevel,grunts){if(ctx){set(effects,sfx);set(ambience,bed);set(music,scoreLevel);set(voice,grunts);}},
    tension(n){if(n===intensity)return;intensity=n;if(ctx)pulseGain.gain.setTargetAtTime(n,ctx.currentTime,.35);},
+   assist(level,mono){if(ctx)set(assist,level);center=mono;},
    play(name,x){
      if(!enabled||ctx.state!=='running'||playing.size>=12||!bank.has(name))return;
      if(['shot','hit','interrupt','bell'].includes(name)){
@@ -135,7 +145,7 @@ export function createAudio(Context=globalThis.AudioContext){
      }
      const source=ctx.createBufferSource(),pan=ctx.createStereoPanner();
      const clips=bank.get(name), take=takes.get(name)||0;
-     source.buffer=clips[take];takes.set(name,(take+1)%clips.length);pan.pan.value=Math.max(-.65,Math.min(.65,(x-480)/480));source.connect(pan);pan.connect(name.startsWith('grunt-')?voice:effects);
+     source.buffer=clips[take];takes.set(name,(take+1)%clips.length);pan.pan.value=center||name.startsWith('range')?0:Math.max(-.65,Math.min(.65,(x-480)/480));source.connect(pan);pan.connect(name.startsWith('range')?assist:name.startsWith('grunt-')?voice:effects);
      playing.add(source);source.onended=()=>{playing.delete(source);source.disconnect();pan.disconnect();};source.start();
    }
  };

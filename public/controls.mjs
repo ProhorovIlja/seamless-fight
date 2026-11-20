@@ -6,7 +6,7 @@ export function settings(raw){
  const keys={...DEFAULT_KEYS}, values=Object.keys(keys).map(a=>raw?.keys?.[a]);
  if(values.every(allowed)&&new Set(values).size===values.length)Object.keys(keys).forEach((a,i)=>keys[a]=values[i]);
  const clamp=(v,d,min,max)=>Number.isFinite(v)?Math.max(min,Math.min(max,v)):d;
- return {keys,outfit:outfit(raw?.outfit),classic:raw?.classic===true,captions:raw?.captions===true,deadzone:clamp(raw?.deadzone,30,15,65),sfx:clamp(raw?.sfx,65,0,100),ambience:clamp(raw?.ambience,15,0,100),music:clamp(raw?.music,22,0,100),voice:clamp(raw?.voice,35,0,100),reduce:raw?.reduce===true,contrast:raw?.contrast===true};
+ return {keys,outfit:outfit(raw?.outfit),classic:raw?.classic===true,captions:raw?.captions===true,rangeAudio:raw?.rangeAudio===true,centerCues:raw?.centerCues===true,rangeVolume:clamp(raw?.rangeVolume,26,0,100),deadzone:clamp(raw?.deadzone,30,15,65),sfx:clamp(raw?.sfx,65,0,100),ambience:clamp(raw?.ambience,15,0,100),music:clamp(raw?.music,22,0,100),voice:clamp(raw?.voice,35,0,100),reduce:raw?.reduce===true,contrast:raw?.contrast===true};
 }
 const buttons=[[1,'step'],[2,'cut'],[3,'hew'],[5,'shot'],[4,'feint']];
 export function samplePad(pad,prior,threshold){

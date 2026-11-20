@@ -32,3 +32,5 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - [VALORANT Gameplay Consistency Update 2](https://playvalorant.com/en-gb/news/game-updates/valorant-gameplay-consistency-update-2/): balancing buffered motion against responsiveness. Seamless Fight buffers only neutral remote poses and preserves immediate authoritative action cues; this is not rollback or an input delay.
 
 - Street Fighter 6’s separate battle audio and accessibility cues are a reference for optional visual cue captions; those captions use observed simulation events, not client input. No third-party audio imported in this pass.
+
+- [Street Fighter 6 detailed sound settings](https://www.pcgamingwiki.com/wiki/Street_Fighter_6#Audio) document distance-to-opponent cues and independent sound controls. Seamless Fight's three original spacing tones are opt-in and limited to training. No audio was copied.
