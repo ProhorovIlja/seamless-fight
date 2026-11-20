@@ -356,6 +356,7 @@ try{
  assert(await c1.locator('#set-panel').isVisible());
  assert(await c2.locator('#set-panel').isVisible());
  assert.match(await c1.locator('#set-title').textContent(),/0 – 0 games/);
+ assert.match(await c1.locator('#online').textContent(),/Create player room/);
  assert.match(await c1.locator('#set-status').textContent(),/unranked rules preview/);
  assert(await c1.locator('#set-replay-controls').isHidden());
  assert(await c1.locator('#rematch').isHidden());

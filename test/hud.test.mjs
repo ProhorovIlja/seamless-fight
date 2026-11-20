@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {damageTrail,duelMessage} from '../public/presentation.mjs';
+import {damageTrail,duelMessage,setBadgeText} from '../public/presentation.mjs';
 const state=(tick,hp,round=1,ready=0)=>({tick,round,ready,p:[{hp},{hp:100}]});
 test('damage trail holds, decays and clamps without changing authoritative HP',()=>{
  const trail=damageTrail(), hit=state(2,67);
@@ -32,4 +32,12 @@ test('exhibitions name the winner rather than declaring the computer to be YOU',
  s.end=0;s.ready=89;
  assert.equal(duelMessage(s,'practice',0,false,true),'Round 1  /  2');
  assert.equal(duelMessage(s,'review',0,false,false),'');
+});
+
+test('set HUD text reflects game score and never labels a single game as rated',()=>{
+ assert.equal(setBadgeText(null),'');
+ assert.equal(setBadgeText({games:0,wins:[0,0],complete:false}),'GAME 1 · 0 – 0');
+ assert.equal(setBadgeText({games:1,wins:[1,0],complete:false}),'GAME 2 · 1 – 0');
+ assert.equal(setBadgeText({games:3,wins:[2,1],complete:true}),'SET FINISHED · 2 – 1');
+ assert.equal(setBadgeText({games:2,wins:['2','0'],complete:true}),'');
 });

@@ -16,7 +16,7 @@ const remoteMotion=footwork();
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 const siteTheme=applySiteTheme(), siteHelm=siteTheme?.helm;
 const helm=new Image();helm.src=new URL('./art/visored-helm.svg',import.meta.url).href;
-import {drawHUD,damageTrail,backingSize,duelMessage,drawRoundPlate,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
+import {drawHUD,damageTrail,backingSize,duelMessage,drawSetBadge,drawRoundPlate,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
 const healthDisplay=damageTrail();
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
@@ -725,6 +725,7 @@ function render(now){
  const huntFont=document.documentElement.dataset.huntFont==='true';
  const trail=healthDisplay.update(s,elapsed,reduced());
  drawHUD(g,s,mode&&!watching&&!sparHost?localSlot:-1,timer,prefs.contrast,siteHelm?.naturalWidth?siteHelm:helm,huntFont,trail,siteTheme);
+ if(competitive&&setState)drawSetBadge(g,setState,huntFont);
  g.textAlign='center';g.fillStyle='#eee1c8';
  if(now>=nextScoreboard){
    nextScoreboard=now+125;

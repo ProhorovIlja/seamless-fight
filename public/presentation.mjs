@@ -143,3 +143,24 @@ export function duelMessage(s,mode,slot,watching=false,exhibition=false,hz=60){
  if(s.ready)return 'Round '+s.round+'  /  '+Math.ceil(s.ready/hz);
  return '';
 }
+
+export function setBadgeText(set){
+ if(!set||!Array.isArray(set.wins)||set.wins.length!==2)return '';
+ const [veil,cinder]=set.wins;
+ if(!Number.isSafeInteger(veil)||!Number.isSafeInteger(cinder))return '';
+ return set.complete?'SET FINISHED · '+veil+' – '+cinder:
+   'GAME '+(set.games+1)+' · '+veil+' – '+cinder;
+}
+export function drawSetBadge(g,set,huntFont=false){
+ const text=setBadgeText(set);
+ if(!text)return;
+ g.save();
+ const x=480,y=72;
+ g.fillStyle='#10151de8';g.strokeStyle='#c9a86ab3';g.lineWidth=1;
+ g.beginPath();g.moveTo(x-106,y-11);g.lineTo(x+106,y-11);g.lineTo(x+113,y);
+ g.lineTo(x+106,y+11);g.lineTo(x-106,y+11);g.lineTo(x-113,y);g.closePath();g.fill();g.stroke();
+ g.textAlign='center';g.textBaseline='middle';g.fillStyle='#f0e2c2';
+ g.font=huntFont?'16px "Hunt Garamond", Georgia':'bold 12px Georgia';
+ g.fillText(text,x,y,198);
+ g.restore();
+}
