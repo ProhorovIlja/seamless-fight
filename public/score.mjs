@@ -42,7 +42,7 @@ export function windPCM(rate,arena){
      lo+=.022*(r-lo);hi+=.002*(r-hi);
      if(pass===0)continue;
      const t=i/rate;
-     out[i]=reliquary?(.4*(lo-hi)+.032*Math.sin(2*Math.PI*61.74*t)+.022*Math.sin(2*Math.PI*92.61*t))*(.8+.2*Math.cos(2*Math.PI*t/8)):
+     out[i]=reliquary?(.4*(lo-hi)+.032*Math.sin(2*Math.PI*61.75*t)+.022*Math.sin(2*Math.PI*92.625*t))*(.8+.2*Math.cos(2*Math.PI*t/8)):
        cistern?(.32*(lo-hi)+.04*Math.sin(2*Math.PI*55*t)+.018*Math.sin(2*Math.PI*110*t))*(.65+.35*Math.cos(2*Math.PI*t/2))
        :(.55*(lo-hi)+.052*Math.sin(2*Math.PI*49*t)+.025*Math.sin(2*Math.PI*73.5*t))*(.8+.2*Math.sin(2*Math.PI*t/8));
    }
