@@ -59,7 +59,7 @@ function showArena(value){
 $('arena-select').onchange=()=>{if(mode==='practice'&&!searchSocket)practice();else if(!mode)showArena($('arena-select').value);};
 const status=t=>{$('status').textContent=t;};
 let searchSocket=null;
-let s=match(), mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null;
+let s=match(), mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null,competitive=false,setState=null;
 const audio=createAudio(), flashes=[0,0];
 let lastRange=null,lastRangeAt=-Infinity;
 let watching=false, watchLink=null;
@@ -254,7 +254,7 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){stopSearch();sparHost=null;ghostAutoDone=false;lesson=-1;$('lesson').hidden=true;practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){stopSearch();competitive=false;setState=null;$('set-panel').hidden=true;sparHost=null;ghostAutoDone=false;lesson=-1;$('lesson').hidden=true;practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){
  leave();showArena($('arena-select').value);mode='practice';
  const exhibition=Boolean(ghost&&$('ghost-exhibition').checked);
@@ -334,6 +334,45 @@ $('watch-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('wat
 function socketUrl(){
  const url=new URL('./socket',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';return url;
 }
+$('queue-format').value=prefs.setFormat;
+function queueLabel(){
+ $('queue-start').textContent=prefs.setFormat==='set-preview'?'Find competitive set':'Find casual duel';
+}
+$('queue-format').onchange=()=>{
+ prefs.setFormat=$('queue-format').value==='set-preview'?'set-preview':'casual';
+ persist();queueLabel();
+};
+queueLabel();
+function showSet(phase='',nextIn=0){
+ $('set-panel').hidden=!competitive||!setState;
+ if(!competitive||!setState)return;
+ const score=setState.wins.join(' – ');
+ $('set-title').textContent='Competitive BO3 · '+score+' games';
+ let text='Game '+(setState.games+1)+' · first to two wins · unranked rules preview';
+ if(setState.complete){
+   text=setState.winner===null?'Set unresolved after '+setState.games+' games · no contest.':
+     (setState.winner===0?'Veil':'Cinder')+' takes the set '+score+'.';
+   text+=' No rating points in preview; requeue for a new opponent.';
+ }else if(phase==='game-ended')text='Game '+setState.games+' finished · '+score+
+     ' · next game starts automatically in '+Math.ceil(nextIn/1000)+' seconds.';
+ else if(phase==='next-game')text='Game '+(setState.games+1)+' starting · '+score+' · set rating not awarded after individual games.';
+ $('set-status').textContent=text;
+ const select=$('set-game');
+ if(select.options.length!==setState.games){
+   select.replaceChildren();
+   for(let i=1;i<=setState.games;i++){
+     const option=document.createElement('option');option.value=String(i);option.textContent='Game '+i;select.add(option);
+   }
+   if(setState.games)select.value=String(setState.games);
+ }
+ $('set-replay-controls').hidden=slot<0||setState.games===0;
+}
+$('set-load-replay').onclick=()=>{
+ if(ws?.readyState===1&&competitive&&slot>=0){
+   ws.send(JSON.stringify({t:'replay',game:Number($('set-game').value)}));
+   $('set-status').textContent='Loading archived game '+$('set-game').value+' for local review…';
+ }
+};
 for(const [id,key] of [['queue-rtt','maxRtt'],['queue-link','linkFilter']]){
  const el=$(id);el.value=prefs.queue[key];el.onchange=()=>{prefs.queue=queueOptions({...prefs.queue,[key]:key==='maxRtt'?Number(el.value):el.value});persist();};
 }
@@ -344,7 +383,7 @@ function stopSearch(message=''){
 }
 function syncSearchControls(){
  const pending=searchSocket!==null, disabled=pending||!['','practice','lab'].includes(mode);
- for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending||Boolean(ghost&&$('ghost-exhibition').checked&&mode==='practice')],['spar-level',pending],['queue-rtt',pending],['queue-link',pending]]){
+ for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending||Boolean(ghost&&$('ghost-exhibition').checked&&mode==='practice')],['spar-level',pending],['queue-rtt',pending],['queue-link',pending],['queue-format',pending]]){
    const el=$(id);if(el.disabled!==value)el.disabled=value;
  }
 }
@@ -354,11 +393,11 @@ function queue(){
  $('queue-stop').hidden=false;
  $('queue-status').textContent='Connecting to casual matchmaking…';
  const c=searchSocket=new WebSocket(socketUrl());syncSearchControls();
- c.onopen=()=>{if(c===searchSocket)c.send(JSON.stringify({t:'queue',arena:arena,outfit:prefs.outfit,...prefs.queue,link:navigator.connection?.type}));};
+ c.onopen=()=>{if(c===searchSocket)c.send(JSON.stringify({t:'queue',arena:arena,outfit:prefs.outfit,...prefs.queue,format:prefs.setFormat,link:navigator.connection?.type}));};
  c.onmessage=e=>{
    if(c!==searchSocket)return;
    const m=JSON.parse(e.data);
-   if(m.t==='queued')$('queue-status').textContent='Checking connection. Keep practicing.';
+   if(m.t==='queued')$('queue-status').textContent='Checking connection for '+(prefs.setFormat==='set-preview'?'an unranked competitive set':'a casual duel')+'. Keep practicing.';
    if(m.t==='queue-quality')$('queue-status').textContent=(prefs.queue.maxRtt&&m.rtt>prefs.queue.maxRtt?'Your server ping is above your cap. ':'Searching for a compatible duel. ')+m.rtt+' ms to server. Keep practicing.';
    if(m.t==='error')stopSearch(m.message);
    if(m.t==='room'&&m.queued){
@@ -382,20 +421,22 @@ function attachOnline(c){
  c.onmessage=e=>{
    if(c!==ws)return;const m=JSON.parse(e.data);
    if(m.t==='room'){
-     showArena(m.arena);looks=pair(m.outfits);slot=m.slot;$('gallery').hidden=slot!==0||m.queued;if(m.queued){
+     showArena(m.arena);looks=pair(m.outfits);slot=m.slot;competitive=m.format==='set-preview';setState=competitive?m.set:null;showSet();$('gallery').hidden=slot!==0||m.queued;if(m.queued){
        if(m.quality?.length===2)$('queue-status').textContent='At pairing · Your server ping '+m.quality[slot]+' ms · Opponent server ping '+m.quality[1-slot]+' ms';
-       status('Casual opponent found.');return;
+       status(competitive?'Competitive BO3 opponent found · unrated preview.':'Casual opponent found.');return;
      }const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
    }
    if(m.t==='replay'){try{loadCapture(m);}catch(e){reviewInfo(e.message);}return;}
    if(m.t==='gallery')setGallery(m.code);
    if(m.t==='outfits'){looks=pair(m.outfits);return;}
-   if(m.t==='watching'){showArena(m.arena);looks=pair(m.outfits);slot=-1;mode='spectate';status('Spectating · waiting for both fighters.');}
+   if(m.t==='watching'){showArena(m.arena);looks=pair(m.outfits);slot=-1;mode='spectate';competitive=m.format==='set-preview';setState=competitive?m.set:null;showSet();status('Spectating · waiting for both fighters.');}
+   if(m.t==='set'){setState=m.set;showSet(m.phase,m.nextIn);return;}
+   if(m.t==='notice'){$('set-status').textContent=m.message;return;}
    if(m.t==='state'&&watching){
      if(s.tick===0)status('Spectating live · read-only.');
      const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,null,at);s=m.s;feedback(s,m.cues);return;
    }
-   if(m.t==='state'){const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,m.ack,at);if(mode!=='online')status('Online duel · first to two round wins (6-round limit).');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
+   if(m.t==='state'){const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,m.ack,at);if(mode!=='online')status(competitive?'Competitive BO3 · first to two won games · unrated preview.':'Online duel · first to two round wins (6-round limit).');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
      const continuous=mode==='online'&&playable(s)&&playable(m.s)&&m.s.round===s.round&&m.s.tick>s.tick;
      mode='online';s=m.s;$('capture').disabled=false;feedback(s,m.cues);
      const next=reconcile(s,slot,continuous?pending:[],m.ack);pending=next.pending;predicted=next.p;
@@ -704,7 +745,7 @@ function render(now){
  if(mode==='online'){g.font='13px system-ui';g.fillText(ping?ping+' ms RTT':'ONLINE',480,59);}
  const msg=duelMessage(s,mode,slot,watching,Boolean(sparHost),HZ);
  if(msg)drawRoundPlate(g,msg,s.end||s.over?'result':'ready',siteTheme,huntFont);
- $('rematch').hidden=mode!=='online'||watching||!s.over;
+ $('rematch').hidden=mode!=='online'||watching||competitive||!s.over;
  requestAnimationFrame(render);
 }
 requestAnimationFrame(render);

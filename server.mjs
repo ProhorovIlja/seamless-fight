@@ -97,8 +97,8 @@ function closeGallery(r,message){
   r.viewers.clear();
 }
 function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.tape=[];r.cues.length=0;r.votes.clear();r.setRecorded=false;r.setNextAt=0;for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
-function makeRoom(arena,now,queued=false,format='casual'){
- if(format!=='casual'&&format!=='set-preview')throw RangeError('Unknown room format.');
+function makeRoom(arena,now,queued=false,format=queued?'casual':'player'){
+ if(!['casual','player','set-preview'].includes(format))throw RangeError('Unknown room format.');
  let code;do{code=token();}while(rooms.has(code)||galleries.has(code));
  const room={code,queued,format,set:format==='set-preview'?newSet():null,setRecorded:false,setNextAt:0,archive:[],arena:arenaId(arena),outfits:[outfit(),outfit()],peers:[],viewers:new Set(),watchCode:null,tape:[],cues:[],votes:new Set(),s:match(),at:now};
  rooms.set(code,room);return room;
@@ -180,7 +180,7 @@ ws.on('connection',c=>{
     if(m.t==='ping'&&Number.isFinite(m.id)){send(c,{t:'pong',id:m.id});return;}
     if(slot===-1)return;
     if(m.t==='replay'){
-      if(room.peers.length===2&&room.tape.length&&now-(c.lastReplay??-Infinity)>1500){
+      if(room.peers.length===2&&(room.tape.length||room.archive.length)&&now-(c.lastReplay??-Infinity)>1500){
         const game=Number.isSafeInteger(m.game)?m.game:null;
         const archived=room.format==='set-preview'&&game!==null?room.archive[game-1]:null;
         if(game!==null&&!archived)return;

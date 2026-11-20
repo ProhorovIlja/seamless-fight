@@ -84,3 +84,13 @@ details summary{letter-spacing:.035em}
 .ghost-showcase{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--hunt-edge);padding:.5rem .7rem;color:var(--hunt-bone);font:1.08rem var(--hunt-serif)}.ghost-showcase:has(input:disabled){opacity:.55}
 
 .ghost-options{display:flex;flex-wrap:wrap;gap:.4rem .65rem;margin:.7rem 0}.ghost-options label{font-size:.95rem}
+
+/* Set score uses the same restrained website parchment, slate, and brass tokens. */
+.queue-format-label{display:grid;gap:.3rem;font-size:.83rem;color:var(--hunt-bone);min-width:min(100%,240px)}
+.queue-format-label select{width:100%}
+.set-panel{max-width:680px;margin:.7rem auto;padding:.7rem 1rem;text-align:center;border:1px solid var(--hunt-edge)}
+.set-title{margin:.15rem 0;color:var(--hunt-gold);font:1.35rem var(--hunt-serif)}
+#set-status{color:var(--hunt-bone);font:1rem var(--hunt-serif)}
+#set-replay-controls{justify-content:center;margin:.6rem 0}
+.set-note{color:#aea590;font-size:.83rem;line-height:1.5;margin:.4rem auto}
+@media(max-width:600px){.queue-format-label{width:100%}.set-panel{padding:.6rem}}

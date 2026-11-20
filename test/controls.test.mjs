@@ -19,6 +19,11 @@ test('gamepad filters drift, prioritizes the D-pad and suppresses repeated actio
  assert.equal(samplePad(pad([2],[0,0],{index:1}),c.next,.3).act,'');
 });
 
+test('queue format remains opt-in for unrated competitive sets',()=>{
+ assert.equal(settings().setFormat,'casual');
+ assert.equal(settings({setFormat:'set-preview'}).setFormat,'set-preview');
+ assert.equal(settings({setFormat:'ranked'}).setFormat,'casual');
+});
 test('ghost auto-learning is disabled by default and only restored from explicit opt-in',()=>{
  assert.equal(settings().ghostAuto,false);
  assert.equal(settings({ghostAuto:true}).ghostAuto,true);
