@@ -4,7 +4,7 @@ export function scorePCM(rate,arena,layer){
  const length=16,n=length*rate,out=new Float32Array(n), cistern=arena==='cistern';
  const tau=2*Math.PI;
  for(let i=1;i<n;i++){
-   const t=i/rate, bar=Math.floor(t/2), phase=t%2, base=NOTES[bar]*(cistern?.75:1);
+   const t=i/rate, bar=Math.floor(t/2), phase=t%2, base=NOTES[bar]*(cistern?.75:arena==='reliquary'?1.125:1);
    const env=Math.min(1,phase*3,(2-phase)*4);
    const pulse=t%.5, decay=Math.min(1,pulse*60)*Math.exp(-11*pulse);
    const f=base*(bar%2?1.5:2);
@@ -32,7 +32,7 @@ export function windPCM(rate,arena){
  // Generate each periodic 8-second sound twice from the same noise seed.
  // First pass warms up the low-pass filters; the second yields a smoothly
  // wrapping loop, without the audible once-per-loop silence of fade ramps.
- const n=Math.floor(rate*8),out=new Float32Array(n),cistern=arena==='cistern';
+ const n=Math.floor(rate*8),out=new Float32Array(n),cistern=arena==='cistern',reliquary=arena==='reliquary';
  let lo=0,hi=0;
  for(let pass=0;pass<2;pass++){
    let seed=21381;
@@ -42,7 +42,8 @@ export function windPCM(rate,arena){
      lo+=.022*(r-lo);hi+=.002*(r-hi);
      if(pass===0)continue;
      const t=i/rate;
-     out[i]=cistern?(.32*(lo-hi)+.04*Math.sin(2*Math.PI*55*t)+.018*Math.sin(2*Math.PI*110*t))*(.65+.35*Math.cos(2*Math.PI*t/2))
+     out[i]=reliquary?(.4*(lo-hi)+.032*Math.sin(2*Math.PI*61.74*t)+.022*Math.sin(2*Math.PI*92.61*t))*(.8+.2*Math.cos(2*Math.PI*t/8)):
+       cistern?(.32*(lo-hi)+.04*Math.sin(2*Math.PI*55*t)+.018*Math.sin(2*Math.PI*110*t))*(.65+.35*Math.cos(2*Math.PI*t/2))
        :(.55*(lo-hi)+.052*Math.sin(2*Math.PI*49*t)+.025*Math.sin(2*Math.PI*73.5*t))*(.8+.2*Math.sin(2*Math.PI*t/8));
    }
  }
