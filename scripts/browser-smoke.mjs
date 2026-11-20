@@ -107,6 +107,7 @@ try{
  await until(async()=>/Input acknowledgment p95 [0-9.]+ ms/.test(await guest.locator('#diagnostic-values').textContent()),'guest input acknowledgment measured');
  const report=await guest.locator('#diagnostic-values').textContent();
  assert(Number(report.match(/RTT median ([0-9.]+)/)[1])>=65,report);
+ assert.match(report,/Remote footwork buffer target [0-9.]+ ms/);
  console.log('Impaired guest: '+report);
  // Trigger combat from the impaired seat and verify exactly one ammo use.
  await guest.locator('#diagnostics summary').click();

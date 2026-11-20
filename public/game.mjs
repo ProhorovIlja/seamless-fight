@@ -9,6 +9,8 @@ import {createMetrics} from './metrics.mjs';
 import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
 import {logInput,describe,eventLabel} from './analysis.mjs';
 import {dyes,sigils,outfit,pair,paintOutfit} from './wardrobe.mjs';
+import {footwork} from './footwork.mjs';
+const remoteMotion=footwork();
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -44,7 +46,7 @@ function showArena(value){
 }
 $('arena-select').onchange=()=>{if(mode==='practice')practice();else if(!mode)showArena($('arena-select').value);};
 const status=t=>{$('status').textContent=t;};
-let s=match(), prev=null, at=0, mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null;
+let s=match(), mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null;
 const audio=createAudio(), flashes=[0,0];
 let watching=false, watchLink=null;
 let metrics=createMetrics(), nextDiagnostic=0, skipFrameSample=false;
@@ -116,7 +118,7 @@ function read(){
 }
 function flush(){pressed.clear();action='';prior=null;armed=false;padFrame={x:0,y:0};sendInput(blank());}
 addEventListener('blur',()=>{flush();cancelBinding();});
-document.addEventListener('visibilitychange',()=>{metrics.clearFrame();skipFrameSample=true;if(document.hidden)flush();});
+document.addEventListener('visibilitychange',()=>{metrics.clearFrame();remoteMotion.clear();skipFrameSample=true;if(document.hidden)flush();});
 addEventListener('keydown',ev=>{
  if(binding){
    ev.preventDefault();ev.stopImmediatePropagation();
@@ -151,7 +153,7 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();showArena($('arena-select').value);mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -234,11 +236,10 @@ function online(code,watch=false){
    if(m.t==='outfits'){looks=pair(m.outfits);return;}
    if(m.t==='watching'){showArena(m.arena);looks=pair(m.outfits);slot=-1;mode='spectate';status('Spectating · waiting for both fighters.');}
    if(m.t==='state'&&watching){
-     prev=m.s.tick>s.tick&&m.s.round===s.round&&m.s.ready<=s.ready?s:null;
      if(s.tick===0)status('Spectating live · read-only.');
-     at=performance.now();metrics.snapshot(m.s.tick,null,at);s=m.s;feedback(s);return;
+     const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,null,at);s=m.s;feedback(s);return;
    }
-   if(m.t==='state'){prev=m.s.tick>=s.tick&&m.s.round===s.round?s:null;at=performance.now();metrics.snapshot(m.s.tick,m.ack,at);if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
+   if(m.t==='state'){const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,m.ack,at);if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
      const continuous=mode==='online'&&playable(s)&&playable(m.s)&&m.s.round===s.round&&m.s.tick>s.tick;
      mode='online';s=m.s;$('capture').disabled=false;feedback(s);
      const next=reconcile(s,slot,continuous?pending:[],m.ack);pending=next.pending;predicted=next.p;
@@ -411,7 +412,7 @@ function render(now){
  if(now>=nextDiagnostic&&$('diagnostics').open){
    nextDiagnostic=now+500;
    const m=metrics.summary(), fmt=(n,unit='ms')=>n===null?'—':n.toFixed(1)+' '+unit;
-   $('diagnostic-values').textContent='Frame interval p95 '+fmt(m.frame)+' · RTT median '+fmt(m.rtt)+' · RTT p95–median '+fmt(m.rttSpread)+' · Snapshot gap p95 '+fmt(m.gap)+' · Input acknowledgment p95 '+fmt(m.ack)+' · Footwork correction p95 '+fmt(m.correction,'arena units');
+   $('diagnostic-values').textContent='Frame interval p95 '+fmt(m.frame)+' · RTT median '+fmt(m.rtt)+' · RTT p95–median '+fmt(m.rttSpread)+' · Snapshot gap p95 '+fmt(m.gap)+' · Input acknowledgment p95 '+fmt(m.ack)+' · Footwork correction p95 '+fmt(m.correction,'arena units')+' · Remote footwork buffer target '+fmt(remoteMotion.delayMs());
  }
  const elapsed=Math.min(100,now-prevFrame);prevFrame=now;acc+=elapsed;
  pollPad();
@@ -422,9 +423,9 @@ function render(now){
  inspect(now);
  g.drawImage(backdrop,0,0);
  if(!reduced()){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=arena==='cistern'?(i%3?'#b3d9dd19':'#a7d3d447'):(i%3?'#e3d6dc1d':'#e7a16082');g.fillRect(x,y,2,2);}}
- const blend=(mode==='online'||mode==='spectate')&&prev?Math.min(1,(now-at)/50):1;
+ const foot=(mode==='online'||mode==='spectate')?remoteMotion.sample(now):null;
  const decay=Math.exp(-elapsed/43);correction.x*=decay;correction.y*=decay;
- const poses=s.p.map((p,i)=>({p,i,x:prev?prev.p[i].x+(p.x-prev.p[i].x)*blend:p.x,y:prev?prev.p[i].y+(p.y-prev.p[i].y)*blend:p.y})).map(o=>mode==='online'&&o.i===slot&&predicted?{...o,x:predicted.x+correction.x,y:predicted.y+correction.y}:o).sort((a,b)=>a.y-b.y);
+ const poses=s.p.map((p,i)=>({p,i,x:foot?.[i].x??p.x,y:foot?.[i].y??p.y})).map(o=>mode==='online'&&o.i===slot&&predicted?{...o,x:predicted.x+correction.x,y:predicted.y+correction.y}:o).sort((a,b)=>a.y-b.y);
  for(const {p,i,x,y} of poses){
    drawFighter(p,i,x,y,now);
    if(flashes[i]>0){

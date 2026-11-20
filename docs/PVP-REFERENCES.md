@@ -28,3 +28,5 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - [Fighting Game Glossary: Whiff Punish](https://glossary.infil.net/?t=Whiff+Punish): distinguish a missed attack from the follow-up hit during its recovery. [Street Fighter 6 training recording](https://game.capcom.com/manual/SF6/en/ps5/page/8/6) provides the repeatable-exchange reference. No external combat code imported.
 
 - [Brawlhalla cosmetics](https://brawlhalla.wiki.gg/wiki/Cosmetics) and [Guilty Gear Strive appearance locks](https://www.guiltygear.com/ggst/en/news/post-2963/): keep customization outside combat and let viewers suppress it locally. All coat and sigil art is original Canvas drawing.
+
+- [VALORANT Gameplay Consistency Update 2](https://playvalorant.com/en-gb/news/game-updates/valorant-gameplay-consistency-update-2/): balancing buffered motion against responsiveness. Seamless Fight buffers only neutral remote poses and preserves immediate authoritative action cues; this is not rollback or an input delay.
