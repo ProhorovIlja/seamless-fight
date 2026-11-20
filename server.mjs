@@ -12,7 +12,7 @@ import {RULESET,MAX_TICKS,packTick} from './public/replay.mjs';
 import {arenaId} from './public/arenas.mjs';
 
 import {eligible,queueOptions} from './public/queue-policy.mjs';
-import {newSet,recordGame,SET_PAUSE_MS} from './server/set-policy.mjs';
+import {newSet,recordGame,SET_PAUSE_MS,mayVoteRematch} from './server/set-policy.mjs';
 import {outfit} from './public/wardrobe.mjs';
 
 const assets = new Map([
@@ -195,7 +195,7 @@ ws.on('connection',c=>{
       }else if(!m.open&&room.watchCode)closeGallery(room,'The host closed the gallery.');
       send(c,{t:'gallery',code:room.watchCode});return;
     }
-    if(m.t==='rematch'&&room.s.over){if(room.format==='set-preview'){send(c,{t:'notice',message:'This set advances automatically. Requeue after the set ends.'});return;}room.votes.add(slot);if(room.votes.size===2)reset(room);else for(const p of room.peers)send(p,{t:'vote',slot});return;}
+    if(m.t==='rematch'&&room.s.over){if(!mayVoteRematch(room.format,room.s.over)){send(c,{t:'notice',message:'This set advances automatically. Requeue after the set ends.'});return;}room.votes.add(slot);if(room.votes.size===2)reset(room);else for(const p of room.peers)send(p,{t:'vote',slot});return;}
     if(m.t!=='input'||![-1,0,1].includes(m.x)||![-1,0,1].includes(m.y)||!Number.isSafeInteger(m.seq)||m.seq<=c.seq)return;
     c.seq=m.seq;
     c.input={x:m.x,y:m.y,act:''};c.at=now;

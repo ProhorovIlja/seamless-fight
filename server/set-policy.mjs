@@ -28,3 +28,7 @@ export function setScore(set){
    ||set.wins[1-set.winner]>=SET_TARGET)return null;
  return set.winner===0?[1,0]:[0,1];
 }
+
+// Casual and private-player rooms have unlimited consensual rematches.
+// Competitive sets never reset by client vote; they advance automatically.
+export const mayVoteRematch=(format,gameOver)=>Boolean(gameOver)&&(format==='casual'||format==='player');

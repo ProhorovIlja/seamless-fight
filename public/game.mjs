@@ -516,13 +516,16 @@ function feedback(state,confirmed){
  lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age,x})=>({hp,act,age,x}))};
 }
 function loadCapture(data){
- const clip={rules:data.rules,tape:data.tape,arena:arenaId(data.arena),outfits:pair(data.outfits)}, view=createReview(clip);
+ const clip={rules:data.rules,tape:data.tape,arena:arenaId(data.arena),outfits:pair(data.outfits)};
+ const setGame=Number.isSafeInteger(data.game)&&data.game>=1&&data.game<=5?data.game:null;
+ if(setGame)clip.setGame=setGame;
+ const view=createReview(clip);
  view.arena=clip.arena;view.outfits=clip.outfits;
  capture=view;$('ghost-learn').disabled=false;
  if(saveUrl)URL.revokeObjectURL(saveUrl);
  saveUrl=URL.createObjectURL(new Blob([JSON.stringify(clip)],{type:'application/json'}));
- $('review-save').href=saveUrl;$('review-save').hidden=false;$('review-open').disabled=false;
- reviewInfo(view.complete?'Completed match captured.':view.total===MAX_TICKS?'Capture limit reached · review the recorded opening of this match.':'Partial match captured · '+view.total+' ticks.');
+ $('review-save').href=saveUrl;$('review-save').download=setGame?'seamless-fight-set-game-'+setGame+'.json':'seamless-fight-replay.json';$('review-save').hidden=false;$('review-open').disabled=false;
+ reviewInfo((setGame?'Set game '+setGame+' · ':'')+(view.complete?'Completed match captured.':view.total===MAX_TICKS?'Capture limit reached · review the recorded opening of this match.':'Partial match captured · '+view.total+' ticks.'));
 }
 $('ghost-learn').onclick=()=>{
  if(!capture)return;
@@ -731,7 +734,7 @@ function render(now){
    nextScoreboard=now+125;
    for(let i=0;i<2;i++){
      const p=s.p[i], label=$('fighter-score-'+i);
-     const value=Math.ceil(p.hp)+' HP · '+Math.floor(p.st)+' stamina · '+p.ammo+' shots · '+s.score[i]+' wins';
+     const value=Math.ceil(p.hp)+' HP · '+Math.floor(p.st)+' stamina · '+p.ammo+' shots · '+s.score[i]+' round wins';
      if(label.textContent!==value)label.textContent=value;
    }
    const time='Round '+s.round+' · '+timer+' seconds';

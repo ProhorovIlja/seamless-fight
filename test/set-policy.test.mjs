@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {newSet,recordGame,setScore,SET_TARGET,SET_MAX_GAMES,SET_PAUSE_MS} from '../server/set-policy.mjs';
+import {newSet,recordGame,setScore,SET_TARGET,SET_MAX_GAMES,SET_PAUSE_MS,mayVoteRematch} from '../server/set-policy.mjs';
 test('ranked rules require two won matches; first game never awards anything',()=>{
  const start=newSet();
  assert.equal(SET_TARGET,2);assert.equal(SET_MAX_GAMES,5);assert.equal(SET_PAUSE_MS,8000);
@@ -57,4 +57,14 @@ test('authoritative simulation outcomes advance set score only after a game ends
  }
  assert.deepEqual(set.wins,[2,1]);
  assert.deepEqual(setScore(set),[1,0]);
+});
+
+test('private and casual rematches never have a set counter; competitive ignores rematch votes',()=>{
+ for(let game=0;game<200;game++){
+   assert.equal(mayVoteRematch('player',true),true);
+   assert.equal(mayVoteRematch('casual',true),true);
+   assert.equal(mayVoteRematch('set-preview',true),false);
+ }
+ assert.equal(mayVoteRematch('player',false),false);
+ assert.equal(mayVoteRematch('ranked',true),false);
 });

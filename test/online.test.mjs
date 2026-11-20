@@ -57,7 +57,7 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  assert.equal((await ranked1.get(m=>m.t==='state')).set,undefined,'per-game state is not a rating verdict');
  ranked1.c.close();await ranked2.get(m=>m.t==='error');
  casualOnly.c.close();
- const a=await open();a.send({t:'hello',arena:'cistern',outfit:{dye:'kelp',sigil:'moon',hp:999}});const room=await a.get(m=>m.t==='room');assert.equal(room.slot,0);assert.equal(room.arena,'cistern');
+ const a=await open();a.send({t:'hello',arena:'cistern',outfit:{dye:'kelp',sigil:'moon',hp:999}});const room=await a.get(m=>m.t==='room');assert.equal(room.slot,0);assert.equal(room.arena,'cistern');assert.equal(room.format,'player');
  const b=await open();b.send({t:'hello',code:room.code,outfit:{dye:'constructor',sigil:'thorn'}});const joined=await b.get(m=>m.t==='room');assert.equal(joined.slot,1);assert.equal(joined.arena,'cistern');assert.deepEqual(joined.outfits,[{dye:'kelp',sigil:'moon'},{dye:'ash',sigil:'thorn'}]);
  const full=await open();full.send({t:'hello',code:room.code});assert.match((await full.get(m=>m.t==='error')).message,/full/);
  const denied=await open();denied.send({t:'watch',code:room.code});
