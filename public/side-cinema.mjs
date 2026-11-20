@@ -33,3 +33,11 @@ export function sideScoreTension(s){
 export function sideIsFootstep(p){
  return p.y===SIDE_FLOOR&&!p.act&&!p.crouch&&!p.guardAge&&Math.abs(p.vx)>=2.25;
 }
+
+export function sideWorldLens(state,quality='balanced'){
+ const a=state?.p?.[0],b=state?.p?.[1];
+ const focus=Number.isFinite(a?.x)&&Number.isFinite(b?.x)?Math.max(120,Math.min(840,(a.x+b.x)*.5)):480;
+ const zoom=quality==='cinematic'?1.095:quality==='balanced'?1.055:1;
+ const shift=(480-focus)*.037;
+ return {zoom,shift:focus===480?0:shift};
+}
