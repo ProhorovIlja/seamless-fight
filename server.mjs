@@ -27,6 +27,7 @@ const assets = new Map([
   ['side-depth.mjs',['side-depth.mjs','text/javascript']],
   ['side-cinema.mjs',['side-cinema.mjs','text/javascript']],
   ['side-pose.mjs',['side-pose.mjs','text/javascript']],
+  ['side-painted.mjs',['side-painted.mjs','text/javascript']],
   ['side-ai.mjs',['side-ai.mjs','text/javascript']],
   ['side-replay.mjs',['side-replay.mjs','text/javascript']],
   ['side-inspector.mjs',['side-inspector.mjs','text/javascript']],
@@ -54,6 +55,7 @@ const assets = new Map([
   ['audio/impactMetal_light_000.ogg',['audio/impactMetal_light_000.ogg','audio/ogg']],
   ['audio/impactMetal_heavy_000.ogg',['audio/impactMetal_heavy_000.ogg','audio/ogg']],
   ['audio/footstep_concrete_000.ogg',['audio/footstep_concrete_000.ogg','audio/ogg']],
+  ['art/reliquary-painted.webp',['art/reliquary-painted.webp','image/webp']],
   ['art/crossed-swords.svg',['art/crossed-swords.svg','image/svg+xml']],
   ['art/lantern.svg',['art/lantern.svg','image/svg+xml']],
   ['art/visored-helm.svg',['art/visored-helm.svg','image/svg+xml']]
