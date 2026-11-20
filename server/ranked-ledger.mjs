@@ -37,8 +37,11 @@ export function openRankedLedger(path=':memory:'){
     canonical TEXT NOT NULL, result_json TEXT NOT NULL,
     recorded_at INTEGER NOT NULL,
     PRIMARY KEY(season,set_id)
-  );`);
+  );
+  -- A server-authored physical match must never be credited to two seasons.
+  CREATE UNIQUE INDEX IF NOT EXISTS completed_set_global_id ON completed_set(set_id);`);
  const getSet=db.prepare('SELECT canonical,result_json FROM completed_set WHERE season=? AND set_id=?');
+ const getSetSeason=db.prepare('SELECT season FROM completed_set WHERE set_id=?');
  const getRating=db.prepare('SELECT rating,rd,volatility,sets FROM season_rating WHERE season=? AND player_id=?');
  const upsert=db.prepare(`INSERT INTO season_rating(season,player_id,rating,rd,volatility,sets)
  VALUES(?,?,?,?,?,1) ON CONFLICT(season,player_id) DO UPDATE SET
@@ -54,6 +57,9 @@ export function openRankedLedger(path=':memory:'){
   // Transaction makes the pair of ratings and one immutable set row atomic.
   db.exec('BEGIN IMMEDIATE');
   try{
+   // Season rollovers must not allow the same physical match to settle twice.
+   const priorSeason=getSetSeason.get(setId);
+   if(priorSeason&&priorSeason.season!==season)throw Error('Conflicting season for an already committed set.');
    const prior=getSet.get(season,setId);
    if(prior){
      if(prior.canonical!==key)throw Error('Conflicting result for an already committed set.');
