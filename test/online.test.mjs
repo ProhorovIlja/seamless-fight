@@ -30,7 +30,7 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const bad=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin:'https://example.invalid'});const [err]=await once(bad,'error');assert.match(err.message,/403/);
  const open=async(pongDelay=0)=>{
    const c=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin,autoPong:!pongDelay});t.after(()=>c.terminate());
-   if(pongDelay)c.on('ping',payload=>setTimeout(()=>{if(c.readyState===1)c.pong(payload);},pongDelay));
+   if(pongDelay){let probeIndex=0;c.on('ping',payload=>{const delay=Array.isArray(pongDelay)?pongDelay[probeIndex++%pongDelay.length]:pongDelay;setTimeout(()=>{if(c.readyState===1)c.pong(payload);},delay);});}
    const pending=[];c.on('message',x=>pending.push(JSON.parse(x)));
    await once(c,'open');
    return {c,send:m=>c.send(JSON.stringify(m)),get:async pred=>{for(let i=0;i<110;i++){const k=pending.findIndex(pred);if(k>=0)return pending.splice(k,1)[0];await sleep(35);}throw Error('Missing expected server message');}};
@@ -38,12 +38,15 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const dropped=await open();dropped.send({t:'queue'});await dropped.get(m=>m.t==='queued');dropped.c.close();await once(dropped.c,'close');
  const first=await open();first.send({t:'queue',arena:'cistern',linkFilter:'no-wifi',maxRtt:120});await first.get(m=>m.t==='queue-quality');
  const slow=await open(165);slow.send({t:'queue',rtt:1});assert((await slow.get(m=>m.t==='queue-quality')).rtt>=155);
+ const varying=await open([10,90,10]);varying.send({t:'queue',maxSpread:10});
+ const sample=await varying.get(m=>m.t==='queue-quality');assert(sample.spread>=50,'server measured actual fluctuating pong delays');
  const wifi=await open();wifi.send({t:'queue',link:'wifi'});await wifi.get(m=>m.t==='queue-quality');
  const second=await open();second.send({t:'queue',arena:'lantern',link:'ethernet'});
  const pair=await Promise.all([first.get(m=>m.t==='room'),second.get(m=>m.t==='room')]);
  assert.deepEqual(pair.map(x=>[x.slot,x.queued,x.code,x.arena]),[[0,true,null,'cistern'],[1,true,null,'cistern']]);
- assert.deepEqual(pair[0].quality,pair[1].quality);assert(pair[0].quality.every(rtt=>rtt<=120));
- slow.c.close();wifi.c.close();
+ assert.deepEqual(pair[0].quality,pair[1].quality);
+ assert.deepEqual(pair[0].spreadQuality,pair[1].spreadQuality);assert(pair[0].quality.every(rtt=>rtt<=120));
+ slow.c.close();wifi.c.close();varying.c.close();
  await second.get(m=>m.t==='state');first.c.close();await second.get(m=>m.t==='error');
  const ranked1=await open();
  ranked1.send({t:'queue',format:'set-preview',arena:'cistern',maxRtt:180});await ranked1.get(m=>m.t==='queue-quality');

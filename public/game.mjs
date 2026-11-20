@@ -379,8 +379,8 @@ $('set-load-replay').onclick=()=>{
    $('set-status').textContent='Loading archived game '+$('set-game').value+' for local review…';
  }
 };
-for(const [id,key] of [['queue-rtt','maxRtt'],['queue-link','linkFilter']]){
- const el=$(id);el.value=prefs.queue[key];el.onchange=()=>{prefs.queue=queueOptions({...prefs.queue,[key]:key==='maxRtt'?Number(el.value):el.value});persist();};
+for(const [id,key] of [['queue-rtt','maxRtt'],['queue-spread','maxSpread'],['queue-link','linkFilter']]){
+ const el=$(id);el.value=prefs.queue[key];el.onchange=()=>{prefs.queue=queueOptions({...prefs.queue,[key]:key==='maxRtt'||key==='maxSpread'?Number(el.value):el.value});persist();};
 }
 function stopSearch(message=''){
  const socket=searchSocket;searchSocket=null;socket?.close();
@@ -389,7 +389,7 @@ function stopSearch(message=''){
 }
 function syncSearchControls(){
  const pending=searchSocket!==null, disabled=pending||!['','practice','lab'].includes(mode);
- for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending||Boolean(ghost&&$('ghost-exhibition').checked&&mode==='practice')],['spar-level',pending],['queue-rtt',pending],['queue-link',pending],['queue-format',pending]]){
+ for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending||Boolean(ghost&&$('ghost-exhibition').checked&&mode==='practice')],['spar-level',pending],['queue-rtt',pending],['queue-spread',pending],['queue-link',pending],['queue-format',pending]]){
    const el=$(id);if(el.disabled!==value)el.disabled=value;
  }
 }
@@ -404,7 +404,7 @@ function queue(){
    if(c!==searchSocket)return;
    const m=JSON.parse(e.data);
    if(m.t==='queued')$('queue-status').textContent='Checking connection for '+(prefs.setFormat==='set-preview'?'an unranked competitive set':'a casual duel')+'. Keep practicing.';
-   if(m.t==='queue-quality')$('queue-status').textContent=(prefs.queue.maxRtt&&m.rtt>prefs.queue.maxRtt?'Your server ping is above your cap. ':'Searching for a compatible duel. ')+m.rtt+' ms to server. Keep practicing.';
+   if(m.t==='queue-quality')$('queue-status').textContent=(prefs.queue.maxRtt&&m.rtt>prefs.queue.maxRtt?'Your server ping is above your cap. ':'Searching for a compatible duel. ')+m.rtt+' ms to server · three-probe spread '+m.spread+' ms. Keep practicing.';
    if(m.t==='error')stopSearch(m.message);
    if(m.t==='room'&&m.queued){
      searchSocket=null;leave();mode='connecting';attachOnline(c);
@@ -428,7 +428,7 @@ function attachOnline(c){
    if(c!==ws)return;const m=JSON.parse(e.data);
    if(m.t==='room'){
      showArena(m.arena);looks=pair(m.outfits);slot=m.slot;competitive=m.format==='set-preview';setState=competitive?m.set:null;showSet();$('gallery').hidden=slot!==0||m.queued;if(m.queued){
-       if(m.quality?.length===2)$('queue-status').textContent='At pairing · Your server ping '+m.quality[slot]+' ms · Opponent server ping '+m.quality[1-slot]+' ms';
+       if(m.quality?.length===2)$('queue-status').textContent='At pairing · Your server ping '+m.quality[slot]+' ms · Opponent server ping '+m.quality[1-slot]+' ms'+(m.spreadQuality?' · RTT spreads '+m.spreadQuality[slot]+'/'+m.spreadQuality[1-slot]+' ms':'');
        status(competitive?'Competitive BO3 opponent found · unrated preview.':'Casual opponent found.');return;
      }const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
    }

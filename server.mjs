@@ -113,7 +113,7 @@ ws.on('connection',c=>{
   function join(target,look){
     dequeue();clearTimeout(deadline);room=target;slot=room.peers.length;
     room.outfits[slot]=look;room.peers.push(c);
-    send(c,{t:'room',code:room.queued?null:room.code,queued:room.queued,slot,arena:room.arena,outfits:room.outfits,format:room.format,set:room.set,...(room.quality?{quality:room.quality}:{})});
+    send(c,{t:'room',code:room.queued?null:room.code,queued:room.queued,slot,arena:room.arena,outfits:room.outfits,format:room.format,set:room.set,...(room.quality?{quality:room.quality,spreadQuality:room.spreadQuality}:{})});
     if(room.peers.length===2){
       reset(room);const looks={t:'outfits',outfits:room.outfits};
       for(const peer of [...room.peers,...room.viewers])send(peer,looks);
@@ -131,14 +131,15 @@ ws.on('connection',c=>{
     clearTimeout(entry.probeTimer);entry.nonce=null;
     const now=performance.now();entry.samples.push(now-entry.sent);
     if(entry.samples.length<3){entry.probeTimer=setTimeout(()=>probe(entry),100);return;}
-    entry.rtt=entry.samples.sort((a,b)=>a-b)[1];entry.sampleAt=now;entry.samples=[];
-    send(c,{t:'queue-quality',rtt:Math.round(entry.rtt)});
+    entry.samples.sort((a,b)=>a-b);entry.rtt=entry.samples[1];entry.spread=entry.samples[2]-entry.samples[0];entry.sampleAt=now;entry.samples=[];
+    send(c,{t:'queue-quality',rtt:Math.round(entry.rtt),spread:Math.round(entry.spread)});
     if(rooms.size<96)for(const [peer,other] of casual){
       if(peer===c||peer.readyState!==1||entry.format!==other.format||now>=other.expires||!eligible(entry,other,now))continue;
       // Keep arrival order for arena selection, even if the second entrant probes faster.
       const [first,second]=entry.order<other.order?[entry,other]:[other,entry];
       const target=makeRoom(first.arena,now,true,first.format);
       target.quality=[first.rtt,second.rtt].map(Math.round);
+      target.spreadQuality=[first.spread,second.spread].map(Math.round);
       first.join(target,first.look);second.join(target,second.look);return;
     }
     entry.probeTimer=setTimeout(()=>probe(entry),5000);

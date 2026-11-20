@@ -64,7 +64,7 @@ Practice offers balanced, pressure, and range-keeping opponents alongside the ev
 
 The arena and opponent selectors are locked during a search so the settings on screen match the request already sent to the server. Cancel to change them; local combat inputs keep working while queued.
 
-Casual queue filters use a rolling refresh of the median of three server-timed WebSocket ping/pong probes. The stricter cap must hold for both links; these are server RTTs, not player-to-player RTTs or input-to-display latency. Reported Wi-Fi can be excluded while allowing unknown devices, or only reported Ethernet can be accepted. The browser hint is optional and untrusted. Private invitations bypass public queue filters. No skill rank is assigned.
+Casual queue filters use a rolling refresh of the median of three server-timed WebSocket ping/pong probes. An optional maximum RTT spread checks the difference between the highest and lowest of those three samples for both players, without widening the filter; this is not a general packet-loss, jitter-distribution or input-latency guarantee. The stricter cap must hold for both links; these are server RTTs, not player-to-player RTTs or input-to-display latency. Reported Wi-Fi can be excluded while allowing unknown devices, or only reported Ethernet can be accepted. The browser hint is optional and untrusted. Private invitations bypass public queue filters. No skill rank is assigned.
 
 ### Ghost workshop
 

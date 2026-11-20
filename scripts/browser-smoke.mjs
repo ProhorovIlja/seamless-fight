@@ -321,6 +321,8 @@ try{
  for(const page of [q1,q2]){page.on('pageerror',err=>errors.push(err.message));await page.goto(url);}
  await q1.locator('.queue-filters summary').click();
  await q1.locator('#queue-rtt').selectOption('180');
+ await q1.locator('#queue-spread').selectOption('35');
+ await q1.locator('#queue-spread').selectOption('0');
  assert.equal(await q1.locator('#queue-format').inputValue(),'casual');
  await q1.locator('#queue-format').selectOption('set-preview');
  assert.equal(await q1.locator('#queue-start').textContent(),'Find competitive set');
@@ -329,6 +331,7 @@ try{
  await until(async()=>/Keep practicing/.test(await q1.locator('#queue-status').textContent()),'queue active during practice');
  assert(await q1.locator('#arena-select').isDisabled());
  assert(await q1.locator('#queue-rtt').isDisabled());
+ assert(await q1.locator('#queue-spread').isDisabled());
  assert(await q1.locator('#queue-format').isDisabled());
  assert(await q1.locator('#drill').isDisabled());
  await until(async()=>/74 seconds/.test(await q1.locator('#round-score').textContent()),'practice simulation continues while queued');
@@ -336,6 +339,7 @@ try{
  assert.match(await q1.locator('#queue-status').textContent(),/cancelled/);
  assert(await q1.locator('#arena-select').isEnabled());
  assert.equal(await q1.locator('#queue-rtt').inputValue(),'180');
+ assert(await q1.locator('#queue-spread').isEnabled());
  assert(await q1.locator('#queue-format').isEnabled());
  assert(await q1.locator('#drill').isEnabled());
  await q1.locator('#queue-start').click();
