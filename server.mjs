@@ -11,7 +11,8 @@ const assets = new Map([
   ['game.mjs',['game.mjs','text/javascript']],
   ['engine.mjs',['engine.mjs','text/javascript']],
   ['prediction.mjs',['prediction.mjs','text/javascript']],
-  ['tactics.mjs',['tactics.mjs','text/javascript']]
+  ['tactics.mjs',['tactics.mjs','text/javascript']],
+  ['lab.mjs',['lab.mjs','text/javascript']]
 ].map(([path,[file,type]])=>['/fight/'+path,[readFileSync(new URL('./public/'+file,import.meta.url)),type]]));
 const rooms=new Map();
 const origin=process.env.PUBLIC_ORIGIN;

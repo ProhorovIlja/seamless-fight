@@ -5,3 +5,6 @@
 - [Ikemen GO](https://ikemen-engine.github.io/) and [GGPO](https://www.ggpo.net/): compare sync instrumentation and rollback approaches before replacing the current authoritative transport. No third-party gameplay code or assets imported.
 
 Evaluation: can a player recognize the heavy, deliberately bait a quickstep, then close or punish without creating a dominant feint loop? Compare drill and live duel results; measure attacker/defender input-to-feedback separately across latency and jitter. The animation is original Canvas art; this change does not claim final animation quality or latency parity.
+
+- [Street Fighter 6: Training Mode Recording Tips](https://game.capcom.com/manual/SF6/en/ps5/page/8/6): record a dummy's inputs and reproduce the setup. The duel lab adds one local recording and three built-in scenarios, using the same tick logic as the online duel without altering its protocol.
+- [Ikemen GO replay issue](https://github.com/ikemen-engine/Ikemen-GO/issues/3457): a reminder to regression-test replay reconstruction. Local drill playback is not online rollback or a match replay format.
