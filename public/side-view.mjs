@@ -2,6 +2,7 @@ import {SIDE_HZ,SIDE_RULESET,SIDE_MOVES,sideInput,sideMatch,sideStep,SIDE_FLOOR}
 import {createSideBot} from './side-ai.mjs';
 import {createSideReview,packSideTick,SIDE_TAPE_LIMIT} from './side-replay.mjs';
 import {sideReadout} from './side-inspector.mjs';
+import {createSideTransport,SIDE_INVITE_PATTERN} from './side-online-client.mjs';
 import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTraining,drawSideHUD,drawSideImpact} from './side-art.mjs';
 import {createAudio} from './audio.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
@@ -36,6 +37,7 @@ let tape=[],capture=null,review=null,cursor=0,reviewPlaying=false;
 const effects=[],MAX_EFFECTS=10;
 let audioOn=false,queued='',priorPad=null,padQueued='',padMove={x:0,y:0,guard:false};
 let inspectorAt=0;const renderIntervals=[];
+let onlineSlot=-1,onlineCode='',onlineLooks=null,onlineTick=-1;
 const held=new Set(),touchHeld=new Set();
 const sound=createAudio();
 function setStatus(message){$('fight-status').textContent=message;}
@@ -68,7 +70,7 @@ function resize(){
 resize();addEventListener('resize',resize);
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(resize).observe(canvas);
 function clearHeld(){held.clear();touchHeld.clear();queued='';padQueued='';priorPad=null;padMove={x:0,y:0,guard:false};}
-function controlsActive(){return mode==='live'||mode==='takeover';}
+function controlsActive(){return mode==='live'||mode==='takeover'||mode==='online';}
 let listening=null;
 const bindings=[['Left','left'],['Right','right'],['Jump','up'],['Crouch','down'],
  ['Cut','cut'],['Heavy','hew'],['Pistol','shot'],['Quickstep','step'],['Feint','feint'],['Guard','guard']];
@@ -171,12 +173,12 @@ function updateButtons(){
  $('replay-seek').disabled=!review||mode!=='review';
  $('frame-back').disabled=!review||mode!=='review';
  $('frame-next').disabled=!review||mode!=='review';
- $('pause').disabled=mode==='idle'||mode==='review';
+ $('pause').disabled=mode==='idle'||mode==='review'||mode==='online'||mode==='connecting';
  $('pause').textContent=mode==='paused'?'Resume':'Pause';
- $('stage-mode').textContent=mode==='review'?'REPLAY / TAKEOVER':mode==='takeover'?'REPLAY TAKEOVER':mode==='paused'?'PAUSED':mode==='live'?'LOCAL DUEL · 60 HZ':'SIDE-VIEW LAB · OFFLINE';
+ $('stage-mode').textContent=mode==='online'?'AUTHORITATIVE PRIVATE 1V1':mode==='connecting'?'JOINING ROOM':mode==='review'?'REPLAY / TAKEOVER':mode==='takeover'?'REPLAY TAKEOVER':mode==='paused'?'PAUSED':mode==='live'?'LOCAL DUEL · 60 HZ':'SIDE-VIEW LAB · OFFLINE';
 }
 function restart(){
- clearHeld();s=sideMatch();bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.level);
+ sideTransport.close();resetOnlineButtons();clearHeld();s=sideMatch();bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.level);
  tape=[];capture=null;review=null;cursor=0;reviewPlaying=false;effects.length=0;
  mode='live';setStatus(sidePrefs.level==='dummy'?'Practice vs still target':'Sparring vs '+sidePrefs.level+' AI · first to two round wins.');
  $('fight-caption').textContent='';setReplayStatus('Recording local input frames.');updateButtons();
@@ -209,6 +211,7 @@ $('record-save').onclick=()=>{
  setReplayStatus('Replay saved locally; no upload or account ID.');
 };
 function loadReview(data){
+ sideTransport.close();resetOnlineButtons();
  const view=createSideReview(data);
  capture={rules:SIDE_RULESET,stage:Object.hasOwn(SIDE_STAGES,data.stage)?data.stage:'reliquary',tape:data.tape};
  setStage(capture.stage);$('stage-select').value=capture.stage;
@@ -251,7 +254,9 @@ for(const [key,m]of Object.entries(SIDE_MOVES))if(m.damage){
   row.insertCell().textContent=String(value);
 }
 function runTick(){
- if(mode==='live'){
+ if(mode==='online'){
+  if(sideTransport.connected())sideTransport.input(sample());
+ }else if(mode==='live'){
   if(s.over)return; // Do not append inputs after a completed match.
   const own=sample(),enemy=sidePrefs.level==='dummy'?sideInput():bot(s),pair=[own,enemy],events=[];
   if(tape.length<SIDE_TAPE_LIMIT){tape.push(packSideTick(pair));if(tape.length===1)updateButtons();}
@@ -295,7 +300,7 @@ function paint(now,elapsed){
  for(let i=0;i<2;i++)paintSideFighter(g,s.p[i],appearance[i],now,reduced(),sidePrefs.contrast);
  if(sidePrefs.boxes)drawSideTraining(g,s);
  for(const item of effects)drawSideImpact(g,item.e,item.life,reduced());
- drawSideHUD(g,s,0);
+ drawSideHUD(g,s,mode==='online'?onlineSlot:0);
  if(s.ready>0||s.over||s.end){
   const label=s.over?(s.winner===-1?'DUEL DRAWN':s.winner===0?'VEIL PREVAILS':'CINDER PREVAILS'):
    s.end?'ROUND COMPLETE':'ROUND '+s.round+' · '+Math.ceil(s.ready/SIDE_HZ);
