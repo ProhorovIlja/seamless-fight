@@ -12,6 +12,7 @@ import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
 import {logInput,describe,eventLabel,replayReport} from './analysis.mjs';
 import {dyes,sigils,outfit,pair,paintOutfit} from './wardrobe.mjs';
 import {footwork} from './footwork.mjs';
+import {drawTrainingGeometry,trainingReadout} from './training-geometry.mjs';
 const remoteMotion=footwork();
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 const siteTheme=applySiteTheme(), siteHelm=siteTheme?.helm;
@@ -143,6 +144,8 @@ $('reset-mouse').onclick=()=>{flush();prefs.mouse={};persist();refresh();};
 function cancelBinding(){if(binding){binding='';$('bind-status').textContent='Binding cancelled.';}}
 $('input-settings').addEventListener('toggle',()=>{if(!$('input-settings').open)cancelBinding();});
 $('reset-keys').onclick=()=>{cancelBinding();flush();prefs.keys={...DEFAULT_KEYS};prefs.move={...DEFAULT_MOVE};persist();refresh();$('bind-status').textContent='Default keys restored.';};
+$('training-geometry').checked=prefs.trainingGeometry;
+$('training-geometry').onchange=()=>{prefs.trainingGeometry=$('training-geometry').checked;persist();};
 $('ui-scale').value=String(prefs.uiScale);
 $('ui-scale').onchange=()=>{prefs.uiScale=[100,115,130,150].includes(Number($('ui-scale').value))?Number($('ui-scale').value):100;applyUiScale();persist();};
 for(const id of ['reduce','contrast','captions']){$(id).checked=prefs[id];$(id).onchange=()=>{prefs[id]=$(id).checked;persist();};}
@@ -253,6 +256,7 @@ function inspect(now){
  if(!$('combat-analysis').open||now<nextInspect)return;
  nextInspect=now+100;
  const enabled=['practice','lab','review'].includes(mode);
+ $('training-range-readout').textContent=enabled&&prefs.trainingGeometry?trainingReadout(s):'Enable geometry diagnostics in practice, Duel Lab, or replay review.';
  $('exchange-log').textContent=enabled?exchanges.slice().reverse().map(event=>event.tick+'  '+(event.label||eventLabel(event))).join('\n'):'';
  for(let i=0;i<2;i++){
    $('phase-'+i).textContent=enabled?describe(s.p[i]):'Available in training or replay';
@@ -748,6 +752,7 @@ function render(now){
    drawFighter(p,i,x,y,now);
    if(flashes[i]>0)drawImpact(g,x,y,flashes[i],reduced(),i,impactAngle[i]);
  }
+ if(prefs.trainingGeometry&&['practice','lab','review'].includes(mode))drawTrainingGeometry(g,s);
  const localSlot=mode==='review'?forkSlot:mode==='lab'&&labKind==='record'?1:slot;
  const timer=Math.ceil(s.clock/HZ);
  const huntFont=document.documentElement.dataset.huntFont==='true';
