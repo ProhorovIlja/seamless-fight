@@ -25,6 +25,7 @@ const assets = new Map([
   ['side-art.mjs',['side-art.mjs','text/javascript']],
   ['side-ai.mjs',['side-ai.mjs','text/javascript']],
   ['side-replay.mjs',['side-replay.mjs','text/javascript']],
+  ['side-inspector.mjs',['side-inspector.mjs','text/javascript']],
   ['game.mjs',['game.mjs','text/javascript']],
   ['engine.mjs',['engine.mjs','text/javascript']],
   ['prediction.mjs',['prediction.mjs','text/javascript']],
