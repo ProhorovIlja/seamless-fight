@@ -19,6 +19,23 @@ test('gamepad filters drift, prioritizes the D-pad and suppresses repeated actio
  assert.equal(samplePad(pad([2],[0,0],{index:1}),c.next,.3).act,'');
 });
 
+test('analog movement deadzone uses stable press and release thresholds',()=>{
+ const initial=samplePad(pad([],[0,0]),null,.3);
+ const pressed=samplePad(pad([],[.31,0]),initial.next,.3);
+ assert.equal(pressed.x,1);
+ const wobble=samplePad(pad([],[.25,0]),pressed.next,.3);
+ assert.equal(wobble.x,1,'maintains held direction at the release threshold');
+ const released=samplePad(pad([],[.20,0]),wobble.next,.3);
+ assert.equal(released.x,0);
+ assert.equal(samplePad(pad([],[.26,0]),released.next,.3).x,0,'below engagement threshold stays neutral');
+ assert.equal(samplePad(pad([],[.31,0]),released.next,.3).x,1);
+ const reversed=samplePad(pad([],[ -.26,0]),pressed.next,.3);
+ assert.equal(reversed.x,0,'direction reversal cannot inherit the previous sign');
+ const dpad=samplePad(pad([14],[.25,0]),pressed.next,.3);
+ assert.equal(dpad.x,-1,'D-pad always overrides stick state');
+ assert.equal(samplePad(pad([],[.25,0]),dpad.next,.3).x,1,'raw analog hysteresis is independent of D-pad');
+ assert.equal(samplePad(pad([],[.25,0],{index:1}),pressed.next,.3).x,0,'a new controller starts neutral');
+});
 test('queue format remains opt-in for unrated competitive sets',()=>{
  assert.equal(settings().setFormat,'casual');
  assert.equal(settings({setFormat:'set-preview'}).setFormat,'set-preview');
