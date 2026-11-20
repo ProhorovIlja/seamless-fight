@@ -35,9 +35,17 @@ export function samplePad(pad,prior,threshold,bindings=DEFAULT_PAD,stick='left')
  let mask=0;for(let i=0;i<PAD_LABELS.length;i++)if(down(i))mask|=1<<i;
  const offset=stick==='right'?2:0;
  const edges=prior?.index===pad.index?mask&~prior.mask:0;
- const axis=n=>Number.isFinite(n)&&Math.abs(n)>=threshold?Math.sign(n):0;
+ // Digital movement must not chatter when an analog axis hovers at the
+ // dead-zone edge. Hysteresis affects input sampling only, never move speed.
+ const previous=prior?.index===pad.index?prior.axes:[0,0];
+ const axis=(n,old=0)=>{
+  if(!Number.isFinite(n))return 0;
+  if(Math.abs(n)>=threshold)return Math.sign(n);
+  return old&&Math.sign(n)===old&&Math.abs(n)>=threshold*.72?old:0;
+ };
+ const axes=[axis(pad.axes[offset],previous?.[0]),axis(pad.axes[offset+1],previous?.[1])];
  const dpad=[12,13,14,15].some(down);
- return {x:dpad?+down(15)-down(14):axis(pad.axes[offset]),y:dpad?+down(13)-down(12):axis(pad.axes[offset+1]),act:Object.keys(DEFAULT_PAD).find(a=>edges&(1<<bindings[a]))||'',next:{index:pad.index,mask}};
+ return {x:dpad?+down(15)-down(14):axes[0],y:dpad?+down(13)-down(12):axes[1],act:Object.keys(DEFAULT_PAD).find(a=>edges&(1<<bindings[a]))||'',next:{index:pad.index,mask,axes}};
 }
 
 export function touchDirection(dx,dy,radius=34){
