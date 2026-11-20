@@ -9,6 +9,7 @@ import {RULESET,MAX_TICKS,packTick} from './public/replay.mjs';
 
 import {arenaId} from './public/arenas.mjs';
 
+import {eligible,queueOptions} from './public/queue-policy.mjs';
 import {outfit} from './public/wardrobe.mjs';
 
 const assets = new Map([
@@ -21,6 +22,7 @@ const assets = new Map([
   ['lab.mjs',['lab.mjs','text/javascript']],
   ['audio.mjs',['audio.mjs','text/javascript']],
   ['replay.mjs',['replay.mjs','text/javascript']],
+  ['queue-policy.mjs',['queue-policy.mjs','text/javascript']],
   ['controls.mjs',['controls.mjs','text/javascript']],
   ['metrics.mjs',['metrics.mjs','text/javascript']],
   ['arenas.mjs',['arenas.mjs','text/javascript']],
@@ -40,6 +42,7 @@ if(process.env.SITE_ART==='1'){
 }
 const rooms=new Map(), galleries=new Map(), casual=new Map();
 const QUEUE_MS=120000;
+let queueOrder=0;
 const MAX_VIEWERS=6;
 const token=()=>randomBytes(9).toString('base64url');
 const origin=process.env.PUBLIC_ORIGIN;
@@ -80,7 +83,7 @@ ws.on('connection',c=>{
   c.on('error',()=>c.terminate());c.on('pong',()=>c.alive=true);
   let queueTimer;
   const deadline=setTimeout(()=>c.close(1008,'join timeout'),10000);
-  function dequeue(){casual.delete(c);clearTimeout(queueTimer);}
+  function dequeue(){const entry=casual.get(c);clearTimeout(entry?.probeTimer);casual.delete(c);clearTimeout(queueTimer);}
   function join(target,look){
     dequeue();clearTimeout(deadline);room=target;slot=room.peers.length;
     room.outfits[slot]=look;room.peers.push(c);
@@ -90,6 +93,29 @@ ws.on('connection',c=>{
       for(const peer of [...room.peers,...room.viewers])send(peer,looks);
     }
   }
+  function probe(entry){
+    if(c.readyState!==1||casual.get(c)!==entry)return;
+    entry.nonce=randomBytes(12);entry.sent=performance.now();
+    c.ping(entry.nonce);
+    entry.probeTimer=setTimeout(()=>{dequeue();send(c,{t:'error',message:'Connection check timed out. Try searching again.'});c.close(1000);},3000);
+  }
+  c.on('pong',payload=>{
+    const entry=casual.get(c);
+    if(!entry?.nonce||!entry.nonce.equals(payload))return;
+    clearTimeout(entry.probeTimer);entry.nonce=null;
+    const now=performance.now();entry.samples.push(now-entry.sent);
+    if(entry.samples.length<3){entry.probeTimer=setTimeout(()=>probe(entry),100);return;}
+    entry.rtt=entry.samples.sort((a,b)=>a-b)[1];entry.sampleAt=now;entry.samples=[];
+    send(c,{t:'queue-quality',rtt:Math.round(entry.rtt)});
+    if(rooms.size<96)for(const [peer,other] of casual){
+      if(peer===c||peer.readyState!==1||now>=other.expires||!eligible(entry,other,now))continue;
+      // Keep arrival order for arena selection, even if the second entrant probes faster.
+      const [first,second]=entry.order<other.order?[entry,other]:[other,entry];
+      const target=makeRoom(first.arena,now,true);
+      first.join(target,first.look);second.join(target,second.look);return;
+    }
+    entry.probeTimer=setTimeout(()=>probe(entry),5000);
+  });
   c.on('message',(data,binary)=>{
     const now=performance.now();
     if(now-quotaAt>=1000){quotaAt=now;quota=0;}
@@ -100,16 +126,11 @@ ws.on('connection',c=>{
       if(casual.has(c))return;
       if(m.t==='queue'){
         if(rooms.size>=96||casual.size>=64){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
-        const look=outfit(m.outfit), arena=arenaId(m.arena);
-        for(const [peer,entry] of casual){
-          if(peer.readyState!==1||now>=entry.expires){casual.delete(peer);continue;}
-          const target=makeRoom(entry.arena,now,true);
-          entry.join(target,entry.look);join(target,look);return;
-        }
         clearTimeout(deadline);
-        casual.set(c,{join,arena,look,expires:now+QUEUE_MS});
+        const entry={...queueOptions(m),join,arena:arenaId(m.arena),look:outfit(m.outfit),order:++queueOrder,expires:now+QUEUE_MS,samples:[]};
+        casual.set(c,entry);
         queueTimer=setTimeout(()=>{dequeue();send(c,{t:'error',message:'Search expired. Queue again to keep looking.'});c.close(1000);},QUEUE_MS);
-        send(c,{t:'queued'});return;
+        send(c,{t:'queued'});probe(entry);return;
       }
       if(m.t==='watch'){
         const target=typeof m.code==='string'&&galleries.get(m.code);

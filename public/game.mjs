@@ -1,5 +1,6 @@
 import {W,H,HZ,match,step,blank,moves} from './engine.mjs';
 import {HISTORY_LIMIT,playable,reconcile} from './prediction.mjs';
+import {queueOptions} from './queue-policy.mjs';
 import {createSparring,LESSONS,lessonStep} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges,rangeBand} from './audio.mjs';
@@ -305,6 +306,9 @@ $('watch-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('wat
 function socketUrl(){
  const url=new URL('./socket',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';return url;
 }
+for(const [id,key] of [['queue-rtt','maxRtt'],['queue-link','linkFilter']]){
+ const el=$(id);el.value=prefs.queue[key];el.onchange=()=>{prefs.queue=queueOptions({...prefs.queue,[key]:key==='maxRtt'?Number(el.value):el.value});persist();};
+}
 function stopSearch(message=''){
  const socket=searchSocket;searchSocket=null;socket?.close();
  $('queue-stop').hidden=true;syncSearchControls();
@@ -312,7 +316,7 @@ function stopSearch(message=''){
 }
 function syncSearchControls(){
  const pending=searchSocket!==null, disabled=pending||!['','practice','lab'].includes(mode);
- for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending]]){
+ for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending],['queue-rtt',pending],['queue-link',pending]]){
    const el=$(id);if(el.disabled!==value)el.disabled=value;
  }
 }
@@ -322,11 +326,12 @@ function queue(){
  $('queue-stop').hidden=false;
  $('queue-status').textContent='Connecting to casual matchmaking…';
  const c=searchSocket=new WebSocket(socketUrl());syncSearchControls();
- c.onopen=()=>{if(c===searchSocket)c.send(JSON.stringify({t:'queue',arena:arena,outfit:prefs.outfit}));};
+ c.onopen=()=>{if(c===searchSocket)c.send(JSON.stringify({t:'queue',arena:arena,outfit:prefs.outfit,...prefs.queue,link:navigator.connection?.type}));};
  c.onmessage=e=>{
    if(c!==searchSocket)return;
    const m=JSON.parse(e.data);
-   if(m.t==='queued')$('queue-status').textContent='Searching for a casual duel. Keep practicing.';
+   if(m.t==='queued')$('queue-status').textContent='Checking connection. Keep practicing.';
+   if(m.t==='queue-quality')$('queue-status').textContent=(prefs.queue.maxRtt&&m.rtt>prefs.queue.maxRtt?'Your server ping is above your cap. ':'Searching for a compatible duel. ')+m.rtt+' ms to server. Keep practicing.';
    if(m.t==='error')stopSearch(m.message);
    if(m.t==='room'&&m.queued){
      searchSocket=null;leave();mode='connecting';attachOnline(c);

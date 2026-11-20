@@ -271,14 +271,18 @@ try{
  await themed.screenshot({path:'artifacts/duel-seamless-hunt-theme.png'});
  const q1=await browser.newPage(),q2=await browser.newPage();
  for(const page of [q1,q2]){page.on('pageerror',err=>errors.push(err.message));await page.goto(url);}
+ await q1.locator('.queue-filters summary').click();
+ await q1.locator('#queue-rtt').selectOption('180');
  await q1.locator('#queue-start').click();
  await until(async()=>/Keep practicing/.test(await q1.locator('#queue-status').textContent()),'queue active during practice');
  assert(await q1.locator('#arena-select').isDisabled());
+ assert(await q1.locator('#queue-rtt').isDisabled());
  assert(await q1.locator('#drill').isDisabled());
  await until(async()=>/74 seconds/.test(await q1.locator('#round-score').textContent()),'practice simulation continues while queued');
  await q1.locator('#queue-stop').click();
  assert.match(await q1.locator('#queue-status').textContent(),/cancelled/);
  assert(await q1.locator('#arena-select').isEnabled());
+ assert.equal(await q1.locator('#queue-rtt').inputValue(),'180');
  assert(await q1.locator('#drill').isEnabled());
  await q1.locator('#queue-start').click();
  await until(async()=>/Keep practicing/.test(await q1.locator('#queue-status').textContent()),'requeued after cancel');

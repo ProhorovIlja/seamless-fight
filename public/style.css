@@ -74,3 +74,5 @@ details summary{letter-spacing:.035em}
 .queue-panel{gap:.55rem .9rem}.queue-panel #queue-start{color:var(--hunt-gold);border-color:#c9a86a8c;background:linear-gradient(#262a31,#14171c);font-family:var(--hunt-serif);letter-spacing:.045em}.queue-panel #queue-status{color:var(--hunt-text);font-size:.9rem}
 
 .queue-note{color:#aea590;font:1rem var(--hunt-serif);line-height:1.4}.queue-panel:has(#queue-stop:not([hidden])) .queue-note{display:none}
+
+.queue-filters{flex-basis:100%;min-inline-size:0}.queue-filters p{font-size:.86rem;color:#aea590;margin:.35rem 0}.queue-filters select{max-width:100%}
