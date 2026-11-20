@@ -288,6 +288,7 @@ try{
  await until(async()=>/Keep practicing/.test(await q1.locator('#queue-status').textContent()),'requeued after cancel');
  await q2.locator('#queue-start').click();
  await Promise.all([status(q1,/Online duel/),status(q2,/Online duel/)]);
+ assert.match(await q1.locator('#queue-status').textContent(),/At pairing · Your server ping \d+ ms · Opponent server ping \d+ ms/);
  assert(await q1.locator('#invite').isHidden());
  assert(await q2.locator('#queue-stop').isHidden());
  assert.deepEqual(errors,[]);

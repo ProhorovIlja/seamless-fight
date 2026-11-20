@@ -87,7 +87,7 @@ ws.on('connection',c=>{
   function join(target,look){
     dequeue();clearTimeout(deadline);room=target;slot=room.peers.length;
     room.outfits[slot]=look;room.peers.push(c);
-    send(c,{t:'room',code:room.queued?null:room.code,queued:room.queued,slot,arena:room.arena,outfits:room.outfits});
+    send(c,{t:'room',code:room.queued?null:room.code,queued:room.queued,slot,arena:room.arena,outfits:room.outfits,...(room.quality?{quality:room.quality}:{})});
     if(room.peers.length===2){
       reset(room);const looks={t:'outfits',outfits:room.outfits};
       for(const peer of [...room.peers,...room.viewers])send(peer,looks);
@@ -112,6 +112,7 @@ ws.on('connection',c=>{
       // Keep arrival order for arena selection, even if the second entrant probes faster.
       const [first,second]=entry.order<other.order?[entry,other]:[other,entry];
       const target=makeRoom(first.arena,now,true);
+      target.quality=[first.rtt,second.rtt].map(Math.round);
       first.join(target,first.look);second.join(target,second.look);return;
     }
     entry.probeTimer=setTimeout(()=>probe(entry),5000);

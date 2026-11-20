@@ -38,3 +38,9 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - [Street Fighter 6 battle controls](https://game.capcom.com/manual/SF6/en/ps5/page/2/3) and [MDN Gamepad API](https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API): independent battle bindings and standard browser button indices; no third-party input code imported.
 
 - [Street Fighter 6 training recording](https://game.capcom.com/manual/SF6/en/ps5/page/8/6) informed fast repeatable review. [Battle Settings](https://game.capcom.com/manual/SF6/en/ps5/page/6/7) documents training while queued, a reference for future queue design, not an implemented feature.
+
+### Competitive queue boundaries
+
+[Tekken 8's online mode separation](https://tk8.tekken-official.jp/en/mode/online.php) is the reference for keeping casual, private player matches and eventually ranked distinct. [MDN's connection type reference](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/type) explains why connection medium is only an optional hint. Use server-timed pings for quality caps and never label unknown as wired. The queue does not alter the tick rate or implement [GGPO-style rollback](https://github.com/pond3r/ggpo/blob/master/doc/README.md).
+
+Before enabling a ranked queue: establish authenticated player IDs and an idempotent, server-written match-result ledger; define disconnect/no-contest and repeat-opponent abuse rules; validate a rating model against expected outcomes and traffic; then test rank windows and provisional placements before publishing a leaderboard. Never rate local practice or private-room captures. Keep latency caps independent of rank windows.

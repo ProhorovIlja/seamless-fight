@@ -15,18 +15,22 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const page=await fetch(origin+'/fight/');assert.match(await page.text(),/data-site-art="on"/);
  assert.equal((await fetch(origin+'/art/icon-blades.webp')).status,404,'the site proxy, not the duel process, owns shared art');
  const bad=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin:'https://example.invalid'});const [err]=await once(bad,'error');assert.match(err.message,/403/);
- const open=async()=>{
-   const c=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin});t.after(()=>c.terminate());
+ const open=async(pongDelay=0)=>{
+   const c=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin,autoPong:!pongDelay});t.after(()=>c.terminate());
+   if(pongDelay)c.on('ping',payload=>setTimeout(()=>{if(c.readyState===1)c.pong(payload);},pongDelay));
    const pending=[];c.on('message',x=>pending.push(JSON.parse(x)));
    await once(c,'open');
    return {c,send:m=>c.send(JSON.stringify(m)),get:async pred=>{for(let i=0;i<110;i++){const k=pending.findIndex(pred);if(k>=0)return pending.splice(k,1)[0];await sleep(35);}throw Error('Missing expected server message');}};
  };
  const dropped=await open();dropped.send({t:'queue'});await dropped.get(m=>m.t==='queued');dropped.c.close();await once(dropped.c,'close');
  const first=await open();first.send({t:'queue',arena:'cistern',linkFilter:'no-wifi',maxRtt:120});await first.get(m=>m.t==='queue-quality');
+ const slow=await open(165);slow.send({t:'queue',rtt:1});assert((await slow.get(m=>m.t==='queue-quality')).rtt>=155);
  const wifi=await open();wifi.send({t:'queue',link:'wifi'});await wifi.get(m=>m.t==='queue-quality');
  const second=await open();second.send({t:'queue',arena:'lantern',link:'ethernet'});
  const pair=await Promise.all([first.get(m=>m.t==='room'),second.get(m=>m.t==='room')]);
  assert.deepEqual(pair.map(x=>[x.slot,x.queued,x.code,x.arena]),[[0,true,null,'cistern'],[1,true,null,'cistern']]);
+ assert.deepEqual(pair[0].quality,pair[1].quality);assert(pair[0].quality.every(rtt=>rtt<=120));
+ slow.c.close();wifi.c.close();
  await second.get(m=>m.t==='state');first.c.close();await second.get(m=>m.t==='error');
  const a=await open();a.send({t:'hello',arena:'cistern',outfit:{dye:'kelp',sigil:'moon',hp:999}});const room=await a.get(m=>m.t==='room');assert.equal(room.slot,0);assert.equal(room.arena,'cistern');
  const b=await open();b.send({t:'hello',code:room.code,outfit:{dye:'constructor',sigil:'thorn'}});const joined=await b.get(m=>m.t==='room');assert.equal(joined.slot,1);assert.equal(joined.arena,'cistern');assert.deepEqual(joined.outfits,[{dye:'kelp',sigil:'moon'},{dye:'ash',sigil:'thorn'}]);

@@ -354,7 +354,10 @@ function attachOnline(c){
  c.onmessage=e=>{
    if(c!==ws)return;const m=JSON.parse(e.data);
    if(m.t==='room'){
-     showArena(m.arena);looks=pair(m.outfits);slot=m.slot;$('gallery').hidden=slot!==0||m.queued;if(m.queued){status('Casual opponent found.');return;}const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
+     showArena(m.arena);looks=pair(m.outfits);slot=m.slot;$('gallery').hidden=slot!==0||m.queued;if(m.queued){
+       if(m.quality?.length===2)$('queue-status').textContent='At pairing · Your server ping '+m.quality[slot]+' ms · Opponent server ping '+m.quality[1-slot]+' ms';
+       status('Casual opponent found.');return;
+     }const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
    }
    if(m.t==='replay'){try{loadCapture(m);}catch(e){reviewInfo(e.message);}return;}
    if(m.t==='gallery')setGallery(m.code);
