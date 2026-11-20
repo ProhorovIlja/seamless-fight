@@ -2,6 +2,7 @@
 const paths={
  crest:'/art/icon-blades.webp',lantern:'/art/icon-lantern.webp',
  divider:'/art/divider.webp',skyline:'/art/skyline-near.webp',helm:'/art/icon-tricorn.webp',
+ bell:'/art/icon-bell.webp',vial:'/art/icon-vial.webp',skull:'/art/icon-skull.webp',
  far:'/art/skyline-far.webp',moon:'/art/moon.webp',fog:'/art/fog.webp',
  font:'/_next/static/media/e4505858a30c79c2-s.p.0tlhhw_qyyfys.woff2'
 };
@@ -30,7 +31,7 @@ export function applySiteTheme(doc=document,win=window){
  const keys=['far','moon','skyline','fog'];
  const scenes=keys.map(key=>key==='skyline'?skyline:image(key));
  const scenery=Promise.all(scenes.map(candidate=>candidate.decode().then(()=>candidate).catch(()=>null)));
- return {helm,scenery};
+ return {helm,scenery,bell:image('bell'),vial:image('vial'),skull:image('skull')};
 }
 
 export function bakeSiteSky(ctx,images,width){

@@ -14,7 +14,8 @@ const remoteMotion=footwork();
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 const siteTheme=applySiteTheme(), siteHelm=siteTheme?.helm;
 const helm=new Image();helm.src=new URL('./art/visored-helm.svg',import.meta.url).href;
-import {drawHUD,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
+import {drawHUD,damageTrail,drawRoundPlate,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
+const healthDisplay=damageTrail();
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -185,7 +186,7 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();showArena($('arena-select').value);mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -203,7 +204,7 @@ function seekLab(){
  if(mode!=='lab'||labKind!=='play')return;
  labHold=true;flush();
  const frame=restoreDrill(spacing,tape,attempt,Number($('seek').value));
- s=frame.state;trace=frame.trace;labTick=frame.tick;exchanges=frame.recent;
+ healthDisplay.clear();s=frame.state;trace=frame.trace;labTick=frame.tick;exchanges=frame.recent;
  histories=[[],[]];for(let j=Math.max(0,labTick-120);j<labTick;j++)observeInputs(j+1,[tapeInput(attempt,j),tapeInput(tape,j)]);nextInspect=0;labNote='';lastSound=null;flashes.fill(0);muzzle.fill(0);
  syncScrub();status('Paused at tick '+labTick+'. Take over to try a different response.');
 }
@@ -354,7 +355,7 @@ function syncReview(){
  for(const id of ['review-veil','review-cinder'])$(id).disabled=replayPlaying||s.over||reviewTick>=review.total;
 }
 function seekReview(t){
- s=review.at(t);reviewTick=t;reviewPulse=0;
+ healthDisplay.clear();s=review.at(t);reviewTick=t;reviewPulse=0;
  exchanges=review.events.filter(event=>event.kind&&event.tick<=t).slice(-6);
  histories=[[],[]];for(let j=Math.max(0,t-120);j<t;j++)observeInputs(j+1,review.inputs(j));nextInspect=0;replayPlaying=false;forkSlot=-1;
  lastSound=null;flashes.fill(0);muzzle.fill(0);flush();syncReview();
@@ -474,7 +475,9 @@ function render(now){
  }
  const localSlot=mode==='review'?forkSlot:mode==='lab'&&labKind==='record'?1:slot;
  const timer=Math.ceil(s.clock/HZ);
- drawHUD(g,s,mode&&!watching?localSlot:-1,timer,prefs.contrast,siteHelm?.naturalWidth?siteHelm:helm,document.documentElement.dataset.huntFont==='true');
+ const huntFont=document.documentElement.dataset.huntFont==='true';
+ const trail=healthDisplay.update(s,elapsed,reduced());
+ drawHUD(g,s,mode&&!watching?localSlot:-1,timer,prefs.contrast,siteHelm?.naturalWidth?siteHelm:helm,huntFont,trail,siteTheme);
  g.textAlign='center';g.fillStyle='#eee1c8';
  if(now>=nextScoreboard){
    nextScoreboard=now+125;
@@ -497,7 +500,7 @@ function render(now){
  if(mode==='connecting')msg='Waiting for challenger';
  else if(mode==='spectate'&&s.tick===0)msg='Waiting for fighters';
  else if(mode&&mode!=='lab'&&mode!=='review'){if(s.over)msg=watching?(s.winner===0?'Veil wins':'Cinder wins'):s.winner===slot?'Victory':'Defeat';else if(s.end)msg=s.winner<0?'Draw':watching?(s.winner===0?'Veil takes the round':'Cinder takes the round'):s.winner===slot?'Round won':'Round lost';else if(s.ready)msg='Round '+s.round+'  /  '+Math.ceil(s.ready/HZ);}
- if(msg){g.fillStyle='#13101bd4';g.fillRect(250,222,460,76);g.fillStyle='#f5ddaf';g.font='36px Georgia';g.fillText(msg,480,270);}
+ if(msg)drawRoundPlate(g,msg,s.end||s.over?'result':'ready',siteTheme,huntFont);
  $('rematch').hidden=watching||mode==='review'||!s.over;
  requestAnimationFrame(render);
 }

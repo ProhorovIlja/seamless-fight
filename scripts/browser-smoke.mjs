@@ -230,7 +230,7 @@ try{
  await until(async()=>/\/art\/icon-blades.webp$/.test(await themed.locator('.duel-crest').getAttribute('src')),'site crest decoded');
  await until(async()=>await themed.locator('html').getAttribute('data-divider-ready')==='true','site divider decoded');
  await until(async()=>await themed.locator('html').getAttribute('data-site-sky')==='ready','site layers baked despite missing fog');
- for(const layer of ['skyline-near','skyline-far','moon','fog'])assert(requested.has('/art/'+layer+'.webp'));
+ for(const layer of ['skyline-near','skyline-far','moon','fog','icon-vial','icon-bell','icon-skull'])assert(requested.has('/art/'+layer+'.webp'));
  assert.equal(await host.locator('html').getAttribute('data-site-sky'),null);
  assert.match(await themed.locator('.arena-badge img').getAttribute('src'),/\.\/art\/lantern\.svg$/);
  assert.equal(await host.locator('html').getAttribute('data-site-art'),'off');

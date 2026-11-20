@@ -88,6 +88,9 @@ export function createAudio(Context=globalThis.AudioContext){
    const when=ctx.currentTime+.02;
    score=buffers.map((buffer,i)=>{const source=ctx.createBufferSource();source.buffer=buffer;source.loop=true;source.connect(i?pulseGain:music);source.start(when);return source;});
  }
+ function stopBeds(){
+   stopScore();if(wind){wind.stop();wind.disconnect();wind=null;}
+ }
  function startWind(){
    if(wind)return;
    let buf=beds.get(arena);
@@ -107,14 +110,20 @@ export function createAudio(Context=globalThis.AudioContext){
  return {
    setArena(value){
      if(value===arena)return;
-     arena=value;stopScore();if(wind){wind.stop();wind.disconnect();wind=null;}if(enabled){startWind();startScore();}
+     arena=value;stopBeds();if(enabled){startWind();startScore();}
    },
    async enable(){
      if(!Context)return false;
      try{if(!ctx)build();await ctx.resume();enabled=ctx.state==='running';if(enabled){startWind();startScore();set(master,.7);}return enabled;}
      catch{return false;}
    },
-   mute(){enabled=false;if(ctx)set(master,0);},
+   mute(){
+     enabled=false;
+     if(ctx){
+       set(master,0);stopBeds();
+       for(const source of playing)source.stop();playing.clear();
+     }
+   },
    mix(sfx,bed,scoreLevel,grunts){if(ctx){set(effects,sfx);set(ambience,bed);set(music,scoreLevel);set(voice,grunts);}},
    tension(n){if(n===intensity)return;intensity=n;if(ctx)pulseGain.gain.setTargetAtTime(n,ctx.currentTime,.35);},
    play(name,x){

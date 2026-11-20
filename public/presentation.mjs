@@ -26,7 +26,7 @@ export function drawImpact(g,x,y,life,reduced,slot,heading=null){
  }
  g.restore();
 }
-export function drawHUD(g,s,local,timer,contrast,helm,huntFont=false){
+export function drawHUD(g,s,local,timer,contrast,helm,huntFont=false,trail=null,theme=null){
  g.save();
  for(let i=0;i<2;i++){
    const p=s.p[i],x=i?620:24,c=i?(contrast?'#ffc36b':'#e39774'):(contrast?'#a1fff1':'#8fc8c0');
@@ -35,12 +35,14 @@ export function drawHUD(g,s,local,timer,contrast,helm,huntFont=false){
    g.fillStyle='#302631';g.fillRect(x+15,15,19,17);
    if(helm?.complete&&helm.naturalWidth)g.drawImage(helm,x+16,15,17,17);
    g.textAlign='left';g.fillStyle=c;g.font='bold 15px system-ui';g.fillText((i?'CINDER':'VEIL')+(i===local?'  /  YOU':''),x+42,30);
-   const bar=(yy,hh,v,color)=>{
+   const bar=(yy,hh,v,color,after=v)=>{
      g.fillStyle='#302432';g.fillRect(x+16,yy,250,hh);
-     g.fillStyle=color;g.fillRect(x+16,yy,250*Math.max(0,Math.min(100,v))/100,hh);
+     const fill=(n,paint)=>{const w=2.5*Math.max(0,Math.min(100,n));g.fillStyle=paint;g.fillRect(i?x+266-w:x+16,yy,w,hh);};
+     if(after>v)fill(after,'#d9b878ad');fill(v,color);
      g.strokeStyle='#f6dfc02b';g.strokeRect(x+16,yy,250,hh);
    };
-   bar(36,11,p.hp,c);bar(52,5,p.st,'#d3b368');
+   bar(36,11,p.hp,c,trail?.[i]??p.hp);bar(52,5,p.st,'#d3b368');
+   icon(g,theme?.vial,x+251,15,17);
    g.textAlign='right';g.fillStyle='#f5e4c7';g.font='bold 11px system-ui';g.fillText(Math.ceil(p.hp)+' HP',x+300,45);
    for(let n=0;n<3;n++){g.fillStyle=n<p.ammo?'#e8ba70':'#443447';g.fillRect(x+272+n*10,51,6,7);}
    for(let n=0;n<2;n++){g.fillStyle=n<s.score[i]?c:'#423342';g.beginPath();g.arc(x+278+n*13,24,4,0,TAU);g.fill();}
@@ -80,5 +82,45 @@ export function textureFloor(g,arena,W,H){
    g.fillRect(x,y,n,1);
    if(i%13===0){g.strokeStyle='#07070f42';g.beginPath();g.moveTo(x,y);g.lineTo(x+n*.4,y+3);g.lineTo(x+n,y+5);g.stroke();}
  }
+ g.restore();
+}
+
+// Display-only health afterimage. Explicit resets handle local seeks and mode swaps;
+// round/tick checks handle countdowns and online rematches.
+export function damageTrail(){
+ const hp=[100,100], trail=[100,100], hold=[0,0];
+ let tick=-1, round=-1;
+ return {
+  clear(){tick=-1;round=-1;},
+  update(s,ms,reduced){
+   const reset=reduced||s.round!==round||s.tick<tick||s.ready>0;
+   for(let i=0;i<2;i++){
+     const next=s.p[i].hp;
+     if(reset||next>hp[i]){trail[i]=next;hold[i]=0;}
+     else if(next<hp[i]){trail[i]=Math.max(hp[i],trail[i]);hold[i]=145;}
+     else{
+       const decay=Math.max(0,ms-hold[i]);hold[i]=Math.max(0,hold[i]-ms);
+       trail[i]=Math.max(next,trail[i]-decay*.095);
+     }
+     hp[i]=next;
+   }
+   tick=s.tick;round=s.round;return trail;
+  }
+ };
+}
+function icon(g,img,x,y,w,h=w){
+ if(img?.complete&&img.naturalWidth){g.drawImage(img,x,y,w,h);return true;}
+ return false;
+}
+export function drawRoundPlate(g,msg,kind,theme,huntFont){
+ g.save();g.translate(480,258);
+ g.fillStyle='#12151af2';g.strokeStyle='#c9a86a';g.lineWidth=1;
+ g.beginPath();g.moveTo(-220,-42);g.lineTo(220,-42);g.lineTo(233,-28);g.lineTo(233,28);g.lineTo(220,42);
+ g.lineTo(-220,42);g.lineTo(-233,28);g.lineTo(-233,-28);g.closePath();g.fill();g.stroke();
+ const art=kind==='result'?theme?.skull:theme?.bell;
+ if(!icon(g,art,-13,-36,26)){
+   g.strokeStyle='#c9a86aa6';g.beginPath();g.moveTo(0,-31);g.lineTo(7,-24);g.lineTo(0,-17);g.lineTo(-7,-24);g.closePath();g.stroke();
+ }
+ g.fillStyle='#f0e2c2';g.textAlign='center';g.font=huntFont?'34px "Hunt Garamond", Georgia':'30px Georgia';g.fillText(msg,0,22,420);
  g.restore();
 }
