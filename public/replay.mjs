@@ -15,13 +15,18 @@ export function createReview(data){
    throw Error('Invalid replay input tape.');
  const total=tape.length/2, initial=match(), checkpoints=[initial], scan=structuredClone(initial);
  const inputs=t=>[unpack(tape[t*2]),unpack(tape[t*2+1])];
- const stride=120;
+ const stride=120, events=[];
  for(let t=0;t<total;t++){
    if(scan.over)throw Error('Replay contains inputs after the match ended.');
+   const hp0=scan.p[0].hp,hp1=scan.p[1].hp,ready=scan.ready,end=scan.end;
    step(scan,inputs(t));
+   if(ready===1)events.push({tick:t+1,label:'Round '+scan.round+' starts'});
+   const lost=[hp0-scan.p[0].hp,hp1-scan.p[1].hp];
+   if(lost.some(hp=>hp>0))events.push({tick:t+1,label:lost.map((hp,i)=>hp>0?(i?'Cinder':'Veil')+' −'+hp+' HP':'').filter(Boolean).join(' / ')});
+   if((!end&&scan.end)||scan.over)events.push({tick:t+1,label:scan.winner===-1?'Round drawn':(scan.winner?'Cinder':'Veil')+(scan.over?' wins match':' wins round')});
    if((t+1)%stride===0)checkpoints.push(structuredClone(scan));
  }
- return {total,complete:scan.over,inputs,at(t){
+ return {total,complete:scan.over,inputs,events,at(t){
    if(!Number.isSafeInteger(t)||t<0||t>total)throw RangeError('Replay tick out of range.');
    const index=Math.floor(t/stride),state=structuredClone(checkpoints[index]);
    for(let i=index*stride;i<t;i++)step(state,inputs(i));

@@ -100,15 +100,21 @@ try{
  await until(async()=>await host.locator('#review-open').isEnabled(),'authoritative replay captured');
  const downloadEvent=host.waitForEvent('download');
  await host.locator('#review-save').click();
- assert.equal((await downloadEvent).suggestedFilename(),'seamless-fight-replay.json');
+ const download=await downloadEvent;
+ assert.equal(download.suggestedFilename(),'seamless-fight-replay.json');
+ const savedReplay=await download.path();
  await guest.close();
  await status(host,/Opponent disconnected/);
+ await host.locator('#review-file').setInputFiles(savedReplay);
+ await until(async()=>/match captured/.test(await host.locator('#review-info').textContent()),'replay file imported');
  await host.locator('#review-open').click();
  await status(host,/Online match review/);
  await host.locator('#review-step').click();
  assert.match(await host.locator('#review-tick').textContent(),/^Tick 1 /);
  await host.locator('#review-veil').click();
  await until(async()=>!/^Tick 1 /.test(await host.locator('#review-tick').textContent()),'match takeover advances');
+ await host.locator('#review-event').selectOption('120');
+ assert.match(await host.locator('#review-tick').textContent(),/^Tick 120 /);
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}

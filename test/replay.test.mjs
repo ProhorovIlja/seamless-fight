@@ -18,3 +18,18 @@ test('invalid rules, malformed inputs and oversized replays fail closed',()=>{
    assert.throws(()=>createReview({rules:RULESET,tape}));
  assert.throws(()=>createReview({rules:'old',tape:'AA'}),/ruleset/);
 });
+
+test('completed matches contain ordered round markers and reject appended ticks',()=>{
+ const s=match(), pairs=[];let safety=0;
+ while(!s.over&&safety++<10000){
+   const d=s.p[1].x-s.p[0].x;
+   const input={x:d>75?1:0,y:0,act:d>75?'':'cut'};
+   const cmds=[input,blank()];pairs.push(packTick(cmds));step(s,cmds);
+ }
+ assert(s.over);
+ const tape=pairs.join(''), r=createReview({rules:RULESET,tape});
+ assert.equal(r.complete,true);assert.deepEqual(r.at(r.total),s);
+ assert.equal(r.events.filter(e=>e.label.endsWith('starts')).length,2);
+ assert.equal(r.events.at(-1).label,'Veil wins match');
+ assert.throws(()=>createReview({rules:RULESET,tape:tape+'AA'}),/ended/);
+});

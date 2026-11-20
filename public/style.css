@@ -5,3 +5,5 @@ select{border:1px solid #856c59;border-radius:4px;background:#221d24;color:#f1e4
 
 /* Keep layout declarations from overriding semantic hidden controls. */
 [hidden]{display:none!important}
+
+#review-controls{margin-top:.7rem}#match-review a{color:#f4d19c;padding:.5rem}#review-tick{font-variant-numeric:tabular-nums;min-width:11ch;color:#d7cab5}

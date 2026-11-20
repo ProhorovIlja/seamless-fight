@@ -210,10 +210,16 @@ $('review-open').onclick=()=>{
  if(!capture)return;
  if((mode==='online'||mode==='connecting'||mode==='spectate')&&!window.confirm('Leave the current room and open the replay?'))return;
  leave();mode='review';review=capture;
+ const events=$('review-event');events.length=1;
+ for(const {tick,label} of review.events){const option=document.createElement('option');option.value=tick;option.textContent='Tick '+tick+' · '+label;events.append(option);}
+ events.disabled=review.events.length===0;
  $('review-seek').max=review.total;$('review-controls').hidden=false;seekReview(0);
  status('Online match review · seek, step, or take over either fighter.');
 };
 $('review-seek').oninput=()=>seekReview(Number($('review-seek').value));
+$('review-event').onchange=()=>{
+ const event=$('review-event');if(event.value!=='')seekReview(Number(event.value));event.value='';
+};
 $('review-play').onclick=()=>{
  if(forkSlot>=0){const t=reviewTick;seekReview(t);}
  replayPlaying=!replayPlaying;syncReview();
