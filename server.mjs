@@ -97,7 +97,7 @@ const http=createServer((req,res)=>{
   const etag=validators.get(path);
   const headers={'Content-Type':asset[1],'Cache-Control':'no-cache','ETag':etag,
     'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer',
-    'Content-Security-Policy':"default-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"};
+    'Content-Security-Policy':"default-src 'self'; img-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"};
   if(req.headers['if-none-match']?.split(',').some(value=>value.trim()===etag)){
     res.writeHead(304,headers).end();return;
   }
