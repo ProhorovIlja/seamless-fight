@@ -43,7 +43,7 @@ export function soundChanges(before,after,withActor=false){
  return out;
 }
 export function createAudio(Context=globalThis.AudioContext){
- let ctx,master,effects,ambience,music,voice,pulseGain,wind,enabled=false,arena='lantern',score=[],intensity=0;
+ let ctx,master,effects,ambience,music,musicDuck,voice,pulseGain,wind,enabled=false,arena='lantern',score=[],intensity=0;
  const scores=new Map();
  const beds=new Map();
  const bank=new Map(),playing=new Set();
@@ -52,7 +52,7 @@ export function createAudio(Context=globalThis.AudioContext){
    ctx=new Context({latencyHint:'interactive'});
    master=ctx.createGain();effects=ctx.createGain();ambience=ctx.createGain();
    music=ctx.createGain();voice=ctx.createGain();pulseGain=ctx.createGain();
-   pulseGain.connect(music);music.connect(master);voice.connect(effects);
+   musicDuck=ctx.createGain();pulseGain.connect(music);music.connect(musicDuck);musicDuck.connect(master);voice.connect(effects);
    music.gain.value=.22;voice.gain.value=.35;pulseGain.gain.value=intensity;
    const compressor=ctx.createDynamicsCompressor();
    compressor.threshold.value=-16;compressor.ratio.value=5;
@@ -108,6 +108,11 @@ export function createAudio(Context=globalThis.AudioContext){
    tension(n){if(n===intensity)return;intensity=n;if(ctx)pulseGain.gain.setTargetAtTime(n,ctx.currentTime,.35);},
    play(name,x){
      if(!enabled||ctx.state!=='running'||playing.size>=12||!bank.has(name))return;
+     if(['shot','hit','interrupt','bell'].includes(name)){
+       const now=ctx.currentTime, gain=musicDuck.gain;
+       gain.cancelScheduledValues(now);gain.setValueAtTime(gain.value,now);
+       gain.setTargetAtTime(.58,now,.012);gain.setTargetAtTime(1,now+.14,.16);
+     }
      const source=ctx.createBufferSource(),pan=ctx.createStereoPanner();
      source.buffer=bank.get(name);pan.pan.value=Math.max(-.65,Math.min(.65,(x-480)/480));source.connect(pan);pan.connect(name.startsWith('grunt-')?voice:effects);
      playing.add(source);source.onended=()=>{playing.delete(source);source.disconnect();pan.disconnect();};source.start();

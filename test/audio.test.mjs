@@ -30,3 +30,7 @@ test('pistol preparation and discharge are separate, with one shared visual/audi
  assert.deepEqual(soundChanges(a,state(25,{act:'shot',age:15})),[{name:'shot',x:300,muzzle:0}]);
  assert.deepEqual(soundChanges(b,state(16)),[]);
 });
+test('caption attribution follows fighter slots rather than screen position',()=>{
+ const a=state(10), b=state(13,{x:720,act:'shot',age:3});
+ assert.deepEqual(soundChanges(a,b,true),[{name:'cock',x:720,actor:0}]);
+});

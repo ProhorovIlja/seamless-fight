@@ -26,13 +26,15 @@ export function drawImpact(g,x,y,life,reduced,slot){
  }
  g.restore();
 }
-export function drawHUD(g,s,local,timer,contrast){
+export function drawHUD(g,s,local,timer,contrast,helm){
  g.save();
  for(let i=0;i<2;i++){
    const p=s.p[i],x=i?620:24,c=i?(contrast?'#ffc36b':'#e39774'):(contrast?'#a1fff1':'#8fc8c0');
    g.fillStyle='#110e18ec';g.beginPath();g.moveTo(x,9);g.lineTo(x+298,9);g.lineTo(x+316,23);g.lineTo(x+316,69);g.lineTo(x+16,69);g.lineTo(x,56);g.closePath();g.fill();
    g.strokeStyle='#aa84596f';g.lineWidth=1;g.stroke();
-   g.textAlign='left';g.fillStyle=c;g.font='bold 15px system-ui';g.fillText((i?'CINDER':'VEIL')+(i===local?'  /  YOU':''),x+16,30);
+   g.fillStyle='#302631';g.fillRect(x+15,15,19,17);
+   if(helm?.complete&&helm.naturalWidth)g.drawImage(helm,x+16,15,17,17);
+   g.textAlign='left';g.fillStyle=c;g.font='bold 15px system-ui';g.fillText((i?'CINDER':'VEIL')+(i===local?'  /  YOU':''),x+42,30);
    const bar=(yy,hh,v,color)=>{
      g.fillStyle='#302432';g.fillRect(x+16,yy,250,hh);
      g.fillStyle=color;g.fillRect(x+16,yy,250*Math.max(0,Math.min(100,v))/100,hh);

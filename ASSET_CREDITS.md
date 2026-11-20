@@ -24,3 +24,7 @@ Candidates screened but not bundled: [Kenney Impact Sounds](https://kenney.nl/as
 - **lantern** by Lorc, [upstream SVG](https://github.com/game-icons/icons/blob/master/lorc/lantern.svg), upstream blob `7f68ddecb57e27fb2eb2f04e0c38145675c7a601`. [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Modified: removed the black square and recolored the path. Served locally.
 
 The duel stage floor now includes seeded, baked material weathering, and attack animations ease between key poses without changing the active hit window. CI captures both arena presentations and a narrow reduced-motion layout for visual review.
+
+- **Visored Helm** by Lorc, [upstream SVG](https://github.com/game-icons/icons/blob/master/lorc/visored-helm.svg), upstream blob `acd470fcf4060f87f3aa779d2797499c4dd5da04`. [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Recolored and black background removed; used as a locally served HUD emblem.
+
+The score briefly ducks under hits, interruptions, pistol discharge, and round bells, independently of the player's saved music volume.
