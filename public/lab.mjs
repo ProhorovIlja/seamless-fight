@@ -35,3 +35,16 @@ export function preset(name) {
  else if(name==='interrupt')tape[36].act='shot';
  return tape;
 }
+
+export function restoreDrill(spacing, opponent, player, requested) {
+ const state=makeLab(spacing), trace=[];
+ const limit=Math.min(opponent.length+HZ,MAX_TAPE+HZ);
+ const target=Number.isSafeInteger(requested)?Math.max(0,Math.min(requested,limit)):0;
+ let tick=0;
+ while(tick<target&&!state.end&&!state.over){
+   practiceTick(state,[tapeInput(player,tick),tapeInput(opponent,tick)]);
+   trace.push(state.p.map(phase));if(trace.length>TIMELINE)trace.shift();
+   tick++;
+ }
+ return {state,trace,tick,limit};
+}
