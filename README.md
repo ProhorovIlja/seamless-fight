@@ -63,3 +63,7 @@ Practice offers balanced, pressure, and range-keeping opponents alongside the ev
 The arena and opponent selectors are locked during a search so the settings on screen match the request already sent to the server. Cancel to change them; local combat inputs keep working while queued.
 
 Casual queue filters use a rolling refresh of the median of three server-timed WebSocket ping/pong probes. The stricter cap must hold for both links; these are server RTTs, not player-to-player RTTs or input-to-display latency. Reported Wi-Fi can be excluded while allowing unknown devices, or only reported Ethernet can be accepted. The browser hint is optional and untrusted. Private invitations bypass public queue filters. No skill rank is assigned.
+
+### Ghost workshop
+
+Capture a match or open a compatible replay, choose Veil or Cinder, and select **Train / update ghost**. It learns a bounded frequency table of relative movement and legal actions in distance and observed animation contexts. Multiple captures update the table; recent duplicate fighter captures are rejected. Choose **Trained ghost** in Practice. It reacts to the live opponent with a ten-tick observation delay, and falls back to balanced sparring where it has too little data. It does not upload data or train on other players automatically. Clear ghost deletes the local profile. Built-in sparring has Easy, Normal and Hard; the selected difficulty does not change a learned ghost, the still target, or the tutorial.

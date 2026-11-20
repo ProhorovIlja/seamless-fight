@@ -76,3 +76,5 @@ details summary{letter-spacing:.035em}
 .queue-note{color:#aea590;font:1rem var(--hunt-serif);line-height:1.4}.queue-panel:has(#queue-stop:not([hidden])) .queue-note{display:none}
 
 .queue-filters{flex-basis:100%;min-inline-size:0}.queue-filters p{font-size:.86rem;color:#aea590;margin:.35rem 0}.queue-filters select{max-width:100%}
+
+#ghost-status{color:var(--hunt-gold);font-family:var(--hunt-serif)}

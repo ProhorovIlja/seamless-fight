@@ -1,6 +1,7 @@
 import {W,H,HZ,match,step,blank,moves} from './engine.mjs';
 import {HISTORY_LIMIT,playable,reconcile} from './prediction.mjs';
 import {queueOptions} from './queue-policy.mjs';
+import {GHOST_KEY,restoreGhost,trainGhost,createGhost} from './ghost.mjs';
 import {createSparring,LESSONS,lessonStep} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges,rangeBand} from './audio.mjs';
@@ -219,6 +220,13 @@ addEventListener('keydown',ev=>{
 addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
 let spar=createSparring(), practiceTape=[], lesson=-1;
+let ghost=null;try{ghost=restoreGhost(JSON.parse(localStorage.getItem(GHOST_KEY)));}catch{}
+function ghostStatus(note=''){
+ $('ghost-option').disabled=!ghost;
+ $('ghost-clear').disabled=!ghost;
+ $('ghost-status').textContent=note||(ghost?'Ghost trained from '+ghost.sources.length+' recent fighter captures.':'No ghost trained on this browser.');
+}
+ghostStatus();
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
 let histories=[[],[]], nextInspect=0, reviewPulse=0, exchanges=[], selectedEvent=null;
@@ -236,7 +244,7 @@ function inspect(now){
  }
 }
 function leave(){stopSearch();lesson=-1;$('lesson').hidden=true;practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
-function practice(){leave();showArena($('arena-select').value);mode='practice';spar=createSparring($('drill').value);if($('drill').value==='lesson'){lesson=0;showLesson();}$('capture').disabled=false;status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
+function practice(){leave();showArena($('arena-select').value);mode='practice';spar=$('drill').value==='ghost'&&ghost?createGhost(ghost):createSparring($('drill').value,$('spar-level').value);if($('drill').value==='lesson'){lesson=0;showLesson();}$('capture').disabled=false;status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
  $('lab-meter').hidden=false;
@@ -316,7 +324,7 @@ function stopSearch(message=''){
 }
 function syncSearchControls(){
  const pending=searchSocket!==null, disabled=pending||!['','practice','lab'].includes(mode);
- for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending],['queue-rtt',pending],['queue-link',pending]]){
+ for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending],['spar-level',pending],['queue-rtt',pending],['queue-link',pending]]){
    const el=$(id);if(el.disabled!==value)el.disabled=value;
  }
 }
@@ -449,12 +457,27 @@ function feedback(state,confirmed){
 function loadCapture(data){
  const clip={rules:data.rules,tape:data.tape,arena:arenaId(data.arena),outfits:pair(data.outfits)}, view=createReview(clip);
  view.arena=clip.arena;view.outfits=clip.outfits;
- capture=view;
+ capture=view;$('ghost-learn').disabled=false;
  if(saveUrl)URL.revokeObjectURL(saveUrl);
  saveUrl=URL.createObjectURL(new Blob([JSON.stringify(clip)],{type:'application/json'}));
  $('review-save').href=saveUrl;$('review-save').hidden=false;$('review-open').disabled=false;
  reviewInfo(view.complete?'Completed match captured.':view.total===MAX_TICKS?'Capture limit reached · review the recorded opening of this match.':'Partial match captured · '+view.total+' ticks.');
 }
+$('ghost-learn').onclick=()=>{
+ if(!capture)return;
+ try{
+   ghost=trainGhost(capture,Number($('ghost-slot').value),ghost);
+   let saved=true;try{localStorage.setItem(GHOST_KEY,JSON.stringify(ghost));}catch{saved=false;}
+   ghostStatus(saved?'Ghost updated. Select Trained ghost in Practice.':'Ghost updated for this tab; browser storage is unavailable.');
+ }catch(err){ghostStatus(err.message);}
+};
+$('ghost-clear').onclick=()=>{
+ ghost=null;try{localStorage.removeItem(GHOST_KEY);}catch{}
+ if($('drill').value==='ghost')$('drill').value='duelist';
+ if(mode==='practice'&&!searchSocket)practice();
+ ghostStatus();
+};
+$('spar-level').onchange=()=>{if(mode==='practice'&&!searchSocket&&$('drill').value!=='ghost')practice();};
 $('capture').onclick=()=>{
  if(mode==='practice'){
    if(practiceTape.length)loadCapture({rules:RULESET,tape:practiceTape.join(''),arena,outfits:[prefs.classic?classic:prefs.outfit,classic]});
@@ -496,7 +519,7 @@ $('review-open').onclick=()=>{
  for(const {tick,label} of review.events){const option=document.createElement('option');option.value=tick;option.textContent='Tick '+tick+' · '+label;events.append(option);}
  events.disabled=review.events.length===0;
  $('review-seek').max=review.total;$('review-controls').hidden=false;seekReview(0);
- status('Online match review · seek, step, or take over either fighter.');
+ status('Match review · seek, step, or take over either fighter.');
 };
 $('review-seek').oninput=()=>seekReview(Number($('review-seek').value));
 $('review-event').onchange=()=>{

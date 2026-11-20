@@ -29,8 +29,9 @@ const profiles={
 };
 // The sparring partner sees past positions and animation, never queued inputs.
 // Sample at a fixed delay; reset on countdown, rewind or a round boundary.
-export function createSparring(style='duelist'){
- const rules=Object.hasOwn(profiles,style)?profiles[style]:profiles.duelist;
+export function createSparring(style='duelist',level='normal'){
+ const base=Object.hasOwn(profiles,style)?profiles[style]:profiles.duelist;
+ const rules=level==='easy'?{...base,delay:base.delay+8,cut:base.cut+12,heavy:base.heavy+16,gun:false}:level==='hard'?{...base,delay:Math.max(8,base.delay-4),cut:Math.max(19,base.cut-10),heavy:base.heavy-13}:base;
  const ring=new Array(rules.delay+1);
  let round=-1, previous=-1, seenTick=-1;
  return function spar(s){

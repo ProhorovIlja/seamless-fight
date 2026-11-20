@@ -18,6 +18,7 @@ const assets = new Map([
   ['game.mjs',['game.mjs','text/javascript']],
   ['engine.mjs',['engine.mjs','text/javascript']],
   ['prediction.mjs',['prediction.mjs','text/javascript']],
+  ['ghost.mjs',['ghost.mjs','text/javascript']],
   ['tactics.mjs',['tactics.mjs','text/javascript']],
   ['lab.mjs',['lab.mjs','text/javascript']],
   ['audio.mjs',['audio.mjs','text/javascript']],

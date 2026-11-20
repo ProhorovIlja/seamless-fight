@@ -188,6 +188,9 @@ try{
  await status(host,/Opponent disconnected/);
  await host.locator('#review-file').setInputFiles(savedReplay);
  await until(async()=>/Replay file loaded/.test(await host.locator('#review-info').textContent()),'replay file imported');
+ await host.locator('#ghost-learn').click();
+ await until(async()=>/Ghost updated/.test(await host.locator('#ghost-status').textContent()),'ghost learned from captured online fighter');
+ assert(await host.locator('#ghost-option').isEnabled());
  await host.locator('#review-open').click();
  await status(host,/Online match review/);
  assert.match(await host.locator('#arena-title').textContent(),/Drowned Cistern/);
