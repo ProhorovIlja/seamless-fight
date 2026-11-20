@@ -42,6 +42,7 @@ if(process.env.SITE_ART==='1'){
   assets.set('/fight/',[Buffer.from(html.toString('utf8').replace('data-site-art="off"','data-site-art="on"')),type]);
 }
 const rooms=new Map(), galleries=new Map(), casual=new Map();
+let shuttingDown=false;
 const QUEUE_MS=120000;
 let queueOrder=0;
 const MAX_VIEWERS=6;
@@ -49,6 +50,7 @@ const token=()=>randomBytes(9).toString('base64url');
 const origin=process.env.PUBLIC_ORIGIN;
 const http=createServer((req,res)=>{
   const path=req.url?.split('?')[0];
+  if(shuttingDown){res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end('{"ok":false,"reason":"restarting"}');return;}
   if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405,{Allow:'GET, HEAD'}).end();return;}
   if(path==='/fight'){res.writeHead(308,{Location:'/fight/'+(req.url.includes('?')?'?'+req.url.split('?').slice(1).join('?'):'')}).end();return;}
   if(path==='/fight/health'){res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'}).end('{"ok":true}');return;}
@@ -59,6 +61,7 @@ const http=createServer((req,res)=>{
 });
 const ws=new WebSocketServer({noServer:true,maxPayload:512,perMessageDeflate:false});
 http.on('upgrade',(req,socket,head)=>{
+  if(shuttingDown){socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n');return;}
   const allowed=origin||'http://'+req.headers.host;
   if(req.url!=='/fight/socket'||req.headers.origin!==allowed||ws.clients.size>=256){
     socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');return;
@@ -175,6 +178,7 @@ ws.on('connection',c=>{
     if(['cut','hew','shot','step'].includes(m.act)&&c.actions.length<3)c.actions.push({act:m.act,until:now+110});
   });
   c.on('close',()=>{
+    if(shuttingDown)return;
     dequeue();clearTimeout(deadline);if(!room)return;
     if(slot===-1){room.viewers.delete(c);return;}
     if(!rooms.delete(room.code))return;
@@ -214,4 +218,25 @@ setInterval(()=>{
   }
   if(now-next>dt*4)next=now+dt;
 },8).unref();
+// systemd restarts disconnect in-flight matches; tell clients explicitly instead of
+// terminating their TCP connection without a WebSocket close frame.
+function shutdown(){
+ if(shuttingDown)return;
+ shuttingDown=true;
+ http.close();
+ for(const c of ws.clients){
+   if(c.readyState===1){
+     send(c,{t:'error',message:'Duel server restarting. Live matches and queues are not retained.'});
+     c.close(1012,'server restarting');
+   }else c.terminate();
+ }
+ // Allow the restart frame to flush; never let a dead peer stall systemd forever.
+ const cleanup=setTimeout(()=>{
+   for(const c of ws.clients)c.terminate();
+   http.closeAllConnections();
+ },1500);
+ cleanup.unref();
+}
+process.on('SIGTERM',shutdown);
+process.on('SIGINT',shutdown);
 http.listen(Number(process.env.PORT||8080),process.env.HOST||'127.0.0.1');
