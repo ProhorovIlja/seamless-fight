@@ -41,7 +41,10 @@ export function createSideTransport(handlers={},Factory=globalThis.WebSocket){
  }
  return {
   connect,close,code:()=>code,connected:()=>socket?.readyState===Factory.OPEN,
-  input(i){return send({t:'input',x:i.x,y:i.y,act:i.act||'',guard:i.guard===true,seq:++sequence});},
+  input(i){const next=sequence+1;
+   if(!send({t:'input',x:i.x,y:i.y,act:i.act||'',guard:i.guard===true,seq:next}))return null;
+   sequence=next;return next;
+  },
   replay(){return send({t:'replay'});},rematch(){return send({t:'rematch'});},
   ping(id){return send({t:'ping',id});}
  };
