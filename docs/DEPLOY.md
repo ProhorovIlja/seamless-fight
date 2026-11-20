@@ -11,13 +11,11 @@ handle @seamlessFight {
 
 Put it in the appropriate routing group before the site's catch-all; do not strip /fight. Stage against an isolated Caddy instance, verify /fight/health and an HTTPS WebSocket duel, and check existing site routes are unchanged before deploying. Run a two-browser smoke test with 0/60/120/180 ms RTT, jitter and disconnects. Compare input-to-feedback, positional correction and contested hits. Undo by removing only the new route and stopping the isolated game service. This repo does not deploy automatically.
 
-## Ubuntu 26.04 staging
+## Debian 13 staging
 
-The hosted Chromium runner is separate from the production runtime. The production service needs Node 22 or newer at /usr/bin/node (or an explicit ExecStart override), npm-installed production dependencies, and Caddy. It does not need a browser or Playwright.
+**Target OS:** Debian 13 (Trixie). Follow the [Debian 13 migration runbook](DEBIAN-13-MIGRATION.md) for the isolated Node 22+ runtime, separate staging host, unit validation, Caddy preservation and rollback. Debian 13's distribution Node package is Node 20 and is not suitable for this service.
 
-Use a root-owned release directory readable by the dynamic service user, and point /opt/seamless-fight/current at the reviewed release. Install dependencies as a build user before making the release read-only. Copy deploy/seamless-fight.service to the system unit directory and create /etc/seamless-fight.env with PUBLIC_ORIGIN=https://seamlesshunt.com (use the actual HTTPS origin for staging). Check that port 18080 is unused; if changing it, change the staged proxy target too. Verify the unit with systemd-analyze verify before starting it. Verify loopback /fight/health and a complete HTTPS two-browser duel through a staged Caddy config before adding any live route. Do not replace the existing Caddyfile or change the ShadNet service. Verify existing site routes and the boot-time configuration after any approved cutover.
-
-Rollback the game independently: remove its Caddy route using the existing site's change process, stop/disable only the game service, and point the release symlink back if needed. Open matches are in memory and do not survive process restarts.
+The unit deliberately calls `/opt/seamless-fight/runtime/bin/node` rather than replacing `/usr/bin/node` or the website's runtime. `ExecStartPre` checks Debian, Node major, HTTPS origin and loopback binding. CI executes Node 22/24 and Chromium inside Debian 13 containers. No OS or website changes happen automatically.
 
 The Chromium smoke check injects ordered application-message delays (guest uplink 55–78 ms, downlink 26–49 ms). This checks room join and authoritative movement with deterministic jitter, not loss, TCP retransmits, or combat reaction fairness. The VPS requires neither this test harness nor a browser.
 

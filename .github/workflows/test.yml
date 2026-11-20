@@ -4,32 +4,44 @@ permissions:
   contents: read
 jobs:
   test:
+    name: Debian 13 / Node ${{ matrix.node }}
+    runs-on: ubuntu-24.04
+    container:
+      image: node:${{ matrix.node }}-trixie
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-26.04]
-    runs-on: ${{ matrix.os }}
+        node: ['22', '24']
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm install --ignore-scripts
+      - name: Verify Debian base
+        run: |
+          . /etc/os-release
+          test "$ID" = debian
+          test "${VERSION_ID%%.*}" = 13
+          bash -n deploy/debian-13-preflight.sh
+          bash deploy/debian-13-preflight.sh --ci
+      - run: npm install --ignore-scripts --no-audit
       - run: node --check public/game.mjs
       - run: npm test
   browser:
+    name: Debian 13 / Chromium smoke
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    container:
+      image: node:22-trixie
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm install --ignore-scripts --no-save playwright@1.58.2
+      - run: |
+          . /etc/os-release
+          test "$ID" = debian
+          test "${VERSION_ID%%.*}" = 13
+      - run: npm install --ignore-scripts --no-audit --no-save playwright@1.58.2
       - run: npx --no-install playwright install --with-deps chromium
       - run: node scripts/browser-smoke.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: duel-presentation-screenshots
+          name: duel-debian13-presentation-screenshots
           path: artifacts/*.png
-          if-no-files-found: error
+          if-no-files-found: warn

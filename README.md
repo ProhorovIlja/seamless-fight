@@ -10,6 +10,8 @@ WASD or arrow keys move, J cuts, K hews, L fires, I feints a heavy during startu
 ## Architecture and scope
 Shared fixed-step ES modules and Canvas 2D keep the browser slice small; the Node server owns online simulation and accepts inputs rather than positions or damage. The server simulates at 60 Hz and sends snapshots at 20 Hz; the opponent renders from interpolated snapshots. Local free movement is predicted with bounded replay of unacknowledged inputs; attack outcomes, close-contact movement, and committed actions remain authoritative. No combat rollback. In-memory invite rooms are limited to two players, with mutual rematch and disconnect handling. They do not persist across restarts. The browser slice targets keyboard and desktop; no touch, ranked play or multi-region service yet.
 
+Debian 13 (Trixie) is the deployment target. The game uses a separate Node 22+ binary; Debian's default Node 20 is not sufficient. See the [Debian 13 migration guide](docs/DEBIAN-13-MIGRATION.md) and [deployment](docs/DEPLOY.md). No live migration is performed by this repository.
+
 See [deployment](docs/DEPLOY.md) and [references and asset credits](ASSET_CREDITS.md). The prototype visuals are procedural original art, not final sprite animation.
 
 The **Duel lab** lets you practice a committed heavy, feint into cut, or pistol interrupt. Pick a starting distance or record up to six seconds as Cinder, then replay as Veil. Replay resets spacing and resources; the frame strip shows both fighters' simulated phases. This is local training, not online replay storage.
