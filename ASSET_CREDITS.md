@@ -40,3 +40,5 @@ The Lantern Court backdrop optionally reuses the website’s moon, far and near 
 The optional shared-site HUD uses the website’s vial emblem and its bell/skull motifs on round and result plates. The standalone plates use a vector diamond. The short gold damage afterimage is presentation only and resets on seeks, rematches and round changes. Muting stops ambience, music and in-flight effects rather than leaving them running behind a zero gain.
 
 The ghost workshop's import/export and analytics use original JavaScript and no third-party art or model weights. They follow the explicit opt-in and deletion practices visible in Tekken 8 Super Ghost Battle (Bandai Namco, https://tk8.tekken-official.jp/en/mode/offline.php); this project does not use its models or player data.
+
+Ambient loops now use a periodic two-pass noise filter and stay non-silent at the loop boundary; the source is fully synthesized. Exertion uses three deterministic generated takes for each voice range, with no third-party samples or impersonations. Both variants are generated when audio is enabled, not in the render loop.

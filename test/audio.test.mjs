@@ -40,3 +40,18 @@ test('foley variants are bounded, repeatable and distinct',()=>{
  assert.deepEqual(a,synth('interrupt',8000,1));assert.notDeepEqual(a,b);
  assert.equal(a[0],0);assert(a.every(x=>Number.isFinite(x)&&Math.abs(x)<=1));
 });
+
+test('loopable ambience and varied exertions remain finite and avoid zero-energy loop gaps',async()=>{
+ const {windPCM,exertionPCM}=await import('../public/score.mjs');
+ for(const arena of ['lantern','cistern']){
+   const pcm=windPCM(8000,arena);
+   assert.equal(pcm.length,64000);
+   assert(pcm.every(x=>Number.isFinite(x)&&Math.abs(x)<1));
+   assert(Math.abs(pcm[0]-pcm.at(-1))<.02,'loop should be continuous at the wrap');
+   const rms=pcm.slice(0,800).reduce((a,b)=>a+b*b,0)/800;
+   assert(rms>.00005,'no silence at the beginning of the 8-second loop');
+ }
+ const voices=[0,1,2].map(i=>exertionPCM(8000,false,i));
+ assert.equal(new Set(voices.map(p=>Array.from(p.slice(400,440)).join())).size,3);
+ assert(voices.every(p=>p.every(x=>Number.isFinite(x)&&Math.abs(x)<=1)));
+});

@@ -1,4 +1,4 @@
-import {scorePCM,exertionPCM} from './score.mjs';
+import {scorePCM,exertionPCM,windPCM} from './score.mjs';
 import {moves} from './engine.mjs';
 
 // Original synthesized sound bank. No sample downloads or per-frame synthesis.
@@ -83,7 +83,12 @@ export function createAudio(Context=globalThis.AudioContext){
      bank.set(name,variants);
    }
    for(const [i,name] of ['grunt-low','grunt-high'].entries()){
-     const pcm=exertionPCM(ctx.sampleRate,Boolean(i)),buf=ctx.createBuffer(1,pcm.length,ctx.sampleRate);buf.copyToChannel(pcm,0);bank.set(name,[buf]);
+     const variants=[];
+     for(let take=0;take<3;take++){
+       const pcm=exertionPCM(ctx.sampleRate,Boolean(i),take),buf=ctx.createBuffer(1,pcm.length,ctx.sampleRate);
+       buf.copyToChannel(pcm,0);variants.push(buf);
+     }
+     bank.set(name,variants);
    }
  }
  function stopScore(){for(const source of score){source.stop();source.disconnect();}score=[];}
@@ -104,14 +109,8 @@ export function createAudio(Context=globalThis.AudioContext){
    if(wind)return;
    let buf=beds.get(arena);
    if(!buf){
-   const n=ctx.sampleRate*8;buf=ctx.createBuffer(1,n,ctx.sampleRate);const a=buf.getChannelData(0);
-   let seed=21381,lo=0,hi=0;
-   for(let i=0;i<n;i++){
-     seed=(Math.imul(seed,1664525)+1013904223)>>>0;
-     const r=seed/2147483648-1;lo+=.022*(r-lo);hi+=.002*(r-hi);
-     const t=i/ctx.sampleRate,env=Math.min(1,t*3,(8-t)*3);
-     a[i]=arena==='cistern'?env*(.32*(lo-hi)+.04*Math.sin(2*Math.PI*55*t)+.018*Math.sin(2*Math.PI*110*t))*(.65+.35*Math.cos(2*Math.PI*t/2)):env*(.55*(lo-hi)+.052*Math.sin(2*Math.PI*49*t)+.025*Math.sin(2*Math.PI*73.5*t))*(.8+.2*Math.sin(2*Math.PI*t/8));
-   }
+   const pcm=windPCM(ctx.sampleRate,arena);
+   buf=ctx.createBuffer(1,pcm.length,ctx.sampleRate);buf.copyToChannel(pcm,0);
    beds.set(arena,buf);
    }
    wind=ctx.createBufferSource();wind.buffer=buf;wind.loop=true;wind.connect(ambience);wind.start();
