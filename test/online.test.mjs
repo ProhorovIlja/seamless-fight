@@ -22,6 +22,7 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
   assert.equal(asset.status,200,'side-view module '+name+' served from isolated route');
   assert(asset.headers.get('content-length')>100);
   assert.match(asset.headers.get('content-security-policy'),/default-src 'self'/);
+  assert.match(asset.headers.get('content-security-policy'),/img-src 'self' blob:/,'local authored sprite preview only');
  }
  const painting=await fetch(origin+'/fight/art/reliquary-painted.webp');
  assert.equal(painting.status,200,'original painted environment delivered with game');
