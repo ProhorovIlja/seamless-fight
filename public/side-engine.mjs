@@ -89,6 +89,7 @@ function drive(p,q,i){
 function strike(p,q){
  const m=SIDE_MOVES[p.act];
  if(!m?.damage||p.spent||p.age<m.startup||p.age>=m.startup+m.active)return false;
+ if(q.act==='step'&&q.age>=1&&q.age<8)return false;
  const a=sideAttackbox(p),h=sideHurtbox(q);
  return Boolean(a.left<h.right&&a.right>h.left&&a.top<h.bottom&&a.bottom>h.top);
 }
