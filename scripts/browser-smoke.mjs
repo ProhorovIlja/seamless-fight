@@ -38,6 +38,13 @@ try{
  await host.keyboard.press('t');
  await status(host,/Respond to Cinder/);
  assert(await host.locator('#lab-meter').isVisible());
+ const seek=host.locator('#seek');
+ await until(async()=>Number(await seek.getAttribute('max'))>=10,'recorded attempt ticks');
+ await seek.evaluate(el=>{el.value='5';el.dispatchEvent(new Event('input',{bubbles:true}));});
+ await status(host,/Paused at tick 5/);
+ await host.locator('#takeover').click();
+ await status(host,/Takeover/);
+ await until(async()=>Number(await seek.inputValue())>5,'live takeover advances from the rewind point');
  await host.locator('#online').click();
  await status(host,/Waiting for an opponent/);
  const invite=await host.locator('#invite').inputValue();
