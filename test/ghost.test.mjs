@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {blank,match} from '../public/engine.mjs';
 import {createReview,packTick,RULESET} from '../public/replay.mjs';
-import {createGhost,trainGhost,restoreGhost,ghostInsights,serializeGhost,parseGhost} from '../public/ghost.mjs';
+import {createGhost,trainGhost,restoreGhost,ghostInsights,serializeGhost,parseGhost,shouldAutoLearn} from '../public/ghost.mjs';
 const view=(side=0,action='')=>createReview({rules:RULESET,tape:Array.from({length:320},(_,i)=>{
  const inputs=[blank(),blank()];
  if(i>=121)inputs[side]={x:side?1:-1,y:0,act:i===180?action:''};
@@ -45,7 +45,6 @@ test('trained ghost can control either fighter and follows relative positioning'
 });
 
 test('auto-learn eligibility requires explicit opt-in and a complete human-controlled match',()=>{
- const {shouldAutoLearn}=await import('../public/ghost.mjs');
  assert.equal(shouldAutoLearn(true,true,false,600),true);
  assert.equal(shouldAutoLearn(false,true,false,600),false);
  assert.equal(shouldAutoLearn(true,true,true,600),false);

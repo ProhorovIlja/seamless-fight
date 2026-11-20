@@ -211,6 +211,8 @@ try{
  await host.locator('#ghost-import').setInputFiles(ghostFile);
  await until(async()=>/Ghost imported/.test(await host.locator('#ghost-status').textContent()),'portable ghost reimported');
  assert.deepEqual(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.ghost.v1'))),originalGhost);
+ await host.locator('#ghost-learn').click();
+ await until(async()=>/already in the ghost/.test(await host.locator('#ghost-status').textContent()),'duplicate imported fighter rejected');
 
  await host.locator('#review-open').click();
  await status(host,/Match review/);
@@ -253,7 +255,8 @@ try{
  await status(host,/Practice · Trained ghost/);
  assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.ghost.v1')).sources.length),1);
  await host.locator('#ghost-learn').click();
- await until(async()=>/already in the ghost/.test(await host.locator('#ghost-status').textContent()),'duplicate ghost capture rejected');
+ await until(async()=>/Auto-learning is enabled/.test(await host.locator('#ghost-status').textContent()),'manual practice training suppressed when auto learning enabled');
+ await host.locator('#ghost-auto').uncheck();
  await host.locator('#drill').selectOption('lesson');
  assert.match(await host.locator('#lesson-title').textContent(),/Move across/);
  await until(async()=>/74 seconds/.test(await host.locator('#round-score').textContent()),'lesson round running');
