@@ -35,7 +35,7 @@
 <p>Choose a coat and sigil. Your look is locked when you enter a room. Colors identifying the two fighters, attack cues, and the move set never change.</p>
 <section class="lab-controls" aria-label="Wardrobe settings"><label>Coat dye <select id="dye"></select></label><label>Sigil <select id="sigil"></select></label><label>Use default looks on this screen <input type="checkbox" id="classic"></label><canvas width="112" height="64" id="look-preview" aria-label="Selected outfit preview"></canvas></section>
 </details>
-<details id="combat-analysis"><summary>Combat inspector · training and replay</summary>
+<details id="combat-analysis"><summary>Combat inspector · training and replay</summary><p><label><input type="checkbox" id="training-geometry"> Show exact attack cones and center targets in training/replay</label></p><output id="training-range-readout" aria-live="off">Enable geometry diagnostics to view center spacing and active attack phases.</output>
 <p>Inspect fighter phases and inputs in practice, the Duel Lab, and match review. In takeover, the opponent column shows recorded inputs. An input is not proof that a move started.</p>
 <p>Recent exchanges</p><pre id="exchange-log"></pre><section class="inspector"><div><strong>Veil</strong><output id="phase-0">—</output><pre id="inputs-0"></pre></div><div><strong>Cinder</strong><output id="phase-1">—</output><pre id="inputs-1"></pre></div></section>
 </details>
