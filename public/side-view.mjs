@@ -2,6 +2,7 @@ import {SIDE_HZ,SIDE_RULESET,SIDE_MOVES,sideInput,sideMatch,sideStep,SIDE_FLOOR}
 import {createSideBot} from './side-ai.mjs';
 import {createSideReview,packSideTick,SIDE_TAPE_LIMIT} from './side-replay.mjs';
 import {sideReadout} from './side-inspector.mjs';
+import {footwork} from './footwork.mjs';
 import {createSideTransport,SIDE_INVITE_PATTERN} from './side-online-client.mjs';
 import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTraining,drawSideHUD,drawSideImpact} from './side-art.mjs';
 import {createAudio} from './audio.mjs';
@@ -38,6 +39,7 @@ const effects=[],MAX_EFFECTS=10;
 let audioOn=false,queued='',priorPad=null,padQueued='',padMove={x:0,y:0,guard:false};
 let inspectorAt=0;const renderIntervals=[];
 let onlineSlot=-1,onlineCode='',onlineLooks=null,onlineTick=-1;
+const sideFootwork=footwork();
 const held=new Set(),touchHeld=new Set();
 const sound=createAudio();
 function setStatus(message){$('fight-status').textContent=message;}
@@ -174,6 +176,9 @@ function updateButtons(){
  $('frame-back').disabled=!review||mode!=='review';
  $('frame-next').disabled=!review||mode!=='review';
  $('pause').disabled=mode==='idle'||mode==='review'||mode==='online'||mode==='connecting';
+ $('stage-select').disabled=mode==='online'||mode==='connecting';
+ $('opponent').disabled=mode==='online'||mode==='connecting';
+ $('show-boxes').disabled=mode==='online'||mode==='connecting';
  $('pause').textContent=mode==='paused'?'Resume':'Pause';
  $('stage-mode').textContent=mode==='online'?'AUTHORITATIVE PRIVATE 1V1':mode==='connecting'?'JOINING ROOM':mode==='review'?'REPLAY / TAKEOVER':mode==='takeover'?'REPLAY TAKEOVER':mode==='paused'?'PAUSED':mode==='live'?'LOCAL DUEL · 60 HZ':'SIDE-VIEW LAB · OFFLINE';
 }
@@ -250,7 +255,7 @@ $('takeover').onclick=()=>{
 };
 
 function resetOnlineButtons(){
- onlineSlot=-1;onlineCode='';onlineLooks=null;onlineTick=-1;
+ onlineSlot=-1;onlineCode='';onlineLooks=null;onlineTick=-1;sideFootwork.clear();
  $('side-copy').hidden=true;$('side-rematch').hidden=true;$('side-server-replay').hidden=true;
  $('side-network').textContent='Offline';
 }
@@ -264,7 +269,7 @@ const sideTransport=createSideTransport({
  },
  start(m){
   if(m.s?.rules!==SIDE_RULESET)return;
-  s=m.s;onlineTick=-1;mode='online';clearHeld();effects.length=0;onlineLooks=m.looks;
+  s=m.s;onlineTick=-1;mode='online';clearHeld();effects.length=0;onlineLooks=m.looks;sideFootwork.clear();
   $('side-rematch').hidden=true;$('side-server-replay').hidden=true;
   setStatus('Server-authoritative side-view duel. Private, unrated and unranked.');
   updateButtons();
@@ -272,7 +277,7 @@ const sideTransport=createSideTransport({
  state(m){
   if(mode!=='online'||m.s?.rules!==SIDE_RULESET||
      !Number.isSafeInteger(m.s.tick)||m.s.tick<onlineTick)return;
-  onlineTick=m.s.tick;s=m.s;effectsFrom(Array.isArray(m.events)?m.events:[]);
+  onlineTick=m.s.tick;s=m.s;sideFootwork.push(s,performance.now());effectsFrom(Array.isArray(m.events)?m.events:[]);
   $('side-network').textContent='Server tick '+s.tick+' · input receipt ACK '+m.ack+' · room '+onlineCode;
   if(s.over){$('side-rematch').hidden=false;$('side-server-replay').hidden=false;
    setStatus('Online side-view bout finished. Request a replay or a rematch.');}
@@ -341,11 +346,11 @@ function paint(now,elapsed){
  if(elapsed>0&&elapsed<100){renderIntervals.push(elapsed);if(renderIntervals.length>120)renderIntervals.shift();}
  if(now>=inspectorAt){
   inspectorAt=now+125;
-  const view=sideReadout(s);
-  $('live-spacing').textContent='Center distance '+view.distance+' units · hurtbox gap '+view.gap+' units';
+  const view=mode==='online'||mode==='connecting'?null:sideReadout(s);
+  $('live-spacing').textContent=view?'Center distance '+view.distance+' units · hurtbox gap '+view.gap+' units':'Training-only frame inspector · disabled for online fairness';
   for(let side=0;side<2;side++){
-   $('live-phase-'+side).textContent=view.fighters[side];
-   $('live-contact-'+side).textContent=view.contact[side].status;
+   $('live-phase-'+side).textContent=view?view.fighters[side]:'Offline drills and replay only';
+   $('live-contact-'+side).textContent=view?view.contact[side].status:'';
   }
   if(renderIntervals.length){const sorted=renderIntervals.slice().sort((a,b)=>a-b),p95=sorted[Math.ceil(sorted.length*.95)-1];
    $('live-performance').textContent='Local render frame interval p95 '+p95.toFixed(1)+' ms (not input-to-photon or network latency).';}
@@ -360,8 +365,14 @@ function paint(now,elapsed){
  g.drawImage(stageCanvas,0,0);
  paintSideWeather(g,now,scene,reduced());
  const appearance=mode==='online'&&Array.isArray(onlineLooks)&&onlineLooks.length===2?onlineLooks:[outfit({dye:'ash',sigil:'lantern'}),outfit({dye:'oxblood',sigil:'thorn'})];
- for(let i=0;i<2;i++)paintSideFighter(g,s.p[i],appearance[i],now,reduced(),sidePrefs.contrast);
- if(sidePrefs.boxes)drawSideTraining(g,s);
+ const neutralFoot=mode==='online'?sideFootwork.sample(now):null;
+ for(let i=0;i<2;i++){
+  const p=s.p[i],smooth=neutralFoot?.[i];
+  // Remote neutral footwork only; attacks, impacts and hitstun remain immediate.
+  const pose=mode==='online'&&i!==onlineSlot&&smooth?{...p,x:smooth.x,y:smooth.y}:p;
+  paintSideFighter(g,pose,appearance[i],now,reduced(),sidePrefs.contrast);
+ }
+ if(sidePrefs.boxes&&mode!=='online'&&mode!=='connecting')drawSideTraining(g,s);
  for(const item of effects)drawSideImpact(g,item.e,item.life,reduced());
  drawSideHUD(g,s,mode==='online'?onlineSlot:0);
  if(s.ready>0||s.over||s.end){
