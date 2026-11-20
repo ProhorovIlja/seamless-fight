@@ -18,6 +18,13 @@ import {outfit} from './public/wardrobe.mjs';
 const assets = new Map([
   ['', ['index.html','text/html; charset=utf-8']],
   ['style.css',['style.css','text/css']],
+  ['side/',['side.html','text/html; charset=utf-8']],
+  ['side.css',['side.css','text/css']],
+  ['side-view.mjs',['side-view.mjs','text/javascript']],
+  ['side-engine.mjs',['side-engine.mjs','text/javascript']],
+  ['side-art.mjs',['side-art.mjs','text/javascript']],
+  ['side-ai.mjs',['side-ai.mjs','text/javascript']],
+  ['side-replay.mjs',['side-replay.mjs','text/javascript']],
   ['game.mjs',['game.mjs','text/javascript']],
   ['engine.mjs',['engine.mjs','text/javascript']],
   ['prediction.mjs',['prediction.mjs','text/javascript']],
@@ -65,7 +72,7 @@ const http=createServer((req,res)=>{
   const path=req.url?.split('?')[0];
   if(shuttingDown){res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end('{"ok":false,"reason":"restarting"}');return;}
   if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405,{Allow:'GET, HEAD'}).end();return;}
-  if(path==='/fight'){res.writeHead(308,{Location:'/fight/'+(req.url.includes('?')?'?'+req.url.split('?').slice(1).join('?'):'')}).end();return;}
+  if(path==='/fight'||path==='/fight/side'){res.writeHead(308,{Location:path+'/' +(req.url.includes('?')?'?'+req.url.split('?').slice(1).join('?'):'')}).end();return;}
   if(path==='/fight/health'){
     const fresh=performance.now()-lastSimulationTime<500;
     res.writeHead(fresh?200:503,{'Content-Type':'application/json','Cache-Control':'no-store'})
