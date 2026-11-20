@@ -197,6 +197,12 @@ export function paintSideFighter(g,p,look={},now=0,reduced=false,contrast=false)
   segment(g,25,armY+14,46,armY+7,9,'#14161d');
   segment(g,32,armY+9,60,armY+9,5,'#bdab96');
   g.fillStyle='#d0b17b';g.fillRect(37,armY+4,16,3);
+  if(phase==='active'&&!reduced){
+   const flare=g.createRadialGradient(66,armY+8,0,66,armY+8,25);
+   flare.addColorStop(0,'#fff2c9e6');flare.addColorStop(.35,'#e9ad648c');flare.addColorStop(1,'#e9ad6400');
+   g.fillStyle=flare;g.fillRect(41,armY-17,50,50);
+   g.strokeStyle='#ffe3b4';g.lineWidth=2;g.beginPath();g.moveTo(64,armY+8);g.lineTo(85,armY+4);g.stroke();
+  }
  }else{
   // A real articulated sword originates from the front hand rather than
   // from the fighter's world center or the camera.
@@ -256,6 +262,10 @@ export function drawSideHUD(g,s,local=0){
   g.fillStyle=i?'#d89079':'#a0c9bd';const hp=w*s.p[i].hp/100;
   g.fillRect(flip?xx+w-hp:xx,yy,hp,12);
   g.fillStyle='#c9a76e';g.fillRect(xx,60,w*s.p[i].st/100,4);
+  for(let n=0;n<3;n++){
+   g.fillStyle=n<p.ammo?'#e3bd78':'#4e3e46';
+   g.fillRect(flip?xx+10+n*13:xx+w-45+n*13,66,9,4);
+  }
   g.fillStyle='#e9ddc8';g.font='11px ui-monospace,monospace';g.textAlign=flip?'left':'right';
   g.fillText(Math.ceil(p.hp)+' HP',flip?xx:xx+w,50);
  }
