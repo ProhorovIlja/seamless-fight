@@ -3,6 +3,7 @@ import {createSideBot} from './side-ai.mjs';
 import {createSideReview,packSideTick,SIDE_TAPE_LIMIT} from './side-replay.mjs';
 import {sideReadout} from './side-inspector.mjs';
 import {footwork} from './footwork.mjs';
+import {reconcileSide,SIDE_PREDICTION_LIMIT} from './side-prediction.mjs';
 import {createSideTransport,SIDE_INVITE_PATTERN} from './side-online-client.mjs';
 import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTraining,drawSideHUD,drawSideImpact} from './side-art.mjs';
 import {createAudio} from './audio.mjs';
@@ -39,7 +40,7 @@ const effects=[],MAX_EFFECTS=10;
 let audioOn=false,queued='',priorPad=null,padQueued='',padMove={x:0,y:0,guard:false};
 let inspectorAt=0;const renderIntervals=[];
 let onlineSlot=-1,onlineCode='',onlineLooks=null,onlineTick=-1;
-const sideFootwork=footwork();
+const sideFootwork=footwork();let onlinePending=[],onlineAck=0;
 const held=new Set(),touchHeld=new Set();
 const sound=createAudio();
 function setStatus(message){$('fight-status').textContent=message;}
@@ -255,7 +256,7 @@ $('takeover').onclick=()=>{
 };
 
 function resetOnlineButtons(){
- onlineSlot=-1;onlineCode='';onlineLooks=null;onlineTick=-1;sideFootwork.clear();
+ onlineSlot=-1;onlineCode='';onlineLooks=null;onlineTick=-1;sideFootwork.clear();onlinePending=[];onlineAck=0;
  $('side-copy').hidden=true;$('side-rematch').hidden=true;$('side-server-replay').hidden=true;
  $('side-network').textContent='Offline';
 }
@@ -269,7 +270,7 @@ const sideTransport=createSideTransport({
  },
  start(m){
   if(m.s?.rules!==SIDE_RULESET)return;
-  s=m.s;onlineTick=-1;mode='online';clearHeld();effects.length=0;onlineLooks=m.looks;sideFootwork.clear();
+  s=m.s;onlineTick=-1;onlineAck=0;onlinePending=[];mode='online';clearHeld();effects.length=0;onlineLooks=m.looks;sideFootwork.clear();
   $('side-rematch').hidden=true;$('side-server-replay').hidden=true;
   setStatus('Server-authoritative side-view duel. Private, unrated and unranked.');
   updateButtons();
@@ -277,7 +278,10 @@ const sideTransport=createSideTransport({
  state(m){
   if(mode!=='online'||m.s?.rules!==SIDE_RULESET||
      !Number.isSafeInteger(m.s.tick)||m.s.tick<onlineTick)return;
-  onlineTick=m.s.tick;s=m.s;sideFootwork.push(s,performance.now());effectsFrom(Array.isArray(m.events)?m.events:[]);
+  onlineTick=m.s.tick;s=m.s;sideFootwork.push(s,performance.now());
+  onlineAck=Number.isSafeInteger(m.ack)?m.ack:onlineAck;
+  onlinePending=onlinePending.filter(i=>i.seq>onlineAck).slice(-SIDE_PREDICTION_LIMIT);
+  effectsFrom(Array.isArray(m.events)?m.events:[]);
   $('side-network').textContent='Server tick '+s.tick+' · input receipt ACK '+m.ack+' · room '+onlineCode;
   if(s.over){$('side-rematch').hidden=false;$('side-server-replay').hidden=false;
    setStatus('Online side-view bout finished. Request a replay or a rematch.');}
@@ -323,7 +327,10 @@ for(const [key,m]of Object.entries(SIDE_MOVES))if(m.damage){
 }
 function runTick(){
  if(mode==='online'){
-  if(sideTransport.connected())sideTransport.input(sample());
+  if(sideTransport.connected()){
+   const cmd=sample(),seq=sideTransport.input(cmd);
+   if(seq!==null){onlinePending.push({...cmd,seq});if(onlinePending.length>SIDE_PREDICTION_LIMIT)onlinePending.shift();}
+  }
  }else if(mode==='live'){
   if(s.over)return; // Do not append inputs after a completed match.
   const own=sample(),enemy=sidePrefs.level==='dummy'?sideInput():bot(s),pair=[own,enemy],events=[];
@@ -366,10 +373,14 @@ function paint(now,elapsed){
  paintSideWeather(g,now,scene,reduced());
  const appearance=mode==='online'&&Array.isArray(onlineLooks)&&onlineLooks.length===2?onlineLooks:[outfit({dye:'ash',sigil:'lantern'}),outfit({dye:'oxblood',sigil:'thorn'})];
  const neutralFoot=mode==='online'?sideFootwork.sample(now):null;
+ const ownPrediction=mode==='online'&&onlineSlot>=0?reconcileSide(s,onlineSlot,onlinePending,onlineAck):null;
  for(let i=0;i<2;i++){
   const p=s.p[i],smooth=neutralFoot?.[i];
-  // Remote neutral footwork only; attacks, impacts and hitstun remain immediate.
-  const pose=mode==='online'&&i!==onlineSlot&&smooth?{...p,x:smooth.x,y:smooth.y}:p;
+  // Remote neutral motion is interpolated, self neutral motion is boundedly
+  // predicted; committed attacks and impact decisions use immediate server state.
+  const localPose=i===onlineSlot&&ownPrediction?.predicted?ownPrediction.p:null;
+  const pose=localPose?{...p,x:localPose.x,y:localPose.y,vx:localPose.vx,vy:localPose.vy,crouch:localPose.crouch}:
+   mode==='online'&&i!==onlineSlot&&smooth?{...p,x:smooth.x,y:smooth.y}:p;
   paintSideFighter(g,pose,appearance[i],now,reduced(),sidePrefs.contrast);
  }
  if(sidePrefs.boxes&&mode!=='online'&&mode!=='connecting')drawSideTraining(g,s);
