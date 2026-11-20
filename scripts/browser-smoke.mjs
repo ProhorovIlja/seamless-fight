@@ -206,6 +206,7 @@ try{
  await phone.goto(url);
  assert(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  assert(await phone.locator('#readable-score').isVisible());
+ assert(await phone.locator('#arena').evaluate(el=>Math.abs(el.width-el.clientWidth*2)<=2&&el.width<960));
  assert.match(await phone.locator('#fighter-score-0').textContent(),/100 HP/);
  await phone.locator('#input-settings summary').click();
  await phone.locator('#captions').check();

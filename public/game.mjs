@@ -14,16 +14,17 @@ const remoteMotion=footwork();
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 const siteTheme=applySiteTheme(), siteHelm=siteTheme?.helm;
 const helm=new Image();helm.src=new URL('./art/visored-helm.svg',import.meta.url).href;
-import {drawHUD,damageTrail,drawRoundPlate,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
+import {drawHUD,damageTrail,backingSize,drawRoundPlate,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
 const healthDisplay=damageTrail();
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
- const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
- const width=Math.round(W*scale), height=Math.round(H*scale);
- if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;}
+ const {width,height}=backingSize(canvas.clientWidth,window.devicePixelRatio,W,H);
+ if(canvas.width===width&&canvas.height===height)return;
+ canvas.width=width;canvas.height=height;
  g.setTransform(width/W,0,0,height/H,0,0);
 }
 resizeCanvas();addEventListener('resize',resizeCanvas);
+if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeCanvas).observe(canvas);
 const bg=document.createElement('canvas');bg.width=W;bg.height=H;
 const b=bg.getContext('2d'), motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
 let seed=42731;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);

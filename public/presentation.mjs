@@ -124,3 +124,10 @@ export function drawRoundPlate(g,msg,kind,theme,huntFont){
  g.fillStyle='#f0e2c2';g.textAlign='center';g.font=huntFont?'34px "Hunt Garamond", Georgia':'30px Georgia';g.fillText(msg,0,22,420);
  g.restore();
 }
+
+export function backingSize(cssWidth,dpr,w,h){
+ const ratio=Number.isFinite(dpr)?Math.max(1,Math.min(2,dpr)):1;
+ const logical=Number.isFinite(cssWidth)&&cssWidth>0?cssWidth:w;
+ const width=Math.max(320,Math.min(2*w,Math.round(logical*ratio)));
+ return {width,height:Math.round(width*h/w)};
+}

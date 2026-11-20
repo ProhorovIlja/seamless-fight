@@ -62,3 +62,5 @@ button.hunt-primary:hover:not(:disabled){background:#f0cf91;color:#15120c}
 details summary{letter-spacing:.035em}
 
 .hunt-audio{margin:.8rem 0 .2rem;padding:.55rem .75rem;border:1px solid #2b3038;display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem}.hunt-audio legend{color:var(--hunt-gold);font-family:var(--hunt-serif)}.hunt-audio label{display:inline-flex;align-items:center;gap:.45rem}.hunt-audio p{flex-basis:100%;color:#aea590;margin:.2rem 0}
+
+#arena{aspect-ratio:960/540}

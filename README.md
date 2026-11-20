@@ -47,3 +47,5 @@ Online pistol discharge and impact cues come directly from the authoritative tic
 The duel shell follows the Seamless Hunt website’s palette and typography. On a same-origin deployment, `SITE_ART=1` opts into shared site art and font assets with independent fallbacks. See `docs/DEPLOY.md` for the route and asset checks. The standalone build does not depend on the website, Google Drive, or a CDN.
 
 Sound mix includes optional centered combat cues and an independent practice-only distance cue channel. The three tones mark transitions between cut distance, pistol distance, and outside both. They use current positions and move-table radii, not aim, stamina, invulnerability, or future hit prediction. No spacing tones in private matches, spectating or replays.
+
+Canvas backing resolution follows its displayed width, capped at 2× device pixel ratio and 1920 pixels wide. Narrow screens no longer render a full desktop-size buffer. The 960×540 simulation and input coordinates are unchanged.
