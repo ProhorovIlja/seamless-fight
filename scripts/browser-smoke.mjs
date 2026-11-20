@@ -14,7 +14,7 @@ async function until(fn,label){
 try{
  await until(async()=>{try{return (await fetch(url+'health')).ok;}catch{return false;}},'server health');
  browser=await chromium.launch();
- const host=await browser.newPage(), guest=await browser.newPage(), viewer=await browser.newPage();
+ const host=await browser.newPage(), guest=await browser.newPage(), viewer=await browser.newPage({deviceScaleFactor:2});
  for(const page of [host,guest,viewer]){
    page.on('pageerror',err=>errors.push(err.message));
    page.on('response',res=>{if(res.url().startsWith(url)&&res.status()>=400)errors.push(res.status()+' '+res.url());});
@@ -49,6 +49,28 @@ try{
  await status(host,/Waiting for an opponent/);
  const invite=await host.locator('#invite').inputValue();
  assert.equal(new URL(invite).origin,origin);
+ // Preserve WebSocket message order while injecting asymmetric delay and jitter.
+ const impairment={up:0,down:0};
+ function delayedForward(destination,base,dir){
+   const jitter=[0,17,7,23,11], queue=new Set();
+   let i=0,last=0;
+   const clear=()=>{for(const id of queue)clearTimeout(id);queue.clear();};
+   const forward=message=>{
+     const now=performance.now(), due=Math.max(last,now+base+jitter[i++%jitter.length]);
+     last=due;
+     const id=setTimeout(()=>{queue.delete(id);impairment[dir]++;destination.send(message);},Math.ceil(due-now));
+     queue.add(id);
+   };
+   return {forward,clear};
+ }
+ await guest.routeWebSocket('**/fight/socket',client=>{
+   const upstream=client.connectToServer();
+   const up=delayedForward(upstream,55,'up'),down=delayedForward(client,26,'down');
+   client.onMessage(up.forward);upstream.onMessage(down.forward);
+   // onClose overrides forwarding, so explicitly close the other side.
+   client.onClose((code,reason)=>{up.clear();down.clear();void upstream.close({code:code===1006?undefined:code,reason}).catch(()=>{});});
+   upstream.onClose((code,reason)=>{up.clear();down.clear();void client.close({code:code===1006?undefined:code,reason}).catch(()=>{});});
+ });
  await guest.goto(invite);
  await status(host,/Online duel/);
  await status(guest,/Online duel/);
@@ -57,16 +79,22 @@ try{
  await host.keyboard.down('ArrowRight');
  try{await until(()=>snapshot?.p[0].x>x+12,'authoritative movement from browser keyboard');}
  finally{await host.keyboard.up('ArrowRight');}
+ const guestX=snapshot.p[1].x;
+ await guest.keyboard.down('ArrowLeft');
+ try{await until(()=>snapshot?.p[1].x<guestX-12,'authoritative guest movement through asymmetric delay');}
+ finally{await guest.keyboard.up('ArrowLeft');}
+ assert(impairment.up>1&&impairment.down>1);
  await host.locator('#gallery-toggle').click();
  await until(async()=>Boolean(await host.locator('#watch-link').inputValue()),'watch link issued');
  const watchUrl=new URL(await host.locator('#watch-link').inputValue());
  assert.equal(watchUrl.origin,origin);assert(!watchUrl.searchParams.has('room'));
  await viewer.goto(watchUrl.href);
- await status(viewer,/Spectating live/);assert(await viewer.locator('#rematch').isHidden());
+ await status(viewer,/Spectating live/);
+ assert.equal(await viewer.locator('#arena').evaluate(el=>el.width),1920);assert(await viewer.locator('#rematch').isHidden());
  await host.locator('#gallery-toggle').click();
  await status(viewer,/host closed the gallery/);
  await guest.close();
  await status(host,/Opponent disconnected/);
  assert.deepEqual(errors,[]);
- console.log('Chromium passed: record, replay, browser invites, authoritative movement and disconnect.');
+ console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}
