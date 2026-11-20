@@ -37,3 +37,24 @@ test('late decisive win after a draw counts once, while malformed results fail c
  assert.equal(setScore({...set,reason:'in-progress'}),null);
  assert.equal(setScore({...set,wins:[1,0]}),null);
 });
+
+// Drive the *actual deterministic combat engine* into completed game results;
+// then verify the set policy does not treat a round or a single game as a set.
+test('authoritative simulation outcomes advance set score only after a game ends',async()=>{
+ const {match,step,blank}=await import('../public/engine.mjs');
+ let set=newSet();
+ for(const forcedWinner of [0,1,0]){
+   const game=match();game.ready=0;game.clock=1;game.p[1-forcedWinner].hp=10;
+   step(game,[blank(),blank()]);
+   assert.equal(game.over,false,'one round is not a whole game');
+   game.end=0;game.ready=0;game.round=2;game.clock=1;game.score[forcedWinner]=1;
+   game.p[1-forcedWinner].hp=10;
+   step(game,[blank(),blank()]);
+   assert.equal(game.over,true);
+   assert.equal(game.winner,forcedWinner);
+   set=recordGame(set,game.winner);
+   if(set.wins[forcedWinner]<2)assert.equal(setScore(set),null);
+ }
+ assert.deepEqual(set.wins,[2,1]);
+ assert.deepEqual(setScore(set),[1,0]);
+});

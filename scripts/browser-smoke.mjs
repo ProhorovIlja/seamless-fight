@@ -342,6 +342,25 @@ try{
  assert.match(await q1.locator('#queue-status').textContent(),/At pairing · Your server ping \d+ ms · Opponent server ping \d+ ms/);
  assert(await q1.locator('#invite').isHidden());
  assert(await q2.locator('#queue-stop').isHidden());
+ const c1=await browser.newPage(),c2=await browser.newPage();
+ for(const page of [c1,c2]){
+   page.on('pageerror',err=>errors.push(err.message));
+   await page.goto(url);
+   await page.locator('#queue-format').selectOption('set-preview');
+   assert.equal(await page.locator('#queue-start').textContent(),'Find competitive set');
+ }
+ await c1.locator('#queue-start').click();
+ await until(async()=>/Keep practicing/.test(await c1.locator('#queue-status').textContent()),'competitive queue started from practice');
+ await c2.locator('#queue-start').click();
+ await Promise.all([status(c1,/Competitive BO3/),status(c2,/Competitive BO3/)]);
+ assert(await c1.locator('#set-panel').isVisible());
+ assert(await c2.locator('#set-panel').isVisible());
+ assert.match(await c1.locator('#set-title').textContent(),/0 – 0 games/);
+ assert.match(await c1.locator('#set-status').textContent(),/unranked rules preview/);
+ assert(await c1.locator('#set-replay-controls').isHidden());
+ assert(await c1.locator('#rematch').isHidden());
+ assert(await c2.locator('#rematch').isHidden());
+ assert(await c1.locator('#queue-stop').isHidden());
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}
