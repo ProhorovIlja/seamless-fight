@@ -73,10 +73,14 @@ $('rig-apply').onclick=async()=>{
  const manifestFile=$('rig-manifest').files?.[0],imageFile=$('rig-image').files?.[0];
  const status=$('rig-status');
  if(!manifestFile||!imageFile||manifestFile.size>65536||imageFile.size>8000000||
-    !/\\.json$/i.test(manifestFile.name)||!/\\.webp$/i.test(imageFile.name)||
-    imageFile.type!=='image/webp'){
+    !/\.json$/i.test(manifestFile.name)||!/\.webp$/i.test(imageFile.name))
+
   status.textContent='Choose a JSON manifest (≤64 KiB) and a WebP atlas (≤8 MB).';return;
  }
+ const signature=new Uint8Array(await imageFile.slice(0,12).arrayBuffer());
+ const webp=String.fromCharCode(...signature.slice(0,4))==='RIFF'&&
+  String.fromCharCode(...signature.slice(8,12))==='WEBP';
+ if(!webp){status.textContent='Selected image has an invalid WebP file signature.';return;}
  $('rig-apply').disabled=true;
  let src=null;
  try{
