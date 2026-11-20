@@ -178,8 +178,8 @@ ws.on('connection',c=>{
     if(['cut','hew','shot','step'].includes(m.act)&&c.actions.length<3)c.actions.push({act:m.act,until:now+110});
   });
   c.on('close',()=>{
-    if(shuttingDown)return;
-    dequeue();clearTimeout(deadline);if(!room)return;
+    dequeue();clearTimeout(deadline);
+    if(shuttingDown)return;if(!room)return;
     if(slot===-1){room.viewers.delete(c);return;}
     if(!rooms.delete(room.code))return;
     closeGallery(room,'The duel ended because a fighter disconnected.');
