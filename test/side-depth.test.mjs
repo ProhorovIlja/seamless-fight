@@ -88,3 +88,15 @@ test('decorative foreground never moves fighters, and out-of-range quality falls
  }
  assert.deepEqual(state,before);
 });
+
+test('2.5D foreground pillars never occlude the legal hunter world region',()=>{
+ const s=sideMatch();
+ for(const x of [65,120,480,840,895]){
+  s.p[0].x=x;s.p[1].x=x;
+  const c=makeG();
+  paintSideDepthFront(c.g,'reliquary',3500,s,'cinematic',false);
+  const pillars=c.actions.filter(a=>a[0]==='fillRect'&&a[2]===195&&a[3]===29&&a[4]===269);
+  assert.equal(pillars.length,2);
+  for(const a of pillars)assert(a[1]<=0||a[1]>=931,'foreground can only occupy the edge gutters');
+ }
+});
