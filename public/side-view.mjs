@@ -43,7 +43,7 @@ $('high-contrast').checked=sidePrefs.contrast;
 $('depth-quality').value=sidePrefs.depthQuality;
 $('painted-stage').checked=sidePrefs.illustrated;
 $('impact-camera').checked=sidePrefs.impactCamera;
-$('depth-quality').onchange=()=>{sidePrefs.depthQuality=SIDE_DEPTH_QUALITY.includes($('depth-quality').value)?$('depth-quality').value:'balanced';persist();};
+$('depth-quality').onchange=()=>{sidePrefs.depthQuality=SIDE_DEPTH_QUALITY.includes($('depth-quality').value)?$('depth-quality').value:'balanced';persist();resizeStageCanvas();};
 // Customization is an appearance-only, bounded local setting.
 const preview=$('look-preview'),previewG=preview.getContext('2d');
 let previewRig=null;
@@ -100,6 +100,7 @@ $('rig-reset').onclick=()=>{
 };
 const reduced=()=>sidePrefs.reduce||matchMedia('(prefers-reduced-motion: reduce)').matches;
 let scene=sidePrefs.stage,stageCanvas=null,sceneMap=new Map(),mode='idle',priorFrame=performance.now(),acc=0;
+let renderScale=1;
 let s=sideMatch(),bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.level);
 let tape=[],capture=null,review=null,replayLooks=null,cursor=0,reviewPlaying=false;
 const effects=[],MAX_EFFECTS=10;
@@ -118,8 +119,8 @@ function setReplayStatus(message){$('replay-status').textContent=message;}
 function setStage(next){
  scene=Object.hasOwn(SIDE_STAGES,next)?next:'reliquary';
  if(!sceneMap.has(scene)){
-  const off=document.createElement('canvas');off.width=960;off.height=540;
-  const ctx=off.getContext('2d');
+  const off=document.createElement('canvas');off.width=Math.round(960*renderScale);off.height=Math.round(540*renderScale);
+  const ctx=off.getContext('2d');ctx.setTransform(renderScale,0,0,renderScale,0,0);
   if(!hasIllustratedScene()||!drawPaintedStage(ctx,paintedReliquary,scene)){
    paintSideStage(ctx,scene);
    paintSideDepthStatic(ctx,scene);
@@ -133,6 +134,19 @@ function setStage(next){
  sidePrefs.stage=scene;persist();
 }
 setStage(sidePrefs.stage);
+function resizeStageCanvas(){
+ const cssWidth=canvas.getBoundingClientRect().width||960;
+ const requested=cssWidth/960*(devicePixelRatio||1);
+ const limit=sidePrefs.depthQuality==='performance'?1.35:sidePrefs.depthQuality==='balanced'?2.15:2.7;
+ const next=Math.round(Math.max(1,Math.min(limit,requested))*100)/100;
+ if(next===renderScale&&canvas.width===Math.round(960*next))return;
+ renderScale=next;
+ canvas.width=Math.round(960*renderScale);canvas.height=Math.round(540*renderScale);
+ g.setTransform(renderScale,0,0,renderScale,0,0);
+ sceneMap.clear();setStage(scene);
+}
+resizeStageCanvas();
+addEventListener('resize',resizeStageCanvas,{passive:true});
 loadPaintedStage('reliquary').then(image=>{
  if(!image)return;
  paintedReliquary=image;sceneMap.delete('reliquary');
@@ -484,7 +498,7 @@ function paint(now,elapsed){
    $('live-contact-'+side).textContent=view?view.contact[side].status:'';
   }
   if(renderIntervals.length){const sorted=renderIntervals.slice().sort((a,b)=>a-b),p95=sorted[Math.ceil(sorted.length*.95)-1];
-   $('live-performance').textContent='Local render frame interval p95 '+p95.toFixed(1)+' ms (not input-to-photon or network latency).';}
+   $('live-performance').textContent='Render frame p95 '+p95.toFixed(1)+' ms · '+canvas.width+'×'+canvas.height+' backing pixels (not input-to-photon or network latency).';}
  }
  // Read-only local smoke diagnostics. No network send or hidden enemy inputs.
  canvas.dataset.tick=String(s.tick);
@@ -494,6 +508,7 @@ function paint(now,elapsed){
  canvas.dataset.cinderHp=String(Math.round(s.p[1].hp));
  canvas.dataset.mode=mode;
  canvas.dataset.depthQuality=sidePrefs.depthQuality;
+ canvas.dataset.renderScale=String(renderScale);
  const illustrated=hasIllustratedScene();
  canvas.dataset.artMode=illustrated?'illustrated':'procedural';
  if(audioOn&&now>=nextTensionAt){nextTensionAt=now+220;sound.tension(Math.round(sideScoreTension(s)*20)/20);}
@@ -503,7 +518,7 @@ function paint(now,elapsed){
  // Identical lens for the stage, two fighters and frame-data boxes. HUD and
  // text stay in screen space. This is optical 2.5D only, not 3D movement.
  g.translate(480+lens.shift,SIDE_FLOOR);g.scale(lens.zoom,lens.zoom);g.translate(-480,-SIDE_FLOOR);
- g.drawImage(stageCanvas,0,0);
+ g.drawImage(stageCanvas,0,0,960,540);
  if(illustrated)paintIllustratedAir(g,now,reduced(),sidePrefs.depthQuality);
  else{
   paintSideDepthBack(g,scene,now,s,sidePrefs.depthQuality,reduced());
