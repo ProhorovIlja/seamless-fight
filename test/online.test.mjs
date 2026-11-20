@@ -12,6 +12,17 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const child=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:String(port),HOST:'127.0.0.1',PUBLIC_ORIGIN:origin,SITE_ART:'1'},stdio:'inherit'});
  t.after(()=>child.kill());
  let ready=false;for(let i=0;i<50;i++){try{ready=(await fetch(origin+'/fight/health')).ok;if(ready)break;}catch{}await sleep(50);}assert(ready);
+ const sideRedirect=await fetch(origin+'/fight/side',{redirect:'manual'});
+ assert.equal(sideRedirect.status,308);assert.equal(sideRedirect.headers.get('location'),'/fight/side/');
+ const sidePage=await fetch(origin+'/fight/side/');
+ assert.equal(sidePage.status,200);
+ assert.match(await sidePage.text(),/SIDE-VIEW LAB/);
+ for(const name of ['side.css','side-view.mjs','side-engine.mjs','side-ai.mjs','side-art.mjs','side-replay.mjs']){
+  const asset=await fetch(origin+'/fight/'+name);
+  assert.equal(asset.status,200,'side-view module '+name+' served from isolated route');
+  assert(asset.headers.get('content-length')>100);
+  assert.match(asset.headers.get('content-security-policy'),/default-src 'self'/);
+ }
  const health=await (await fetch(origin+'/fight/health')).json();
  assert.deepEqual(health,{ok:true,simulation:'running'});
  const page=await fetch(origin+'/fight/');assert.match(await page.text(),/data-site-art="on"/);
