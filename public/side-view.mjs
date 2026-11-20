@@ -33,6 +33,28 @@ const persist=()=>{try{localStorage.setItem(STORAGE,JSON.stringify(sidePrefs));}
 $('stage-select').value=sidePrefs.stage;$('opponent').value=sidePrefs.level;
 $('show-boxes').checked=sidePrefs.boxes;$('reduce-motion').checked=sidePrefs.reduce;
 $('high-contrast').checked=sidePrefs.contrast;
+// Customization is an appearance-only, bounded local setting.
+const preview=$('look-preview'),previewG=preview.getContext('2d');
+for(const [id,table,current]of [['look-dye',dyes,sidePrefs.look.dye],['look-sigil',sigils,sidePrefs.look.sigil]]){
+ const select=$(id);
+ for(const [key,value]of Object.entries(table)){const option=document.createElement('option');option.value=key;option.textContent=Array.isArray(value)?value[0]:value;select.append(option);}
+ select.value=current;
+}
+function paintLookPreview(){
+ previewG.clearRect(0,0,230,225);
+ const background=previewG.createLinearGradient(0,0,0,225);
+ background.addColorStop(0,'#373039');background.addColorStop(1,'#0a1018');
+ previewG.fillStyle=background;previewG.fillRect(0,0,230,225);
+ previewG.fillStyle='#bd9b6e67';previewG.fillRect(15,202,200,2);
+ const p=sideFighter(0);p.x=113;p.y=202;p.dir=1;
+ paintSideFighter(previewG,p,sidePrefs.look,0,true,sidePrefs.contrast);
+}
+for(const id of ['look-dye','look-sigil'])$(id).onchange=()=>{
+ sidePrefs.look=outfit({dye:$('look-dye').value,sigil:$('look-sigil').value});
+ persist();paintLookPreview();
+ $('look-note').textContent='Appearance saved locally. Competitive stats and hitboxes unchanged.';
+};
+paintLookPreview();
 const reduced=()=>sidePrefs.reduce||matchMedia('(prefers-reduced-motion: reduce)').matches;
 let scene=sidePrefs.stage,stageCanvas=null,sceneMap=new Map(),mode='idle',priorFrame=performance.now(),acc=0;
 let s=sideMatch(),bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.level);
@@ -201,12 +223,14 @@ function updateButtons(){
  $('stage-select').disabled=mode==='online'||mode==='connecting';
  $('opponent').disabled=mode==='online'||mode==='connecting';
  $('show-boxes').disabled=mode==='online'||mode==='connecting';
+ $('look-dye').disabled=mode==='online'||mode==='connecting';
+ $('look-sigil').disabled=mode==='online'||mode==='connecting';
  $('pause').textContent=mode==='paused'?'Resume':'Pause';
  $('stage-mode').textContent=mode==='online'?'AUTHORITATIVE PRIVATE 1V1':mode==='connecting'?'JOINING ROOM':mode==='review'?'REPLAY / TAKEOVER':mode==='takeover'?'REPLAY TAKEOVER':mode==='paused'?'PAUSED':mode==='live'?'LOCAL DUEL · 60 HZ':'SIDE-VIEW LAB · OFFLINE';
 }
 function restart(){
  sideTransport.close();resetOnlineButtons();clearHeld();s=sideMatch();bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.level);
- tape=[];capture=null;review=null;cursor=0;reviewPlaying=false;effects.length=0;
+ tape=[];capture=null;review=null;replayLooks=null;cursor=0;reviewPlaying=false;effects.length=0;
  mode='live';setStatus(sidePrefs.level==='dummy'?'Practice vs still target':'Sparring vs '+sidePrefs.level+' AI · first to two round wins.');
  $('fight-caption').textContent='';setReplayStatus('Recording local input frames.');updateButtons();
 }
@@ -227,7 +251,7 @@ $('audio').onclick=async()=>{
 function currentRecording(){
  if(capture)return capture;
  if(tape.length===0)return null;
- return {rules:SIDE_RULESET,stage:scene,tape:tape.join('')};
+ return {rules:SIDE_RULESET,stage:scene,tape:tape.join(''),looks:[sidePrefs.look,outfit({dye:'oxblood',sigil:'thorn'})]};
 }
 $('record-save').onclick=()=>{
  const data=currentRecording();if(!data)return;
@@ -240,7 +264,9 @@ $('record-save').onclick=()=>{
 function loadReview(data){
  sideTransport.close();resetOnlineButtons();
  const view=createSideReview(data);
- capture={rules:SIDE_RULESET,stage:Object.hasOwn(SIDE_STAGES,data.stage)?data.stage:'reliquary',tape:data.tape};
+ capture={rules:SIDE_RULESET,stage:Object.hasOwn(SIDE_STAGES,data.stage)?data.stage:'reliquary',tape:data.tape,
+  looks:[outfit(data.looks?.[0]||sidePrefs.look),outfit(data.looks?.[1]||{dye:'oxblood',sigil:'thorn'})]};
+ replayLooks=capture.looks;
  setStage(capture.stage);$('stage-select').value=capture.stage;
  review=view;cursor=0;s=view.at(0);mode='review';reviewPlaying=false;clearHeld();
  $('replay-seek').max=view.total;$('replay-seek').value=0;
@@ -325,7 +351,7 @@ const sideTransport=createSideTransport({
 });
 function connectSide(code=null){
  sideTransport.close();resetOnlineButtons();clearHeld();
- review=null;capture=null;tape=[];cursor=0;effects.length=0;s=sideMatch();
+ review=null;capture=null;replayLooks=null;tape=[];cursor=0;effects.length=0;s=sideMatch();
  mode='connecting';setStatus('Connecting to side-view duel server…');
  $('side-network').textContent='Opening private room…';updateButtons();
  try{sideTransport.connect(code,scene,sidePrefs.look);}
