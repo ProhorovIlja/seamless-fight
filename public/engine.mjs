@@ -52,7 +52,7 @@ const engine = function engine(){
    const hits=[strike(b,a),strike(a,b)];
    if(cues)for(let i=0;i<2;i++)if(hits[i]){
      const p=s.p[i],q=s.p[1-i];
-     cues.push({name:hits[i].stun?'interrupt':'hit',x:p.x,actor:i,index:i,angle:Math.atan2(p.y-q.y,p.x-q.x)});
+     cues.push({name:hits[i].stun?'interrupt':'hit',x:p.x,actor:1-i,index:i,angle:Math.atan2(p.y-q.y,p.x-q.x)});
    }
    if(events)for(let i=0;i<2;i++){
      const p=s.p[i],attacker=s.p[1-i],hit=hits[i],move=moves[p.act];

@@ -10,5 +10,5 @@ test('exact shot and directional hit cues do not affect the simulation',()=>{
    if(i<8)assert.equal(cues.length,0);
  }
  assert.deepEqual(s,plain);assert.deepEqual(cues.map(c=>c.name),['shot','hit']);
- assert.equal(cues[0].muzzle,0);assert.equal(cues[1].index,1);assert.equal(cues[1].angle,0);
+ assert.equal(cues[0].muzzle,0);assert.equal(cues[1].index,1);assert.equal(cues[1].actor,0,'hit sound and caption belong to attacker, flash belongs to target');assert.equal(cues[1].angle,0);
 });

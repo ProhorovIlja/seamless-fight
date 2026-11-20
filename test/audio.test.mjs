@@ -35,6 +35,10 @@ test('caption attribution follows fighter slots rather than screen position',()=
  assert.deepEqual(soundChanges(a,b,true),[{name:'cock',x:720,actor:0}]);
 });
 
+test('fallback hit captions credit attacker while impact effects stay on the victim',()=>{
+ const before=state(10), after=state(11,{hp:88});
+ assert.deepEqual(soundChanges(before,after,true),[{name:'hit',x:300,index:0,actor:1}]);
+});
 test('foley variants are bounded, repeatable and distinct',()=>{
  const a=synth('interrupt',8000,1),b=synth('interrupt',8000,2);
  assert.deepEqual(a,synth('interrupt',8000,1));assert.notDeepEqual(a,b);

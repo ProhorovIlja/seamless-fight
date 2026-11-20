@@ -44,7 +44,7 @@ export function soundChanges(before,after,withActor=false){
      if(p.age>startup&&(changed||q.age<=startup))out.push({name:'shot',x:p.x,muzzle:i,...actor});
      else if(changed&&p.age<=startup)out.push({name:'cock',x:p.x,...actor});
    }else if(changed&&Object.hasOwn(recipes,p.act))out.push({name:p.act,x:p.x,...actor});
-   if(p.hp<q.hp)out.push({name:p.act==='stun'?'interrupt':'hit',x:p.x,index:i,...actor});
+   if(p.hp<q.hp)out.push({name:p.act==='stun'?'interrupt':'hit',x:p.x,index:i,...(withActor?{actor:1-i}:{})});
  }
  return out;
 }
