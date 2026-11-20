@@ -22,6 +22,7 @@ let stored={};try{stored=JSON.parse(localStorage.getItem(STORAGE))||{};}catch{}
 let sidePrefs={stage:Object.hasOwn(SIDE_STAGES,stored.stage)?stored.stage:'reliquary',
  level:['easy','normal','hard','dummy'].includes(stored.level)?stored.level:'normal',
  boxes:stored.boxes===true,reduce:stored.reduce===true,contrast:stored.contrast===true,
+ impactCamera:stored.impactCamera!==false,
  depthQuality:SIDE_DEPTH_QUALITY.includes(stored.depthQuality)?stored.depthQuality:'balanced',
  keys:{...original.keys},move:{...original.move},guard:'KeyO',look:outfit(stored.look||original.outfit)};
 function validateBindings(candidate){
@@ -37,6 +38,7 @@ $('stage-select').value=sidePrefs.stage;$('opponent').value=sidePrefs.level;
 $('show-boxes').checked=sidePrefs.boxes;$('reduce-motion').checked=sidePrefs.reduce;
 $('high-contrast').checked=sidePrefs.contrast;
 $('depth-quality').value=sidePrefs.depthQuality;
+$('impact-camera').checked=sidePrefs.impactCamera;
 $('depth-quality').onchange=()=>{sidePrefs.depthQuality=SIDE_DEPTH_QUALITY.includes($('depth-quality').value)?$('depth-quality').value:'balanced';persist();};
 // Customization is an appearance-only, bounded local setting.
 const preview=$('look-preview'),previewG=preview.getContext('2d');
@@ -100,7 +102,7 @@ $('stage-select').onchange=()=>{
  setStage($('stage-select').value);
 };
 $('opponent').onchange=()=>{sidePrefs.level=$('opponent').value;persist();if(mode==='live'||mode==='paused')restart();};
-for(const [id,key]of [['show-boxes','boxes'],['reduce-motion','reduce'],['high-contrast','contrast']]){
+for(const [id,key]of [['show-boxes','boxes'],['reduce-motion','reduce'],['impact-camera','impactCamera'],['high-contrast','contrast']]){
  $(id).onchange=()=>{sidePrefs[key]=$(id).checked;persist();};
 }
 function resize(){
@@ -441,7 +443,7 @@ function paint(now,elapsed){
  canvas.dataset.mode=mode;
  canvas.dataset.depthQuality=sidePrefs.depthQuality;
  if(audioOn&&now>=nextTensionAt){nextTensionAt=now+220;sound.tension(Math.round(sideScoreTension(s)*20)/20);}
- const camera=sideCameraImpact(effects,now,reduced(),sidePrefs.depthQuality,sidePrefs.boxes&&mode!=='online');
+ const camera=sideCameraImpact(effects,now,reduced()||!sidePrefs.impactCamera,sidePrefs.depthQuality,sidePrefs.boxes&&mode!=='online');
  const lens=sideWorldLens(s,sidePrefs.depthQuality);
  g.save();g.translate(camera.x,camera.y);
  // Identical lens for the stage, two fighters and frame-data boxes. HUD and
