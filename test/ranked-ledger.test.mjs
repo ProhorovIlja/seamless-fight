@@ -25,9 +25,12 @@ test('verified first-to-two outcome settles only once and survives a database re
   assert.deepEqual(replay.after,first.after);
   assert.throws(()=>ledger.settle({season:'season-1',setId,players:[a,b],set:decided(1,1)}),/Conflicting/);
   assert.deepEqual(ledger.rating('season-1',a),first.after[0]);
+  assert.throws(()=>ledger.settle({season:'season-2',setId,players:[a,b],set}),/Conflicting season/);
+  assert.deepEqual(ledger.rating('season-2',a),{rating:1500,rd:350,volatility:.06},'cross-season replay cannot change another season');
   ledger.close();
   ledger=openRankedLedger(path);
   assert.deepEqual(ledger.rating('season-1',a),first.after[0]);
+  assert.throws(()=>ledger.settle({season:'season-2',setId,players:[a,b],set}),/Conflicting season/,'global set identity survives restart');
   assert.deepEqual(ledger.rating('season-2',a),{rating:1500,rd:350,volatility:.06});
   assert.equal(ledger.standings('season-1',1,2)[0].player_id,a);
   ledger.close();
