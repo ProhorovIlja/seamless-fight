@@ -24,6 +24,9 @@ try{
  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.side.settings.v1')).look),{dye:'ivory',sigil:'crown'});
  assert.equal(await page.locator('#frame-table tbody tr').count(),3);
  assert.equal(await page.locator('#stage-select').inputValue(),'reliquary');
+ assert.equal(await page.locator('#depth-quality').inputValue(),'balanced');
+ await page.locator('#depth-quality').selectOption('cinematic');
+ assert.equal(await page.locator('#depth-quality').inputValue(),'cinematic');
  assert.match(await page.locator('#stage-title').textContent(),/ASHEN RELIQUARY/);
  assert.equal(await page.locator('#fight-canvas').getAttribute('data-mode'),'idle');
  assert.match(await page.locator('#live-spacing').textContent(),/Center distance/);
@@ -70,6 +73,7 @@ try{
  assert(Number(await page.locator('#fight-canvas').getAttribute('data-tick'))>136);
  await page.locator('#restart').click();
  await page.locator('#stage-select').selectOption('cistern');
+ await page.locator('#depth-quality').selectOption('performance');
  await page.screenshot({path:'artifacts/side-drowned-cloister.png'});
  await page.locator('#stage-select').selectOption('lantern');
  await page.screenshot({path:'artifacts/side-lantern-court.png'});
@@ -77,6 +81,7 @@ try{
  await page.keyboard.press('p');
  assert.match(await page.locator('#bindings [data-bind=guard]').textContent(),/Guard · P/);
  await page.reload();
+ assert.equal(await page.locator('#depth-quality').inputValue(),'performance');
  assert.match(await page.locator('#bindings [data-bind=guard]').textContent(),/Guard · P/);
  assert.equal(await page.locator('#look-dye').inputValue(),'ivory');
  assert.equal(await page.locator('#look-sigil').inputValue(),'crown');
