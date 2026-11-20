@@ -37,6 +37,13 @@ try{
  await host.reload();
  assert.match(await host.locator('#key-guide').textContent(),/K Cut/);
  await host.locator('#input-settings summary').click();
+ await host.locator('#ui-scale').selectOption('130');
+ assert.equal(await host.evaluate(()=>getComputedStyle(document.documentElement).fontSize),'20.8px');
+ assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.settings.v1')).uiScale),130);
+ await host.reload();
+ await host.locator('#input-settings summary').click();
+ assert.equal(await host.locator('#ui-scale').inputValue(),'130');
+ assert.equal(await host.evaluate(()=>getComputedStyle(document.documentElement).fontSize),'20.8px');
  await host.locator('#move-up').click();
  await host.keyboard.press('U');
  assert.match(await host.locator('#move-up').textContent(),/Up: U/);
