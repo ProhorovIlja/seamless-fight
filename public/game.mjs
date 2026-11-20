@@ -5,6 +5,7 @@ import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,
 import {createAudio,soundChanges} from './audio.mjs';
 import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
 import {DEFAULT_KEYS,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
+import {createMetrics} from './metrics.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -35,10 +36,11 @@ const status=t=>{$('status').textContent=t;};
 let s=match(), prev=null, at=0, mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null;
 const audio=createAudio(), flashes=[0,0];
 let watching=false, watchLink=null;
+let metrics=createMetrics(), nextDiagnostic=0;
 let seq=0,pending=[],predicted=null,correction={x:0,y:0};
 function sendInput(input){
  if(watching||ws?.readyState!==1||ws.bufferedAmount>=2048)return;
- const cmd={...input,seq:++seq};ws.send(JSON.stringify({t:'input',...cmd}));
+ const cmd={...input,seq:++seq};ws.send(JSON.stringify({t:'input',...cmd}));metrics.sent(cmd.seq,performance.now());
  if(mode==='online'&&playable(s)){
    pending.push(cmd);if(pending.length>HISTORY_LIMIT)pending.shift();
    ({p:predicted}=reconcile(s,slot,pending,0));
@@ -89,7 +91,7 @@ function read(){
 }
 function flush(){pressed.clear();action='';prior=null;armed=false;padFrame={x:0,y:0};sendInput(blank());}
 addEventListener('blur',()=>{flush();cancelBinding();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)flush();});
+document.addEventListener('visibilitychange',()=>{metrics.clearFrame();if(document.hidden)flush();});
 addEventListener('keydown',ev=>{
  if(binding){
    ev.preventDefault();ev.stopImmediatePropagation();
@@ -110,7 +112,7 @@ addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
-function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -192,16 +194,17 @@ function online(code,watch=false){
    if(m.t==='state'&&watching){
      prev=m.s.tick>s.tick&&m.s.round===s.round&&m.s.ready<=s.ready?s:null;
      if(s.tick===0)status('Spectating live · read-only.');
-     at=performance.now();s=m.s;feedback(s);return;
+     at=performance.now();metrics.snapshot(m.s.tick,null,at);s=m.s;feedback(s);return;
    }
-   if(m.t==='state'){prev=m.s.tick>=s.tick&&m.s.round===s.round?s:null;at=performance.now();if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
+   if(m.t==='state'){prev=m.s.tick>=s.tick&&m.s.round===s.round?s:null;at=performance.now();metrics.snapshot(m.s.tick,m.ack,at);if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
      const continuous=mode==='online'&&playable(s)&&playable(m.s)&&m.s.round===s.round&&m.s.tick>s.tick;
      mode='online';s=m.s;$('capture').disabled=false;feedback(s);
      const next=reconcile(s,slot,continuous?pending:[],m.ack);pending=next.pending;predicted=next.p;
      const dx=old?old.x+correction.x-predicted.x:0,dy=old?old.y+correction.y-predicted.y:0;
+     if(continuous&&old&&!old.act&&!predicted.act)metrics.correction(Math.hypot(dx,dy));
      correction=continuous&&!predicted.act&&Math.hypot(dx,dy)<28?{x:dx,y:dy}:{x:0,y:0};
    }
-   if(m.t==='pong')ping=Math.round(performance.now()-m.id);
+   if(m.t==='pong'){const sample=performance.now()-m.id;metrics.ping(sample);ping=Math.round(sample);}
    if(m.t==='vote'&&m.slot!==slot)$('rematch').textContent='Accept rematch';
    if(m.t==='error'){leave();mode='';status(m.message);}
  };
@@ -332,6 +335,12 @@ function drawFighter(p,i,x,y,time){
 }
 function bar(x,y,w,v,color){g.fillStyle='#171420';g.fillRect(x,y,w,8);g.fillStyle=color;g.fillRect(x,y,w*Math.max(0,v)/100,8);}
 function render(now){
+ if(!document.hidden&&now>=prevFrame)metrics.frame(now-prevFrame);
+ if(now>=nextDiagnostic&&$('diagnostics').open){
+   nextDiagnostic=now+500;
+   const m=metrics.summary(), fmt=(n,unit='ms')=>n===null?'—':n.toFixed(1)+' '+unit;
+   $('diagnostic-values').textContent='Frame interval p95 '+fmt(m.frame)+' · RTT median '+fmt(m.rtt)+' · RTT p95–median '+fmt(m.rttSpread)+' · Snapshot gap p95 '+fmt(m.gap)+' · Input acknowledgment p95 '+fmt(m.ack)+' · Footwork correction p95 '+fmt(m.correction,'arena units');
+ }
  const elapsed=Math.min(100,now-prevFrame);prevFrame=now;acc+=elapsed;
  pollPad();
  let budget=5;

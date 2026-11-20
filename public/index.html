@@ -13,6 +13,10 @@
 <p id="review-info" role="status"></p>
 <section id="review-controls" class="lab-controls" aria-label="Playback controls" hidden><label>Seek <input id="review-seek" type="range" min="0" max="0" value="0"></label><output id="review-tick">Tick 0</output><label>Jump to event <select id="review-event"><option value="">Select an event</option></select></label><button id="review-play">Play</button><button id="review-step">Next tick</button><button id="review-veil">Take over as Veil</button><button id="review-cinder">Take over as Cinder</button></section>
 </details>
+<details id="diagnostics"><summary>Performance and connection</summary>
+<p>Rolling browser measurements. Input acknowledgment is not hit confirmation or key-to-screen latency. Frame interval is not GPU render time.</p>
+<output id="diagnostic-values" aria-live="off">Collecting samples…</output>
+</details>
 <details id="input-settings"><summary>Controls and presentation</summary>
 <p>Move with WASD, arrow keys, or a standard gamepad’s left stick or D-pad. West: cut. North: heavy. East: quickstep. Right bumper: pistol. Left bumper: feint.</p>
 <section id="binds" class="lab-controls" aria-label="Keyboard bindings"></section>

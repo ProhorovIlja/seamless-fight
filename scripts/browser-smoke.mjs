@@ -91,6 +91,20 @@ try{
  await status(host,/Online duel/);
  await status(guest,/Online duel/);
  await until(()=>snapshot?.ready===0,'round live');
+ await guest.locator('#diagnostics summary').click();
+ await until(async()=>/RTT median [0-9.]+ ms/.test(await guest.locator('#diagnostic-values').textContent()),'guest RTT measured');
+ await until(async()=>/Input acknowledgment p95 [0-9.]+ ms/.test(await guest.locator('#diagnostic-values').textContent()),'guest input acknowledgment measured');
+ const report=await guest.locator('#diagnostic-values').textContent();
+ assert(Number(report.match(/RTT median ([0-9.]+)/)[1])>=65,report);
+ console.log('Impaired guest: '+report);
+ // Trigger combat from the impaired seat and verify exactly one ammo use.
+ await guest.locator('#diagnostics summary').click();
+ await guest.evaluate(()=>document.activeElement.blur());
+ await guest.keyboard.press('l');
+ await until(()=>snapshot?.p[1].ammo===2,'delayed guest pistol was applied');
+ const shotTick=snapshot.tick;
+ await until(()=>snapshot?.tick>shotTick+35,'guest pistol recovery completed');
+ assert.equal(snapshot.p[1].ammo,2);
  const x=snapshot.p[0].x;
  await host.keyboard.down('ArrowRight');
  try{await until(()=>snapshot?.p[0].x>x+12,'authoritative movement from browser keyboard');}
