@@ -104,7 +104,9 @@ document.addEventListener('keydown',e=>{
   else $('bind-message').textContent=setCode(which,e.code)?'Updated '+which+'.':'Key unavailable or already assigned. Choose another.';
   drawBindings();return;
  }
- if(e.target?.closest?.('input,select,textarea,button'))return;
+ // Combat must remain responsive after clicking Begin or a display toggle;
+ // editable fields and file/range controls retain their keyboard ownership.
+ if(e.target?.closest?.('select,textarea,input[type=text],input[type=file],input[type=range]'))return;
  const used=[...Object.values(sidePrefs.keys),...Object.values(sidePrefs.move),sidePrefs.guard,'ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code);
  if(used)e.preventDefault();
  if(!controlsActive())return;
