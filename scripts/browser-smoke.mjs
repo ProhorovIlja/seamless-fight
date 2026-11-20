@@ -62,7 +62,10 @@ try{
  await host.locator('#foley').uncheck();
  assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.settings.v1')).foley),false);
  await host.locator('#foley').check();
+ const recordedLoads=Promise.all(['impactMetal_light_000.ogg','impactMetal_heavy_000.ogg','footstep_concrete_000.ogg'].map(name=>
+   host.waitForResponse(res=>res.url().endsWith('/fight/audio/'+name)&&res.status()===200,{timeout:12000})));
  await host.locator('#sound').click();
+ await recordedLoads;
  await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='true','user-enabled Web Audio');
  await host.locator('#sound').click();
  await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='false','muted Web Audio');
