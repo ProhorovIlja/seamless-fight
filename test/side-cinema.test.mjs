@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sideMatch,SIDE_FLOOR} from '../public/side-engine.mjs';
-import {SIDE_SHAKE_MAX,sideCameraImpact,sideScoreTension,sideIsFootstep} from '../public/side-cinema.mjs';
+import {SIDE_SHAKE_MAX,sideCameraImpact,sideScoreTension,sideIsFootstep,sideWorldLens} from '../public/side-cinema.mjs';
 test('cinematic hit feedback is render-only, strictly capped and expires',()=>{
  const s=sideMatch(),before=structuredClone(s),at=5000;
  const fx=[{e:{kind:'hit',tick:101},at},{e:{kind:'parry',tick:103},at}];
@@ -41,4 +41,25 @@ test('footsteps require grounded neutral movement only',()=>{
  for(const update of [{y:SIDE_FLOOR-4},{act:'step'},{crouch:true},{guardAge:1},{vx:1}]){
   assert.equal(sideIsFootstep({...p,...update}),false);
  }
+});
+
+test('2.5D optical lens stays bounded and has exact world-space hitbox alignment',()=>{
+ const state=sideMatch(),before=structuredClone(state);
+ assert.deepEqual(sideWorldLens(state,'performance'),{zoom:1,shift:0});
+ const cinema=sideWorldLens(state,'cinematic');
+ assert(cinema.zoom>1.09&&cinema.zoom<1.10);
+ const balanced=sideWorldLens(state,'balanced');assert(balanced.zoom>1.05&&balanced.zoom<cinema.zoom);
+ state.p[0].x=65;state.p[1].x=65;
+ const left=sideWorldLens(state,'cinematic');
+ assert(left.shift>0&&left.shift<15);
+ state.p[0].x=895;state.p[1].x=895;
+ const right=sideWorldLens(state,'cinematic');
+ assert(right.shift<0&&right.shift>-15);
+ // Transform is one affine map applied to background, fighters and hitboxes.
+ for(const point of [65,450,895]){
+  const map=x=>480+right.shift+(x-480)*right.zoom;
+  assert(Math.abs(map(point+18)-map(point)-18*right.zoom)<1e-10);
+ }
+ assert.equal(before.p[0].x,255);
+ const frozen=structuredClone(state);sideWorldLens(state,'cinematic');assert.deepEqual(state,frozen);
 });
