@@ -248,6 +248,69 @@ $('takeover').onclick=()=>{
  mode='takeover';reviewPlaying=false;clearHeld();setStatus('Takeover live: you control Veil, Cinder follows the recorded tape.');
  updateButtons();
 };
+
+function resetOnlineButtons(){
+ onlineSlot=-1;onlineCode='';onlineLooks=null;onlineTick=-1;
+ $('side-copy').hidden=true;$('side-rematch').hidden=true;$('side-server-replay').hidden=true;
+ $('side-network').textContent='Offline';
+}
+const sideTransport=createSideTransport({
+ room(m){
+  onlineSlot=m.slot;onlineCode=m.code;onlineLooks=m.looks;
+  setStage(m.stage);$('stage-select').value=scene;$('side-code').value=m.code;
+  $('side-copy').hidden=false;
+  $('side-network').textContent='Private room '+m.code+' · '+(m.slot===0?'host':'guest');
+  setStatus(m.slot===0?'Private side-view room created. Share the invite code.':'Joined room. Awaiting both fighters.');
+ },
+ start(m){
+  if(m.s?.rules!==SIDE_RULESET)return;
+  s=m.s;onlineTick=-1;mode='online';clearHeld();effects.length=0;onlineLooks=m.looks;
+  $('side-rematch').hidden=true;$('side-server-replay').hidden=true;
+  setStatus('Server-authoritative side-view duel. Private, unrated and unranked.');
+  updateButtons();
+ },
+ state(m){
+  if(mode!=='online'||m.s?.rules!==SIDE_RULESET||
+     !Number.isSafeInteger(m.s.tick)||m.s.tick<onlineTick)return;
+  onlineTick=m.s.tick;s=m.s;effectsFrom(Array.isArray(m.events)?m.events:[]);
+  $('side-network').textContent='Server tick '+s.tick+' · input receipt ACK '+m.ack+' · room '+onlineCode;
+  if(s.over){$('side-rematch').hidden=false;$('side-server-replay').hidden=false;
+   setStatus('Online side-view bout finished. Request a replay or a rematch.');}
+ },
+ replay(m){
+  try{loadReview(m);setReplayStatus('Server-applied replay loaded locally for frame review and takeover.');}
+  catch(err){setReplayStatus('Replay rejected: '+err.message);}
+ },
+ notice(m){setStatus(String(m.message||'Server notice').slice(0,180));},
+ error(){setStatus('Side-view server connection failed.');},
+ close(){clearHeld();resetOnlineButtons();if(mode==='online'||mode==='connecting'){mode='idle';updateButtons();setStatus('Side-view room closed. Start another private duel.');}}
+});
+function connectSide(code=null){
+ sideTransport.close();resetOnlineButtons();clearHeld();
+ review=null;capture=null;tape=[];cursor=0;effects.length=0;s=sideMatch();
+ mode='connecting';setStatus('Connecting to side-view duel server…');
+ $('side-network').textContent='Opening private room…';updateButtons();
+ try{sideTransport.connect(code,scene,outfit(original.outfit));}
+ catch(err){mode='idle';setStatus('Could not open side-view room.');$('side-network').textContent=err.message;updateButtons();}
+}
+$('side-host').onclick=()=>connectSide();
+$('side-join').onclick=()=>{
+ const code=$('side-code').value.trim();
+ if(!SIDE_INVITE_PATTERN.test(code)){$('side-network').textContent='Invalid 12-character invitation code.';return;}
+ connectSide(code);
+};
+$('side-copy').onclick=async()=>{
+ if(!onlineCode)return;
+ const url=new URL(location.href);url.searchParams.set('room',onlineCode);
+ try{await navigator.clipboard.writeText(url.href);$('side-network').textContent='Private room URL copied.';}
+ catch{$('side-network').textContent='Copy code '+onlineCode+' to invite a friend.';}
+};
+$('side-rematch').onclick=()=>{if(s.over)sideTransport.rematch();};
+$('side-server-replay').onclick=()=>{if(s.over)sideTransport.replay();};
+const invited=new URLSearchParams(location.search).get('room');
+if(invited&&SIDE_INVITE_PATTERN.test(invited)){$('side-code').value=invited;connectSide(invited);}
+addEventListener('pagehide',()=>sideTransport.close());
+
 for(const [key,m]of Object.entries(SIDE_MOVES))if(m.damage){
  const row=$('frame-table').tBodies[0].insertRow();
  for(const value of [key==='hew'?'Heavy':key[0].toUpperCase()+key.slice(1),m.startup,m.active,m.recovery,m.reach,m.damage])
@@ -296,7 +359,7 @@ function paint(now,elapsed){
  canvas.dataset.mode=mode;
  g.drawImage(stageCanvas,0,0);
  paintSideWeather(g,now,scene,reduced());
- const appearance=[outfit({dye:'ash',sigil:'lantern'}),outfit({dye:'oxblood',sigil:'thorn'})];
+ const appearance=mode==='online'&&Array.isArray(onlineLooks)&&onlineLooks.length===2?onlineLooks:[outfit({dye:'ash',sigil:'lantern'}),outfit({dye:'oxblood',sigil:'thorn'})];
  for(let i=0;i<2;i++)paintSideFighter(g,s.p[i],appearance[i],now,reduced(),sidePrefs.contrast);
  if(sidePrefs.boxes)drawSideTraining(g,s);
  for(const item of effects)drawSideImpact(g,item.e,item.life,reduced());
