@@ -9,9 +9,11 @@ const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
 test('health, origin rejection, private invite, authoritative snapshots and disconnect', {timeout:10000},async t=>{
  const probe=createServer().listen(0,'127.0.0.1');await once(probe,'listening');const port=probe.address().port;await new Promise(r=>probe.close(r));
  const origin='http://127.0.0.1:'+port;
- const child=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:String(port),HOST:'127.0.0.1',PUBLIC_ORIGIN:origin},stdio:'inherit'});
+ const child=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:String(port),HOST:'127.0.0.1',PUBLIC_ORIGIN:origin,SITE_ART:'1'},stdio:'inherit'});
  t.after(()=>child.kill());
  let ready=false;for(let i=0;i<50;i++){try{ready=(await fetch(origin+'/fight/health')).ok;if(ready)break;}catch{}await sleep(50);}assert(ready);
+ const page=await fetch(origin+'/fight/');assert.match(await page.text(),/data-site-art="on"/);
+ assert.equal((await fetch(origin+'/art/icon-blades.webp')).status,404,'the site proxy, not the duel process, owns shared art');
  const bad=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin:'https://example.invalid'});const [err]=await once(bad,'error');assert.match(err.message,/403/);
  const open=async()=>{
    const c=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin});t.after(()=>c.terminate());

@@ -471,7 +471,7 @@ function render(now){
  }
  const localSlot=mode==='review'?forkSlot:mode==='lab'&&labKind==='record'?1:slot;
  const timer=Math.ceil(s.clock/HZ);
- drawHUD(g,s,mode&&!watching?localSlot:-1,timer,prefs.contrast,siteHelm?.naturalWidth?siteHelm:helm);
+ drawHUD(g,s,mode&&!watching?localSlot:-1,timer,prefs.contrast,siteHelm?.naturalWidth?siteHelm:helm,document.documentElement.dataset.huntFont==='true');
  g.textAlign='center';g.fillStyle='#eee1c8';
  if(now>=nextScoreboard){
    nextScoreboard=now+125;

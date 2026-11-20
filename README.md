@@ -43,3 +43,5 @@ The presentation pass adds an adaptive synthesized score, nonverbal exertion cue
 Touch devices show a pointer-captured movement stick and five combat buttons during play. Touch uses the same discrete inputs and move rules as keyboard/controller; cancellation and focus loss release held movement. Optional cue captions identify preparation, discharge, hits and interrupts without requiring audio. They do not expose hidden inputs.
 
 Online pistol discharge and impact cues come directly from the authoritative tick, batched into existing snapshots and shared with spectators. Impact sparks follow the strike direction. Offline feedback still uses local simulation state. This does not change simulation rules, replay compatibility or send cadence.
+
+The duel shell follows the Seamless Hunt website’s palette and typography. On a same-origin deployment, `SITE_ART=1` opts into shared site art and font assets with independent fallbacks. See `docs/DEPLOY.md` for the route and asset checks. The standalone build does not depend on the website, Google Drive, or a CDN.

@@ -26,7 +26,7 @@ export function drawImpact(g,x,y,life,reduced,slot,heading=null){
  }
  g.restore();
 }
-export function drawHUD(g,s,local,timer,contrast,helm){
+export function drawHUD(g,s,local,timer,contrast,helm,huntFont=false){
  g.save();
  for(let i=0;i<2;i++){
    const p=s.p[i],x=i?620:24,c=i?(contrast?'#ffc36b':'#e39774'):(contrast?'#a1fff1':'#8fc8c0');
@@ -46,7 +46,7 @@ export function drawHUD(g,s,local,timer,contrast,helm){
    for(let n=0;n<2;n++){g.fillStyle=n<s.score[i]?c:'#423342';g.beginPath();g.arc(x+278+n*13,24,4,0,TAU);g.fill();}
  }
  g.textAlign='center';g.fillStyle='#0d0f13';g.beginPath();g.moveTo(417,8);g.lineTo(543,8);g.lineTo(532,48);g.lineTo(428,48);g.closePath();g.fill();
- g.strokeStyle='#ae8958';g.stroke();g.fillStyle=timer<=10?'#ffb190':'#f0e2c2';g.font='28px Georgia';g.fillText(String(timer),480,38);
+ g.strokeStyle='#ae8958';g.stroke();g.fillStyle=timer<=10?'#ffb190':'#f0e2c2';g.font=huntFont?'30px "Hunt Garamond", Georgia':'28px Georgia';g.fillText(String(timer),480,38);
  g.restore();
 }
 
