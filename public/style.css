@@ -2,3 +2,6 @@
 select{border:1px solid #856c59;border-radius:4px;background:#221d24;color:#f1e4ce;padding:9px 12px;font:inherit}details{max-width:680px;margin:20px auto;color:#d7cab5}summary{cursor:pointer}table{width:100%;border-collapse:collapse}caption{padding:.6rem;text-align:left;color:#c3ae90}th,td{border-bottom:1px solid #453640;text-align:left;padding:.35rem;font-size:.85rem}
 
 .lab-controls{display:flex;gap:.55rem;align-items:end;flex-wrap:wrap}.lab-controls label{display:grid;gap:.35rem;font-size:.85rem}.lab-controls select:focus-visible{outline:2px solid #ffd17d;outline-offset:3px}#lab-meter{font-size:.8rem;color:#d7cab5}
+
+/* Keep layout declarations from overriding semantic hidden controls. */
+[hidden]{display:none!important}

@@ -23,6 +23,7 @@ try{
  let snapshot;
  host.on('websocket',ws=>ws.on('framereceived',frame=>{const m=JSON.parse(frame.payload);if(m.t==='state')snapshot=m.s;}));
  await host.goto(url);
+ assert(await host.locator('#gallery').isHidden());
  await host.locator('#sound').click();
  await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='true','user-enabled Web Audio');
  await host.locator('#sound').click();
@@ -90,6 +91,7 @@ try{
  assert.equal(watchUrl.origin,origin);assert(!watchUrl.searchParams.has('room'));
  await viewer.goto(watchUrl.href);
  await status(viewer,/Spectating live/);
+ assert(await viewer.locator('#gallery').isHidden());
  assert.equal(await viewer.locator('#arena').evaluate(el=>el.width),1920);assert(await viewer.locator('#rematch').isHidden());
  await host.locator('#gallery-toggle').click();
  await status(viewer,/host closed the gallery/);
