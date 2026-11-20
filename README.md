@@ -39,3 +39,5 @@ Online neutral footwork uses a bounded presentation buffer targeting 50–100 ms
 The pistol has separate preparation and discharge cues. Its muzzle flash and report share one trigger derived from the authoritative firing phase, including when the firing tick is between snapshots. Damage feedback can still play on the same snapshot.
 
 The presentation pass adds an adaptive synthesized score, nonverbal exertion cues, animated armor/weapon and hit details, and a larger mobile text scoreboard. Music and exertion have independent saved mix settings; the master sound toggle still requires a gesture. Chromium CI captures screenshots of both arenas and the reduced-motion mobile layout.
+
+Touch devices show a pointer-captured movement stick and five combat buttons during play. Touch uses the same discrete inputs and move rules as keyboard/controller; cancellation and focus loss release held movement. Optional cue captions identify preparation, discharge, hits and interrupts without requiring audio. They do not expose hidden inputs.

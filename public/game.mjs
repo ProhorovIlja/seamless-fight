@@ -4,7 +4,7 @@ import {trainingInput} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges} from './audio.mjs';
 import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
-import {DEFAULT_KEYS,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
+import {DEFAULT_KEYS,STORAGE_KEY,allowed,settings,samplePad,touchDirection} from './controls.mjs';
 import {createMetrics} from './metrics.mjs';
 import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
 import {logInput,describe,eventLabel} from './analysis.mjs';
@@ -95,7 +95,7 @@ for(const [act,label] of Object.entries(labels)){
 function cancelBinding(){if(binding){binding='';$('bind-status').textContent='Binding cancelled.';}}
 $('input-settings').addEventListener('toggle',()=>{if(!$('input-settings').open)cancelBinding();});
 $('reset-keys').onclick=()=>{cancelBinding();prefs.keys={...DEFAULT_KEYS};persist();refresh();$('bind-status').textContent='Default keys restored.';};
-for(const id of ['reduce','contrast']){$(id).checked=prefs[id];$(id).onchange=()=>{prefs[id]=$(id).checked;persist();};}
+for(const id of ['reduce','contrast','captions']){$(id).checked=prefs[id];$(id).onchange=()=>{prefs[id]=$(id).checked;persist();};}
 $('sfx').value=prefs.sfx;$('ambience').value=prefs.ambience;$('music').value=prefs.music;$('voice').value=prefs.voice;$('deadzone').value=prefs.deadzone;
 $('deadzone-value').textContent=prefs.deadzone+'%';
 $('deadzone').oninput=()=>{prefs.deadzone=Number($('deadzone').value);$('deadzone-value').textContent=prefs.deadzone+'%';persist();};
@@ -113,12 +113,36 @@ function pollPad(){
  }
  padFrame=v;if(v.act&&!action)action=v.act;
 }
+const touchUI=matchMedia('(any-pointer: coarse)'), stick=$('touch-stick'), knob=stick.firstElementChild;
+let touchId=null,touchVector={x:0,y:0}, cueText='', cueUntil=0, nextTouch=false;
+function releaseTouch(){
+ const id=touchId;touchId=null;touchVector={x:0,y:0};knob.style.transform='';
+ if(id!==null&&stick.hasPointerCapture(id))stick.releasePointerCapture(id);
+}
+function touchLive(){return mode==='online'||mode==='practice'||mode==='lab'&&!labHold||mode==='review'&&forkSlot>=0&&replayPlaying;}
+function dragTouch(ev){
+ const bounds=stick.getBoundingClientRect(), x=ev.clientX-bounds.left-bounds.width/2, y=ev.clientY-bounds.top-bounds.height/2;
+ touchVector=touchDirection(x,y);
+ const scale=Math.min(1,30/(Math.hypot(x,y)||1));
+ knob.style.transform='translate('+x*scale+'px,'+y*scale+'px)';
+}
+stick.addEventListener('pointerdown',ev=>{
+ if(touchId!==null||!touchLive()||ev.button!==0)return;
+ ev.preventDefault();touchId=ev.pointerId;stick.setPointerCapture(touchId);dragTouch(ev);
+});
+stick.addEventListener('pointermove',ev=>{if(ev.pointerId===touchId)dragTouch(ev);});
+for(const name of ['pointerup','pointercancel','lostpointercapture'])stick.addEventListener(name,ev=>{if(ev.pointerId===touchId)releaseTouch();});
+for(const btn of $('touch-actions').querySelectorAll('button')){
+ btn.addEventListener('pointerdown',ev=>{if(ev.button!==0||!touchLive())return;ev.preventDefault();action=btn.dataset.action;});
+ btn.addEventListener('click',ev=>{if(ev.detail===0&&touchLive())action=btn.dataset.action;});
+}
 function read(){
  const on=(a,b)=>Number(pressed.has(a)||pressed.has(b));
  const x=on('KeyD','ArrowRight')-on('KeyA','ArrowLeft'),y=on('KeyS','ArrowDown')-on('KeyW','ArrowUp');
- const i={x:x||y?x:padFrame.x,y:x||y?y:padFrame.y,act:action};action='';return i;
+ const move=touchId!==null?touchVector:x||y?{x,y}:padFrame;
+ const i={x:move.x,y:move.y,act:action};action='';return i;
 }
-function flush(){pressed.clear();action='';prior=null;armed=false;padFrame={x:0,y:0};sendInput(blank());}
+function flush(){releaseTouch();pressed.clear();action='';prior=null;armed=false;padFrame={x:0,y:0};sendInput(blank());}
 addEventListener('blur',()=>{flush();cancelBinding();});
 document.addEventListener('visibilitychange',()=>{metrics.clearFrame();remoteMotion.clear();skipFrameSample=true;if(document.hidden)flush();});
 addEventListener('keydown',ev=>{
@@ -155,7 +179,7 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();showArena($('arena-select').value);mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -275,13 +299,22 @@ $('sound').onclick=async()=>{
 };
 function feedback(state){
  audio.tension(!state.ready&&!state.end&&!state.over&&state.p.some(p=>p.hp<=35)?1:0);
- for(const cue of soundChanges(lastSound,state)){
+ const cues=soundChanges(lastSound,state,true);
+ if(prefs.captions&&cues.length){
+   cueText=cues.map(cue=>{
+     const names={bell:'Round bell',cut:'Blade swing',hew:'Heavy swing',cock:'Pistol readied',shot:'Pistol fired',step:'Quickstep',feint:'Heavy feinted',hit:'Hit confirmed',interrupt:'Pistol interrupt'};
+     const side=cue.actor===undefined?'':(cue.actor?'Cinder: ':'Veil: ');
+     return side+names[cue.name];
+   }).join(' · ');
+   cueUntil=performance.now()+1100;
+ }
+ for(const cue of cues){
    audio.play(cue.name,cue.x);
    if(cue.index!==undefined)audio.play(cue.index?'grunt-high':'grunt-low',cue.x);
    if(cue.muzzle!==undefined)muzzle[cue.muzzle]=1;
    if(cue.index!==undefined)flashes[cue.index]=1;
  }
- lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age})=>({hp,act,age}))};
+ lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age,x})=>({hp,act,age,x}))};
 }
 function loadCapture(data){
  const clip={rules:data.rules,tape:data.tape,arena:arenaId(data.arena),outfits:pair(data.outfits)}, view=createReview(clip);
@@ -416,6 +449,11 @@ function render(now){
  while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){const inputs=[read(),trainingInput(s,$('drill').value)];if(!s.over&&!s.end&&!s.ready)observeInputs(s.tick+1,inputs);collect(events=>step(s,inputs,events));feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  for(let i=0;i<2;i++){flashes[i]=Math.max(0,flashes[i]-elapsed/220);muzzle[i]=Math.max(0,muzzle[i]-elapsed/95);}
+ const touchVisible=touchUI.matches&&touchLive();
+ if(touchVisible!==nextTouch){nextTouch=touchVisible;$('touch-controls').hidden=!touchVisible;if(!touchVisible)releaseTouch();}
+ const caption=$('cue-caption'), showCue=prefs.captions&&now<cueUntil;
+ if(caption.hidden===showCue)caption.hidden=!showCue;
+ if(showCue&&caption.textContent!==cueText)caption.textContent=cueText;
  inspect(now);
  g.drawImage(backdrop,0,0);
  paintAtmosphere(g,arena,now,reduced());

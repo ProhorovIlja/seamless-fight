@@ -25,19 +25,20 @@ export function synth(name,rate){
  }
  return data;
 }
-export function soundChanges(before,after){
+export function soundChanges(before,after,withActor=false){
  if(!before||before.round!==after.round||after.tick<=before.tick)return [];
  const out=[];
  if(before.ready&&!after.ready&&!after.end)out.push({name:'bell',x:480});
  for(let i=0;i<2;i++){
    const p=after.p[i],q=before.p[i];
    const changed=p.act!==q.act||p.age<q.age;
+   const actor=withActor?{actor:i}:{};
    if(p.act==='shot'){
      const startup=moves.shot[0];
-     if(p.age>startup&&(changed||q.age<=startup))out.push({name:'shot',x:p.x,muzzle:i});
-     else if(changed&&p.age<=startup)out.push({name:'cock',x:p.x});
-   }else if(changed&&Object.hasOwn(recipes,p.act))out.push({name:p.act,x:p.x});
-   if(p.hp<q.hp)out.push({name:p.act==='stun'?'interrupt':'hit',x:p.x,index:i});
+     if(p.age>startup&&(changed||q.age<=startup))out.push({name:'shot',x:p.x,muzzle:i,...actor});
+     else if(changed&&p.age<=startup)out.push({name:'cock',x:p.x,...actor});
+   }else if(changed&&Object.hasOwn(recipes,p.act))out.push({name:p.act,x:p.x,...actor});
+   if(p.hp<q.hp)out.push({name:p.act==='stun'?'interrupt':'hit',x:p.x,index:i,...actor});
  }
  return out;
 }

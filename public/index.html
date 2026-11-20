@@ -6,6 +6,8 @@
 <section id="gallery" class="controls" aria-label="Spectator invitations" hidden><button id="gallery-toggle" aria-expanded="false">Open gallery</button><button id="watch-copy" hidden>Copy watch link</button><input id="watch-link" readonly hidden aria-label="Read-only watch link"></section>
 <p id="status" role="status">Choose practice or invite an opponent.</p>
 <canvas width="960" height="540" id="arena" aria-label="Lantern Court duel arena">The duel requires Canvas support.</canvas>
+<p id="cue-caption" aria-label="Combat cue captions" hidden></p>
+<section id="touch-controls" aria-label="Touch combat controls" hidden><div id="touch-stick" aria-label="Drag to move"><span></span></div><div id="touch-actions"><button data-action="cut">Cut</button><button data-action="hew">Heavy</button><button data-action="step">Step</button><button data-action="shot">Pistol</button><button data-action="feint">Feint</button></div></section>
 <section id="readable-score" aria-label="Duel score"><p><strong>Veil</strong> <span id="fighter-score-0">100 HP · 100 stamina · 3 shots · 0 wins</span></p><p><strong>Cinder</strong> <span id="fighter-score-1">100 HP · 100 stamina · 3 shots · 0 wins</span></p><p id="round-score">Round 1 · 75 seconds</p></section>
 <footer id="key-guide">WASD / ARROWS <b>Move</b> · J <b>Cut</b> · K <b>Hew</b> · L <b>Pistol</b> · I <b>Feint heavy</b> · SPACE <b>Quickstep</b></footer>
 <details id="match-review"><summary>Online match review</summary>
@@ -26,7 +28,7 @@
 <p>Rolling browser measurements. Input acknowledgment is not hit confirmation or key-to-screen latency. Frame interval is not GPU render time.</p>
 <output id="diagnostic-values" aria-live="off">Collecting samples…</output>
 </details>
-<details id="input-settings"><summary>Controls and presentation</summary>
+<details id="input-settings"><summary>Controls and presentation</summary><p><label><input type="checkbox" id="captions"> Show combat cue captions</label></p>
 <p>Move with WASD, arrow keys, or a standard gamepad’s left stick or D-pad. West: cut. North: heavy. East: quickstep. Right bumper: pistol. Left bumper: feint.</p>
 <section id="binds" class="lab-controls" aria-label="Keyboard bindings"></section>
 <p id="bind-status" role="status">Select an action to change its keyboard binding.</p>

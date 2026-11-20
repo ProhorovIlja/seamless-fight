@@ -30,3 +30,5 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - [Brawlhalla cosmetics](https://brawlhalla.wiki.gg/wiki/Cosmetics) and [Guilty Gear Strive appearance locks](https://www.guiltygear.com/ggst/en/news/post-2963/): keep customization outside combat and let viewers suppress it locally. All coat and sigil art is original Canvas drawing.
 
 - [VALORANT Gameplay Consistency Update 2](https://playvalorant.com/en-gb/news/game-updates/valorant-gameplay-consistency-update-2/): balancing buffered motion against responsiveness. Seamless Fight buffers only neutral remote poses and preserves immediate authoritative action cues; this is not rollback or an input delay.
+
+- Street Fighter 6’s separate battle audio and accessibility cues are a reference for optional visual cue captions; those captions use observed simulation events, not client input. No third-party audio imported in this pass.
