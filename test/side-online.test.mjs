@@ -62,8 +62,9 @@ test('experimental private side-view socket is authoritative, isolated, bounded 
  assert.equal(acknowledged.s.p[0].hp,100);
  host.send({t:'input',x:0,y:0,act:'teleport',guard:false,seq:seq+2});
  await sleep(80);
+ const hostClosed=once(host.c,'close');
  guest.c.close();
  const disconnect=await host.get(m=>m.t==='error');
  assert.match(disconnect.message,/disconnected/);
- await once(host.c,'close');
+ await hostClosed;
 });
