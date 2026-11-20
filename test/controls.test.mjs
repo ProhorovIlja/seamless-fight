@@ -48,6 +48,11 @@ test('mouse is opt-in and rejects invalid actions and duplicates',()=>{
  swapBinding(mouse,2,'shot');assert.deepEqual(mouse,{0:'hew',2:'shot'});
 });
 
+test('precise training geometry is opt-in, local and type checked',()=>{
+ assert.equal(settings().trainingGeometry,false);
+ assert.equal(settings({trainingGeometry:true}).trainingGeometry,true);
+ for(const value of ['true',1,null,{}])assert.equal(settings({trainingGeometry:value}).trainingGeometry,false);
+});
 test('UI scale validates saved values without changing controls or combat',()=>{
  assert.equal(settings().uiScale,100);
  for(const scale of [100,115,130,150])assert.equal(settings({uiScale:scale}).uiScale,scale);
