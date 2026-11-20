@@ -1,4 +1,5 @@
 import {W,H,HZ,match,step,blank,moves} from './engine.mjs';
+import {HISTORY_LIMIT,playable,reconcile} from './prediction.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 const bg=document.createElement('canvas');bg.width=W;bg.height=H;
 const b=bg.getContext('2d'), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -15,15 +16,24 @@ const vignette=b.createRadialGradient(480,280,150,480,280,540);vignette.addColor
 
 const status=t=>{$('status').textContent=t;};
 let s=match(), prev=null, at=0, mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null, audio;
+let seq=0,pending=[],predicted=null,correction={x:0,y:0};
+function sendInput(input){
+ if(ws?.readyState!==1||ws.bufferedAmount>=2048)return;
+ const cmd={...input,seq:++seq};ws.send(JSON.stringify({t:'input',...cmd}));
+ if(mode==='online'&&playable(s)){
+   pending.push(cmd);if(pending.length>HISTORY_LIMIT)pending.shift();
+   ({p:predicted}=reconcile(s,slot,pending,0));
+ }
+}
 const pressed=new Set(), keys={KeyJ:'cut',KeyK:'hew',KeyL:'shot',Space:'step'};
 const moveKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'];
 function read(){const on=(a,b)=>Number(pressed.has(a)||pressed.has(b));const i={x:on('KeyD','ArrowRight')-on('KeyA','ArrowLeft'),y:on('KeyS','ArrowDown')-on('KeyW','ArrowUp'),act:action};action='';return i;}
-function flush(){pressed.clear();action='';if(ws?.readyState===1)ws.send(JSON.stringify({t:'input',...blank()}));}
+function flush(){pressed.clear();action='';sendInput(blank());}
 addEventListener('blur',flush);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)flush();});
 addEventListener('keydown',e=>{if(e.target.matches?.('input,button')||!mode)return;if(moveKeys.includes(e.code)||keys[e.code])e.preventDefault();if(!e.repeat&&keys[e.code])action=keys[e.code];pressed.add(e.code);});
 addEventListener('keyup',e=>pressed.delete(e.code));
-function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;slot=0;vote=false;lastSound=null;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();mode='practice';status('Practice · first to two round wins.');document.activeElement?.blur();}
 function online(code){
  leave();mode='connecting';status('Connecting to Lantern Court…');
@@ -35,7 +45,13 @@ function online(code){
    if(m.t==='room'){
      slot=m.slot;const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
    }
-   if(m.t==='state'){prev=m.s.tick>=s.tick&&m.s.round===s.round?s:null;at=performance.now();if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}mode='online';s=m.s;}
+   if(m.t==='state'){prev=m.s.tick>=s.tick&&m.s.round===s.round?s:null;at=performance.now();if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
+     const continuous=mode==='online'&&playable(s)&&playable(m.s)&&m.s.round===s.round&&m.s.tick>s.tick;
+     mode='online';s=m.s;
+     const next=reconcile(s,slot,continuous?pending:[],m.ack);pending=next.pending;predicted=next.p;
+     const dx=old?old.x+correction.x-predicted.x:0,dy=old?old.y+correction.y-predicted.y:0;
+     correction=continuous&&!predicted.act&&Math.hypot(dx,dy)<28?{x:dx,y:dy}:{x:0,y:0};
+   }
    if(m.t==='pong')ping=Math.round(performance.now()-m.id);
    if(m.t==='vote'&&m.slot!==slot)$('rematch').textContent='Accept rematch';
    if(m.t==='error'){leave();mode='';status(m.message);}
@@ -67,7 +83,7 @@ function drawFighter(p,i,x,y,time){
  g.rotate(f);
  if(p.act==='step'&&active)g.globalAlpha=.56;
  if(m&&m[5]){
-   g.beginPath();g.moveTo(0,0);g.arc(0,0,m[4],p.act==='shot'?-.11:-.85,p.act==='shot'?.11:.85);g.closePath();g.fillStyle=active?color+'6b':color+'15';g.fill();g.strokeStyle=active?color:color+'68';g.lineWidth=active?2:1;g.stroke();
+   g.beginPath();g.moveTo(0,0);const arc=Math.acos(p.act==='shot'?.88:.45);g.arc(0,0,m[4],-arc,arc);g.closePath();g.fillStyle=active?color+'6b':color+'15';g.fill();g.strokeStyle=active?color:color+'68';g.lineWidth=active?2:1;g.stroke();
  }
  const stride=reduced?0:Math.sin(time/55)*Math.min(4,Math.hypot(p.vx,p.vy));
  g.fillStyle='#12131a';g.fillRect(-12+stride,-12,15,8);g.fillRect(-12-stride,5,15,8);
@@ -82,13 +98,14 @@ function bar(x,y,w,v,color){g.fillStyle='#171420';g.fillRect(x,y,w,8);g.fillStyl
 function render(now){
  const elapsed=Math.min(100,now-prevFrame);prevFrame=now;acc+=elapsed;
  let budget=5;
- while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice')step(s,[read(),bot()]);else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)ws.send(JSON.stringify({t:'input',...read()}));}
+ while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice')step(s,[read(),bot()]);else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  const hp=s.p.map(p=>p.hp);if(lastSound&&hp.some((v,i)=>v<lastSound[i]))impact();lastSound=hp;
  g.drawImage(bg,0,0);
  if(!reduced){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=i%3?'#e3d6dc1d':'#e7a16082';g.fillRect(x,y,2,2);}}
  const blend=mode==='online'&&prev?Math.min(1,(now-at)/50):1;
- const poses=s.p.map((p,i)=>({p,i,x:prev?prev.p[i].x+(p.x-prev.p[i].x)*blend:p.x,y:prev?prev.p[i].y+(p.y-prev.p[i].y)*blend:p.y})).sort((a,b)=>a.y-b.y);
+ const decay=Math.exp(-elapsed/43);correction.x*=decay;correction.y*=decay;
+ const poses=s.p.map((p,i)=>({p,i,x:prev?prev.p[i].x+(p.x-prev.p[i].x)*blend:p.x,y:prev?prev.p[i].y+(p.y-prev.p[i].y)*blend:p.y})).map(o=>mode==='online'&&o.i===slot&&predicted?{...o,x:predicted.x+correction.x,y:predicted.y+correction.y}:o).sort((a,b)=>a.y-b.y);
  for(const {p,i,x,y} of poses)drawFighter(p,i,x,y,now);
  for(let i=0;i<2;i++){const p=s.p[i],x=i?674:36,c=i?'#e39774':'#8fc8c0';g.fillStyle=c;g.font='15px system-ui';g.textAlign='left';g.fillText((i?'CINDER':'VEIL')+' · '+s.score[i]+'   /   '+p.ammo+' SHOTS'+(i===slot&&mode?'   /   YOU':''),x,27);bar(x,35,250,p.hp,c);bar(x,47,250,p.st,'#d1aa60');}
  g.textAlign='center';g.fillStyle='#eee1c8';g.font='24px Georgia';g.fillText(String(Math.ceil(s.clock/HZ)),480,38);
