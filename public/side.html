@@ -8,9 +8,9 @@
 <a class="skip" href="#stage">Skip to fight</a>
 <header class="nav"><a class="site" href="/fight/"><img class="duel-crest" src="../art/crossed-swords.svg" alt="" width="28" height="28">SEAMLESS HUNT <span>/ SEAMLESS FIGHT</span></a><span class="nav-chip">SIDE-VIEW LAB · ALPHA</span><a href="/fight/" class="return">Back to online prototype</a></header>
 <main>
-<section class="intro"><p class="eyebrow">ORIGINAL 2D DUEL · THE ASHEN SERIES</p><h1>Where blades meet the dark.</h1><p class="lede">A separate side-view combat foundation with original animated hunters, horizontal spacing, aerial and crouching hurtboxes, feints, deflects, dodges, and three atmospheric arenas.</p><p class="scope">Local practice and replay takeover are available alongside experimental server-authoritative private side-view 1v1 rooms. Rated matchmaking, rollback, public queues and team combat remain unavailable. The existing /fight/ page retains its separate legacy overhead multiplayer ruleset.</p></section>
+<section class="intro"><p class="eyebrow">ORIGINAL 2D DUEL · THE ASHEN SERIES</p><h1>Where blades meet the dark.</h1><p class="lede">A side-view fighting plane presented through 2.5D layered Gothic architecture, atmospheric depth, animated scenery and original articulated hunters, with precise horizontal spacing, aerial and crouching hurtboxes, feints, deflects and dodges.</p><p class="scope">Local practice and replay takeover are available alongside experimental server-authoritative private side-view 1v1 rooms. Rated matchmaking, rollback, public queues and team combat remain unavailable. The existing /fight/ page retains its separate legacy overhead multiplayer ruleset.</p></section>
 <section class="stage-shell" id="stage" aria-label="Side-view duel">
- <div class="stage-ribbon"><span id="stage-title">ASHEN RELIQUARY</span><span id="stage-mode">LOCAL PRACTICE · 60 HZ</span></div>
+ <div class="stage-ribbon"><span id="stage-title">ASHEN RELIQUARY</span><span id="stage-mode">2.5D PRESENTATION · 60 HZ</span></div>
  <canvas id="fight-canvas" width="960" height="540" aria-label="Two side-view hunters dueling on a horizontal platform. Use the controls beneath the canvas.">Your browser must support HTML Canvas.</canvas>
  <div class="stage-status"><span id="fight-status" role="status">Choose an arena, then begin sparring.</span><span id="fight-caption" aria-live="polite"></span></div>
 </section>
@@ -31,6 +31,7 @@
  <section class="panel"><h2>Hunter's practice</h2>
   <label>Arena <select id="stage-select"><option value="reliquary">Ashen Reliquary</option><option value="lantern">Lantern Court</option><option value="cistern">Drowned Cloister</option></select></label>
   <label>Opponent <select id="opponent"><option value="normal">Duelist · Normal</option><option value="easy">Initiate · Easy</option><option value="hard">Executioner · Hard</option><option value="dummy">Still target</option></select></label>
+  <label>2.5D environment quality <select id="depth-quality"><option value="cinematic">Cinematic · full atmospheric layers</option><option value="balanced">Balanced · efficient ambient detail</option><option value="performance">Performance · minimal visual layers</option></select></label>
   <label class="check"><input type="checkbox" id="show-boxes"> Show exact hurtboxes / active hitboxes</label>
   <label class="check"><input type="checkbox" id="reduce-motion"> Reduced effects</label>
   <label class="check"><input type="checkbox" id="high-contrast"> High-contrast fighter outlines</label>
