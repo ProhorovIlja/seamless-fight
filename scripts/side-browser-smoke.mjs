@@ -58,7 +58,7 @@ try{
  await page.keyboard.up('s');
  await page.locator('#show-boxes').check();
  assert.match(await page.locator('#live-phase-0').textContent(),/ready|active|recovery|startup|airborne|crouch/i);
- assert.match(await page.locator('#live-performance').textContent(),/frame interval p95/);
+ assert.match(await page.locator('#live-performance').textContent(),/Render frame p95/);
  await page.screenshot({path:'artifacts/side-reliquary-characters-and-hitboxes.png'});
  await page.locator('#fight-canvas').screenshot({path:'artifacts/side-reliquary-hitboxes-canvas.png'});
  await page.locator('#show-boxes').uncheck();
