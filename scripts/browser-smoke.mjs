@@ -46,6 +46,8 @@ try{
  await host.locator('#pad-stick').selectOption('right');
  assert.deepEqual(await host.evaluate(()=>{const a=JSON.parse(localStorage.getItem('seamless-fight.settings.v1'));return [a.pad.shot,a.pad.cut,a.stick];}),[2,5,'right']);
  await host.locator('#pad-stick').selectOption('left');
+ await host.locator('#mouse-0').selectOption('shot');
+ assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.settings.v1')).mouse[0]),'shot');
  assert.match(await host.locator('#key-guide').textContent(),/J Cut/);
  assert(await host.locator('#gallery').isHidden());
  await host.locator('summary').filter({hasText:'Sound mix'}).click();
@@ -158,6 +160,8 @@ try{
    await until(()=>snapshot?.tick>first+38,'held controller action does not repeat');
    assert.equal(snapshot.p[0].ammo,2);
  }finally{await host.evaluate(()=>{window.testPad.buttons[2].pressed=false;});}
+ await host.locator('#arena').click({position:{x:30,y:30}});
+ await until(()=>snapshot?.p[0].ammo===1,'bound mouse click fires through authoritative input path');
  assert(impairment.up>1&&impairment.down>1);
  await host.locator('#gallery-toggle').click();
  await until(async()=>Boolean(await host.locator('#watch-link').inputValue()),'watch link issued');

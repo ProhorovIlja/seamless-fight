@@ -51,3 +51,5 @@ Sound mix includes optional centered combat cues and an independent practice-onl
 Canvas backing resolution follows its displayed width, capped at 2× device pixel ratio and 1920 pixels wide. Narrow screens no longer render a full desktop-size buffer. The 960×540 simulation and input coordinates are unchanged.
 
 Controls and presentation saves independent combat mappings for keyboard and standard gamepads, plus movement letters and a left/right stick choice. Arrow keys and D-pad remain fixed fallbacks. A used gamepad button swaps assignments; invalid saved layouts fall back to defaults. Changing mappings clears input and requires a neutral controller before combat resumes.
+
+Mouse buttons can be assigned independently to combat actions. They are unbound by default and only fire on the arena during active play. Mouse movement does not aim or move the hunter; the server input format remains the same.

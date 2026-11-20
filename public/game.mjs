@@ -4,7 +4,7 @@ import {trainingInput} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges,rangeBand} from './audio.mjs';
 import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
-import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,PAD_LABELS,swapBinding,STORAGE_KEY,allowed,settings,samplePad,touchDirection} from './controls.mjs';
+import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,PAD_LABELS,MOUSE_BUTTONS,mouseAction,swapBinding,STORAGE_KEY,allowed,settings,samplePad,touchDirection} from './controls.mjs';
 import {createMetrics} from './metrics.mjs';
 import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
 import {logInput,describe,eventLabel} from './analysis.mjs';
@@ -98,6 +98,7 @@ function refresh(){
  for(const d of Object.keys(DEFAULT_MOVE))$('move-'+d).textContent=d[0].toUpperCase()+d.slice(1)+': '+name(prefs.move[d]);
  for(const a of Object.keys(DEFAULT_PAD))$('pad-'+a).value=prefs.pad[a];
  $('pad-stick').value=prefs.stick;
+ for(const i of MOUSE_BUTTONS)$('mouse-'+i).value=mouseAction(prefs.mouse,i);
  $('key-guide').textContent=Object.values(prefs.move).map(name).join(' / ')+' or arrows: move · '+bindings.join(' · ');
 }
 for(const [act,label] of Object.entries(labels)){
@@ -119,6 +120,20 @@ for(const [act,label] of Object.entries(labels)){
 }
 $('pad-stick').onchange=()=>{flush();prefs.stick=$('pad-stick').value;persist();refresh();};
 $('reset-pad').onclick=()=>{flush();prefs.pad={...DEFAULT_PAD};prefs.stick='left';persist();refresh();};
+for(const i of MOUSE_BUTTONS){
+ const field=document.createElement('label'), select=document.createElement('select');select.id='mouse-'+i;
+ field.append(['Left click','Middle click','Right click','Rear side button','Front side button'][i]+' ',select);
+ for(const [action,title] of Object.entries({'':'Unbound',...labels})){
+   const option=document.createElement('option');option.value=action;option.textContent=title;select.append(option);
+ }
+ select.onchange=()=>{
+   flush();const act=select.value;
+   if(act)swapBinding(prefs.mouse,i,act);else delete prefs.mouse[i];
+   persist();refresh();
+ };
+ $('mouse-binds').append(field);
+}
+$('reset-mouse').onclick=()=>{flush();prefs.mouse={};persist();refresh();};
 function cancelBinding(){if(binding){binding='';$('bind-status').textContent='Binding cancelled.';}}
 $('input-settings').addEventListener('toggle',()=>{if(!$('input-settings').open)cancelBinding();});
 $('reset-keys').onclick=()=>{cancelBinding();flush();prefs.keys={...DEFAULT_KEYS};prefs.move={...DEFAULT_MOVE};persist();refresh();$('bind-status').textContent='Default keys restored.';};
@@ -147,6 +162,17 @@ function releaseTouch(){
  if(id!==null&&stick.hasPointerCapture(id))stick.releasePointerCapture(id);
 }
 function touchLive(){return mode==='online'||mode==='practice'||mode==='lab'&&!labHold||mode==='review'&&forkSlot>=0&&replayPlaying;}
+const mouseLive=()=>touchLive()&&!binding&&!s.ready&&!s.end&&!s.over;
+const mouseBound=ev=>!ev.ctrlKey&&!ev.altKey&&!ev.metaKey&&!ev.shiftKey&&mouseLive()&&mouseAction(prefs.mouse,ev.button);
+canvas.addEventListener('pointerdown',ev=>{
+ if(ev.pointerType!=='mouse')return;
+ const act=mouseBound(ev);
+ if(!act)return;
+ ev.preventDefault();if(!action)action=act;
+});
+for(const type of ['contextmenu','auxclick'])canvas.addEventListener(type,ev=>{
+ if(mouseBound(ev))ev.preventDefault();
+});
 function dragTouch(ev){
  const bounds=stick.getBoundingClientRect(), x=ev.clientX-bounds.left-bounds.width/2, y=ev.clientY-bounds.top-bounds.height/2;
  touchVector=touchDirection(x,y);

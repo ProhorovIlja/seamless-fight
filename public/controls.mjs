@@ -2,6 +2,8 @@ import {outfit} from './wardrobe.mjs';
 export const DEFAULT_KEYS={cut:'KeyJ',hew:'KeyK',shot:'KeyL',feint:'KeyI',step:'Space'};
 export const DEFAULT_MOVE=Object.freeze({up:'KeyW',left:'KeyA',down:'KeyS',right:'KeyD'});
 export const DEFAULT_PAD=Object.freeze({step:1,cut:2,hew:3,shot:5,feint:4});
+export const MOUSE_BUTTONS=Object.freeze([0,1,2,3,4]);
+export const mouseAction=(mapping,button)=>mapping[button]||'';
 export const PAD_LABELS=Object.freeze(['South · A / Cross','East · B / Circle','West · X / Square','North · Y / Triangle','Left bumper','Right bumper','Left trigger','Right trigger']);
 const movementKey=code=>typeof code==='string'&&/^Key[A-Z]$/.test(code)&&!['KeyR','KeyT'].includes(code);
 export function swapBinding(map,action,value){
@@ -19,7 +21,12 @@ export function settings(raw){
  const pad={...DEFAULT_PAD}, buttons=Object.keys(pad).map(a=>raw?.pad?.[a]);
  if(buttons.every(i=>Number.isInteger(i)&&i>=0&&i<PAD_LABELS.length)&&new Set(buttons).size===5)Object.keys(pad).forEach((a,i)=>pad[a]=buttons[i]);
  const clamp=(v,d,min,max)=>Number.isFinite(v)?Math.max(min,Math.min(max,v)):d;
- return {keys,move,pad,stick:raw?.stick==='right'?'right':'left',outfit:outfit(raw?.outfit),classic:raw?.classic===true,captions:raw?.captions===true,rangeAudio:raw?.rangeAudio===true,centerCues:raw?.centerCues===true,rangeVolume:clamp(raw?.rangeVolume,26,0,100),deadzone:clamp(raw?.deadzone,30,15,65),sfx:clamp(raw?.sfx,65,0,100),ambience:clamp(raw?.ambience,15,0,100),music:clamp(raw?.music,22,0,100),voice:clamp(raw?.voice,35,0,100),reduce:raw?.reduce===true,contrast:raw?.contrast===true};
+ const mouse={}, used=new Set();
+ for(const i of MOUSE_BUTTONS){
+   const act=raw?.mouse?.[i];
+   if(typeof act==='string'&&Object.hasOwn(DEFAULT_KEYS,act)&&!used.has(act)){mouse[i]=act;used.add(act);}
+ }
+ return {keys,move,pad,mouse,stick:raw?.stick==='right'?'right':'left',outfit:outfit(raw?.outfit),classic:raw?.classic===true,captions:raw?.captions===true,rangeAudio:raw?.rangeAudio===true,centerCues:raw?.centerCues===true,rangeVolume:clamp(raw?.rangeVolume,26,0,100),deadzone:clamp(raw?.deadzone,30,15,65),sfx:clamp(raw?.sfx,65,0,100),ambience:clamp(raw?.ambience,15,0,100),music:clamp(raw?.music,22,0,100),voice:clamp(raw?.voice,35,0,100),reduce:raw?.reduce===true,contrast:raw?.contrast===true};
 }
 export function samplePad(pad,prior,threshold,bindings=DEFAULT_PAD,stick='left'){
  if(!pad?.connected||pad.mapping!=='standard')return {x:0,y:0,act:'',next:null};

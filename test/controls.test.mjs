@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,settings,samplePad,swapBinding} from '../public/controls.mjs';
+import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,settings,samplePad,swapBinding,mouseAction} from '../public/controls.mjs';
 const pad=(bs=[],axes=[0,0],extra={})=>({mapping:'standard',connected:true,index:0,axes,buttons:Array.from({length:16},(_,i)=>({pressed:bs.includes(i)})),...extra});
 test('persisted preferences validate key conflicts, reserved keys and ranges',()=>{
  const a=settings({keys:{...DEFAULT_KEYS,cut:'KeyK'},sfx:200,ambience:-3,deadzone:NaN});
@@ -29,4 +29,11 @@ test('remaps swap existing controls and reject invalid or conflicting persisted 
  const base=samplePad(pad([],[0,0,0,-1]),null,.3,bindings,'right');
  assert.equal(base.y,-1);
  assert.equal(samplePad(pad([2]),base.next,.3,bindings).act,'shot');
+});
+
+test('mouse is opt-in and rejects invalid actions and duplicates',()=>{
+ assert.equal(mouseAction(settings().mouse,0),'');
+ const {mouse}=settings({mouse:{0:'shot',1:'shot',2:'hew',3:'constructor',5:'cut'}});
+ assert.deepEqual(mouse,{0:'shot',2:'hew'});
+ swapBinding(mouse,2,'shot');assert.deepEqual(mouse,{0:'hew',2:'shot'});
 });
