@@ -22,6 +22,7 @@ try{
  assert.equal(await page.locator('#stage-select').inputValue(),'reliquary');
  assert.match(await page.locator('#stage-title').textContent(),/ASHEN RELIQUARY/);
  assert.equal(await page.locator('#fight-canvas').getAttribute('data-mode'),'idle');
+ assert.match(await page.locator('#live-spacing').textContent(),/Center distance/);
  await page.locator('#opponent').selectOption('dummy');
  await page.locator('#begin').click();
  await until(async()=>Number(await page.locator('#fight-canvas').getAttribute('data-tick'))>100,'round countdown advances');
@@ -36,6 +37,8 @@ try{
  await page.keyboard.down('s');await sleep(100);
  await page.keyboard.up('s');
  await page.locator('#show-boxes').check();
+ assert.match(await page.locator('#live-phase-0').textContent(),/ready|active|recovery|startup|airborne|crouch/i);
+ assert.match(await page.locator('#live-performance').textContent(),/frame interval p95/);
  await page.screenshot({path:'artifacts/side-reliquary-characters-and-hitboxes.png'});
  await page.locator('#show-boxes').uncheck();
  const start=Number(await page.locator('#fight-canvas').getAttribute('data-veil-x'));
