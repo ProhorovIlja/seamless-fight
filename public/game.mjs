@@ -77,6 +77,9 @@ function sendInput(input){
 let rawPrefs;
 try{rawPrefs=JSON.parse(localStorage.getItem(STORAGE_KEY));}catch{}
 const prefs=settings(rawPrefs), reduced=()=>prefs.reduce||motionQuery.matches;
+// Scale the rem-based website-matching interface; never scale simulation pixels.
+function applyUiScale(){document.documentElement.style.fontSize=16*prefs.uiScale/100+'px';}
+applyUiScale();
 let looks=pair();
 const classic=outfit();
 function previewOutfit(){
@@ -140,6 +143,8 @@ $('reset-mouse').onclick=()=>{flush();prefs.mouse={};persist();refresh();};
 function cancelBinding(){if(binding){binding='';$('bind-status').textContent='Binding cancelled.';}}
 $('input-settings').addEventListener('toggle',()=>{if(!$('input-settings').open)cancelBinding();});
 $('reset-keys').onclick=()=>{cancelBinding();flush();prefs.keys={...DEFAULT_KEYS};prefs.move={...DEFAULT_MOVE};persist();refresh();$('bind-status').textContent='Default keys restored.';};
+$('ui-scale').value=String(prefs.uiScale);
+$('ui-scale').onchange=()=>{prefs.uiScale=[100,115,130,150].includes(Number($('ui-scale').value))?Number($('ui-scale').value):100;applyUiScale();persist();};
 for(const id of ['reduce','contrast','captions']){$(id).checked=prefs[id];$(id).onchange=()=>{prefs[id]=$(id).checked;persist();};}
 $('sfx').value=prefs.sfx;$('ambience').value=prefs.ambience;$('music').value=prefs.music;$('voice').value=prefs.voice;$('deadzone').value=prefs.deadzone;
 $('deadzone-value').textContent=prefs.deadzone+'%';
