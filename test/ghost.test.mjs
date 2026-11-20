@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {blank,match} from '../public/engine.mjs';
 import {createReview,packTick,RULESET} from '../public/replay.mjs';
-import {createGhost,trainGhost,restoreGhost} from '../public/ghost.mjs';
+import {createGhost,trainGhost,restoreGhost,ghostInsights,serializeGhost,parseGhost} from '../public/ghost.mjs';
 const view=(side=0,action='')=>createReview({rules:RULESET,tape:Array.from({length:320},(_,i)=>{
  const inputs=[blank(),blank()];
  if(i>=121)inputs[side]={x:side?1:-1,y:0,act:i===180?action:''};
@@ -21,4 +21,17 @@ test('ghost responds to relative position instead of reproducing absolute record
  s.tick=10;assert.deepEqual(g(s),{x:1,y:0,act:''});
  s.p[0].x=880;s.p[1].x=420;
  for(let i=11;i<=28;i++){s.tick=i;const move=g(s);if(i>=22)assert.equal(move.x,-1);}
+});
+test('portable ghost validates rules, counters, duplicate filenames and corrupted data',()=>{
+ const model=trainGhost(view(),0),json=serializeGhost(model),restored=parseGhost(json);
+ assert.deepEqual(restored,model);
+ const details=ghostInsights(model);
+ assert(details.samples>=12&&details.contexts>=1);
+ assert.equal(details.sourceCount,1);
+ assert.equal(typeof details.signature,'string');
+ assert.throws(()=>parseGhost('{'),/JSON/);
+ assert.throws(()=>parseGhost('x'.repeat(48001)),/too large/);
+ assert.throws(()=>parseGhost(JSON.stringify({...JSON.parse(json),rules:'older-rules'})),/compatible/);
+ assert.throws(()=>parseGhost(JSON.stringify({...JSON.parse(json),model:{...model,counts:[Infinity]}})),/corrupted/);
+ assert.equal(json.includes('seamlesshunt.com'),false);
 });

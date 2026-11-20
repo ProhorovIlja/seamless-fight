@@ -1,5 +1,6 @@
 import {blank,match,step,moves,canAct,canFeint} from './engine.mjs';
 import {createSparring} from './tactics.mjs';
+import {RULESET} from './replay.mjs';
 
 export const GHOST_KEY='seamless-fight.ghost.v1';
 const DIR=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
@@ -87,4 +88,38 @@ export function createGhost(model){
    }
    return defaultInput;
  };
+}
+
+const fileKind='seamless-fight-ghost/1';
+const maxGhostFile=48000;
+// A portable ghost is an aggregate histogram, not raw inputs or player identity.
+// Replay fingerprints are included to reject accidental duplicate training.
+export function ghostInsights(model){
+ const byAction=Object.fromEntries(actions.map(action=>[action||'neutral',0]));
+ let samples=0,seenContexts=0;
+ for(let j=0;j<contexts;j++){
+   let contextCount=0;
+   for(let i=0;i<width;i++){
+     const n=model.counts[j*width+i];samples+=n;contextCount+=n;
+     byAction[actions[i%6]||'neutral']+=n;
+   }
+   if(contextCount)seenContexts++;
+ }
+ const known=['cut','hew','shot','step','feint'].sort((a,b)=>byAction[b]-byAction[a]);
+ return {samples,contexts:seenContexts,sourceCount:model.sources.length,byAction,signature:known.find(a=>byAction[a])||'none'};
+}
+export function serializeGhost(model){
+ const normalized=restoreGhost(model);
+ if(!normalized)throw Error('No valid ghost profile to export.');
+ const result=JSON.stringify({kind:fileKind,rules:RULESET,model:normalized});
+ if(result.length>maxGhostFile)throw Error('Ghost profile exceeds the portable size limit.');
+ return result;
+}
+export function parseGhost(text){
+ if(typeof text!=='string'||text.length>maxGhostFile)throw Error('Ghost file is too large.');
+ let file;try{file=JSON.parse(text);}catch{throw Error('Ghost file is not valid JSON.');}
+ if(file?.kind!==fileKind||file.rules!==RULESET)throw Error('This ghost file is not compatible with the current duel rules.');
+ const model=restoreGhost(file.model);
+ if(!model)throw Error('Invalid or corrupted ghost profile.');
+ return model;
 }

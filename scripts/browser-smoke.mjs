@@ -197,6 +197,19 @@ try{
  await host.locator('#ghost-learn').click();
  await until(async()=>/Ghost updated/.test(await host.locator('#ghost-status').textContent()),'ghost learned from captured online fighter');
  assert(await host.locator('#ghost-option').isEnabled());
+ assert.match(await host.locator('#ghost-stats').textContent(),/1 captured fighters/);
+ const ghostEvent=host.waitForEvent('download');
+ await host.locator('#ghost-export').click();
+ const ghostDownload=await ghostEvent;
+ assert.equal(ghostDownload.suggestedFilename(),'seamless-fight-ghost.json');
+ const ghostFile=await ghostDownload.path();
+ const originalGhost=await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.ghost.v1')));
+ await host.locator('#ghost-clear').click();
+ assert(await host.locator('#ghost-option').isDisabled());
+ await host.locator('#ghost-import').setInputFiles(ghostFile);
+ await until(async()=>/Ghost imported/.test(await host.locator('#ghost-status').textContent()),'portable ghost reimported');
+ assert.deepEqual(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.ghost.v1'))),originalGhost);
+
  await host.locator('#review-open').click();
  await status(host,/Match review/);
  assert.match(await host.locator('#arena-title').textContent(),/Drowned Cistern/);

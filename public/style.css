@@ -78,3 +78,5 @@ details summary{letter-spacing:.035em}
 .queue-filters{flex-basis:100%;min-inline-size:0}.queue-filters p{font-size:.86rem;color:#aea590;margin:.35rem 0}.queue-filters select{max-width:100%}
 
 #ghost-status{color:var(--hunt-gold);font-family:var(--hunt-serif)}
+
+.ghost-stats{color:var(--hunt-bone);font:1.05rem var(--hunt-serif);letter-spacing:.01em}.ghost-privacy{font-size:.82rem;color:#aea590;max-width:70ch}#ghost-export{color:var(--hunt-gold);border:1px solid #776649;padding:.4rem .65rem;text-decoration:none;background:var(--hunt-inset)}#ghost-export:hover,#ghost-export:focus-visible{border-color:var(--hunt-gold);color:var(--hunt-bone)}

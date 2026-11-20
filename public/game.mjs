@@ -1,7 +1,7 @@
 import {W,H,HZ,match,step,blank,moves} from './engine.mjs';
 import {HISTORY_LIMIT,playable,reconcile} from './prediction.mjs';
 import {queueOptions} from './queue-policy.mjs';
-import {GHOST_KEY,restoreGhost,trainGhost,createGhost} from './ghost.mjs';
+import {GHOST_KEY,restoreGhost,trainGhost,createGhost,ghostInsights,serializeGhost,parseGhost} from './ghost.mjs';
 import {createSparring,LESSONS,lessonStep} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges,rangeBand} from './audio.mjs';
@@ -221,10 +221,19 @@ addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
 let spar=createSparring(), practiceTape=[], lesson=-1;
 let ghost=null;try{ghost=restoreGhost(JSON.parse(localStorage.getItem(GHOST_KEY)));}catch{}
+let ghostUrl='';
 function ghostStatus(note=''){
  $('ghost-option').disabled=!ghost;
  $('ghost-clear').disabled=!ghost;
- $('ghost-status').textContent=note||(ghost?'Ghost trained from '+ghost.sources.length+' recent fighter captures.':'No ghost trained on this browser.');
+ $('ghost-export').hidden=!ghost;
+ if(ghostUrl){URL.revokeObjectURL(ghostUrl);ghostUrl='';}
+ if(ghost){
+   const data=serializeGhost(ghost),summary=ghostInsights(ghost);
+   ghostUrl=URL.createObjectURL(new Blob([data],{type:'application/json'}));
+   $('ghost-export').href=ghostUrl;
+   $('ghost-stats').textContent=summary.sourceCount+' captured fighters · '+summary.samples+' observations · '+summary.contexts+'/24 contexts · top action: '+summary.signature;
+ }else $('ghost-stats').textContent='Train on a replay or import a ghost profile. No fight data is uploaded.';
+ $('ghost-status').textContent=note||(ghost?'Ready to spar against your saved ghost.':'No ghost trained on this browser.');
 }
 ghostStatus();
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
@@ -468,9 +477,24 @@ $('ghost-learn').onclick=()=>{
  try{
    ghost=trainGhost(capture,Number($('ghost-slot').value),ghost);
    let saved=true;try{localStorage.setItem(GHOST_KEY,JSON.stringify(ghost));}catch{saved=false;}
+   if(mode==='practice'&&$('drill').value==='ghost'&&!searchSocket)spar=createGhost(ghost);
    ghostStatus(saved?'Ghost updated. Select Trained ghost in Practice.':'Ghost updated for this tab; browser storage is unavailable.');
  }catch(err){ghostStatus(err.message);}
 };
+$('ghost-import').onchange=async event=>{
+ const file=event.target.files?.[0];event.target.value='';
+ if(!file)return;
+ try{
+   if(file.size>48000)throw Error('Ghost file is too large.');
+   const replacement=parseGhost(await file.text());
+   if(ghost&&!window.confirm('Replace your current local ghost? Export it first to keep a copy.')){ghostStatus('Ghost import cancelled.');return;}
+   ghost=replacement;
+   let saved=true;try{localStorage.setItem(GHOST_KEY,JSON.stringify(ghost));}catch{saved=false;}
+   if(mode==='practice'&&$('drill').value==='ghost'&&!searchSocket)spar=createGhost(ghost);
+   ghostStatus(saved?'Ghost imported. You can now spar with it.':'Ghost imported for this tab; browser storage is unavailable.');
+ }catch(err){ghostStatus(err.message);}
+};
+addEventListener('pagehide',()=>{if(ghostUrl){URL.revokeObjectURL(ghostUrl);ghostUrl='';}});
 $('ghost-clear').onclick=()=>{
  ghost=null;try{localStorage.removeItem(GHOST_KEY);}catch{}
  if($('drill').value==='ghost')$('drill').value='duelist';
