@@ -21,6 +21,12 @@ try{
  assert(await page.locator('.duel-crest').evaluate(img=>img.complete&&img.naturalWidth>0),'local site-crest fallback renders');
  await page.waitForFunction(()=>document.querySelector('#look-dye')?.options.length>=2,{timeout:5000}).catch(()=>{});
  assert.deepEqual(errors,[],'all side-view modules must load without browser errors before UI interaction');
+ await until(async()=>await page.locator('#fight-canvas').getAttribute('data-art-mode')==='illustrated','original artwork decoded into the real game');
+ assert.equal(await page.locator('#painted-stage').isChecked(),true);
+ await page.locator('#painted-stage').uncheck();
+ await until(async()=>await page.locator('#fight-canvas').getAttribute('data-art-mode')==='procedural','art fallback enabled');
+ await page.locator('#painted-stage').check();
+ await until(async()=>await page.locator('#fight-canvas').getAttribute('data-art-mode')==='illustrated','painted arena restored');
  await page.locator('#look-dye').selectOption('ivory');
  await page.locator('#look-sigil').selectOption('crown');
  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.side.settings.v1')).look),{dye:'ivory',sigil:'crown'});
@@ -86,6 +92,7 @@ try{
  assert.match(await page.locator('#bindings [data-bind=guard]').textContent(),/Guard · P/);
  await page.reload();
  assert.equal(await page.locator('#depth-quality').inputValue(),'performance');
+ assert.equal(await page.locator('#painted-stage').isChecked(),true);
  assert.equal(await page.locator('#impact-camera').isChecked(),false);
  assert.match(await page.locator('#bindings [data-bind=guard]').textContent(),/Guard · P/);
  assert.equal(await page.locator('#look-dye').inputValue(),'ivory');
