@@ -22,6 +22,8 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  assert.equal(revalidated.headers.get('cache-control'),'no-cache');
  assert.match(revalidated.headers.get('content-security-policy'),/frame-ancestors 'none'/);
  const head=await fetch(origin+'/fight/game.mjs',{method:'HEAD'});
+ const geometry=await fetch(origin+'/fight/training-geometry.mjs');
+ assert.equal(geometry.status,200);assert.match(await geometry.text(),/drawTrainingGeometry/);
  const get=await fetch(origin+'/fight/game.mjs');
  assert.equal(head.headers.get('content-length'),get.headers.get('content-length'));
  assert(get.headers.get('content-length')>5000);
