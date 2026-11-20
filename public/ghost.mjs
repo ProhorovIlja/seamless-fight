@@ -46,7 +46,6 @@ export function trainGhost(view,slot,prior){
    const input=view.inputs(i), own=s.p[slot], other=s.p[1-slot], chosen=input[slot];
    if(s.ready||s.end||s.over)ring.fill(null);
    else{
-     ring[i%ring.length]=other;
      const seen=ring[(i+1)%ring.length];
      if(seen&&legal(own,chosen.act)&&(chosen.act||i%6===0)){
        const index=context(own,seen)*width+encode(own,seen,chosen);

@@ -174,6 +174,12 @@ try{
  assert.equal(await viewer.locator('#arena').evaluate(el=>el.width),1920);assert(await viewer.locator('#rematch').isHidden());
  await host.locator('#gallery-toggle').click();
  await status(viewer,/host closed the gallery/);
+ await host.bringToFront();
+ await host.evaluate(()=>document.activeElement.blur());
+ const trainStart=snapshot.tick;
+ await host.keyboard.down('a');
+ try{await until(()=>snapshot.tick>=trainStart+42,'collect sustained movement for ghost training');}
+ finally{await host.keyboard.up('a');}
  await host.locator('#match-review summary').click();
  await host.locator('#capture').click();
  await until(async()=>await host.locator('#review-open').isEnabled(),'authoritative replay captured');
@@ -192,7 +198,7 @@ try{
  await until(async()=>/Ghost updated/.test(await host.locator('#ghost-status').textContent()),'ghost learned from captured online fighter');
  assert(await host.locator('#ghost-option').isEnabled());
  await host.locator('#review-open').click();
- await status(host,/Online match review/);
+ await status(host,/Match review/);
  assert.match(await host.locator('#arena-title').textContent(),/Drowned Cistern/);
  await host.locator('#review-step').click();
  assert.match(await host.locator('#review-tick').textContent(),/^Tick 1 /);
@@ -216,6 +222,11 @@ try{
  await host.locator('#practice').click();
  await host.locator('#arena-select').selectOption('lantern');
  await until(async()=>/Lantern Court/.test(await host.locator('#arena-title').textContent()),'Lantern Court selected');
+ await host.locator('#drill').selectOption('ghost');
+ await status(host,/Practice · Trained ghost/);
+ assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.ghost.v1')).sources.length),1);
+ await host.locator('#ghost-learn').click();
+ await until(async()=>/already in the ghost/.test(await host.locator('#ghost-status').textContent()),'duplicate ghost capture rejected');
  await host.locator('#drill').selectOption('lesson');
  assert.match(await host.locator('#lesson-title').textContent(),/Move across/);
  await until(async()=>/74 seconds/.test(await host.locator('#round-score').textContent()),'lesson round running');

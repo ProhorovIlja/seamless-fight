@@ -33,3 +33,10 @@ test('lesson credits executed local actions, not countdown or opponent cues',()=
  assert.equal(stage,LESSONS.length);
  assert.equal(lessonStep(stage,observe(30,[])),stage);
 });
+
+test('Hard observes earlier than Normal and Easy without seeing current opponent input',()=>{
+ const s=match();s.ready=0;
+ const bots=['easy','normal','hard'].map(level=>createSparring('duelist',level)),first=Array(3).fill(null);
+ for(let tick=0;tick<=24;tick++){s.tick=tick;for(let i=0;i<bots.length;i++){const a=bots[i](s);if(first[i]===null&&a.x)first[i]=tick;}}
+ assert.deepEqual(first,[20,12,8]);
+});
