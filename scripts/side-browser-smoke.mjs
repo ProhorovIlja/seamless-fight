@@ -18,6 +18,7 @@ try{
  page.on('response',r=>{if(r.url().startsWith(base)&&r.status()>=400)errors.push(r.status()+' '+r.url());});
  await page.goto(base+'/fight/side/');
  assert.match(await page.title(),/Side-View Combat Lab/);
+ assert(await page.locator('.duel-crest').evaluate(img=>img.complete&&img.naturalWidth>0),'local site-crest fallback renders');
  assert.equal(await page.locator('#frame-table tbody tr').count(),3);
  assert.equal(await page.locator('#stage-select').inputValue(),'reliquary');
  assert.match(await page.locator('#stage-title').textContent(),/ASHEN RELIQUARY/);
