@@ -1,6 +1,6 @@
 // Original procedural side-view presentation. World geometry is NEVER
 // sampled by combat; every stage uses the same engine floor and attack boxes.
-import {SIDE_FLOOR,SIDE_MOVES,sideAttackbox,sideHurtbox,sidePhase} from './side-engine.mjs';
+import {SIDE_HZ,SIDE_FLOOR,SIDE_MOVES,sideAttackbox,sideHurtbox,sidePhase} from './side-engine.mjs';
 import {dyes,outfit} from './wardrobe.mjs';
 const TAU=Math.PI*2;
 const palettes={
