@@ -14,6 +14,7 @@ import {arenaId} from './public/arenas.mjs';
 import {eligible,queueOptions} from './public/queue-policy.mjs';
 import {newSet,recordGame,SET_PAUSE_MS,mayVoteRematch} from './server/set-policy.mjs';
 import {outfit} from './public/wardrobe.mjs';
+import {createSideHub} from './server/side-online.mjs';
 
 const assets = new Map([
   ['', ['index.html','text/html; charset=utf-8']],
@@ -65,6 +66,7 @@ let queueOrder=0;
 const MAX_VIEWERS=6;
 const token=()=>randomBytes(9).toString('base64url');
 const origin=process.env.PUBLIC_ORIGIN;
+const sideHub=createSideHub(origin);
 if(process.env.DEBIAN_13_REQUIRED==='1'){
  const problems=validateRuntime(process.env,process.versions.node,readFileSync('/etc/os-release','utf8'));
  if(problems.length)throw Error('Unsafe Debian 13 production runtime: '+problems.join(' '));
@@ -94,6 +96,10 @@ const http=createServer((req,res)=>{
 });
 const ws=new WebSocketServer({noServer:true,maxPayload:512,perMessageDeflate:false});
 http.on('upgrade',(req,socket,head)=>{
+  if(req.url==='/fight/side/socket'){
+    if(shuttingDown){socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n');return;}
+    sideHub.upgrade(req,socket,head,'http://'+req.headers.host);return;
+  }
   if(shuttingDown){socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n');return;}
   const allowed=origin||'http://'+req.headers.host;
   if(req.url!=='/fight/socket'||req.headers.origin!==allowed||ws.clients.size>=256){
@@ -227,13 +233,14 @@ ws.on('connection',c=>{
     for(const other of room.peers)if(other!==c){send(other,{t:'error',message:'Opponent disconnected. Create a new room.'});other.close(1000);}
   });
 });
-setInterval(()=>{for(const c of ws.clients){if(!c.alive)c.terminate();else if(c.readyState===1){c.alive=false;c.ping();}}},15000).unref();
+setInterval(()=>{for(const c of ws.clients){if(!c.alive)c.terminate();else if(c.readyState===1){c.alive=false;c.ping();}}sideHub.heartbeat();},15000).unref();
 const dt=1000/HZ;
 let next=performance.now(),ticks=0;
 setInterval(()=>{
   const now=performance.now();let budget=4;
   while(now>=next&&budget-->0){
     next+=dt;ticks++;lastSimulationTime=performance.now();
+    sideHub.tick(now);
     for(const r of rooms.values()){
       if(r.peers.length<2){if(now-r.at>300000)r.peers[0].close(1000,'room expired');continue;}
       if(!r.s.over){
@@ -279,7 +286,7 @@ setInterval(()=>{
 function shutdown(){
  if(shuttingDown)return;
  shuttingDown=true;
- http.close();
+ http.close();sideHub.shutdown();
  for(const c of ws.clients){
    if(c.readyState===1){
      send(c,{t:'error',message:'Duel server restarting. Live matches and queues are not retained.'});
