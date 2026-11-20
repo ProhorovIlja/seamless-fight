@@ -19,6 +19,8 @@ try{
  await page.goto(base+'/fight/side/');
  assert.match(await page.title(),/Side-View Combat Lab/);
  assert(await page.locator('.duel-crest').evaluate(img=>img.complete&&img.naturalWidth>0),'local site-crest fallback renders');
+ await page.waitForFunction(()=>document.querySelector('#look-dye')?.options.length>=2,{timeout:5000}).catch(()=>{});
+ assert.deepEqual(errors,[],'all side-view modules must load without browser errors before UI interaction');
  await page.locator('#look-dye').selectOption('ivory');
  await page.locator('#look-sigil').selectOption('crown');
  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.side.settings.v1')).look),{dye:'ivory',sigil:'crown'});
