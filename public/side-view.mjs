@@ -7,7 +7,7 @@ import {reconcileSide,SIDE_PREDICTION_LIMIT} from './side-prediction.mjs';
 import {createSideTransport,SIDE_INVITE_PATTERN} from './side-online-client.mjs';
 import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTraining,drawSideHUD,drawSideImpact} from './side-art.mjs';
 import {SIDE_DEPTH_QUALITY,paintSideDepthStatic,paintSideDepthBack,paintSideDepthFront} from './side-depth.mjs';
-import {sideCameraImpact,sideScoreTension,sideIsFootstep} from './side-cinema.mjs';
+import {sideCameraImpact,sideScoreTension,sideIsFootstep,sideWorldLens} from './side-cinema.mjs';
 import {createAudio} from './audio.mjs';
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
@@ -442,7 +442,11 @@ function paint(now,elapsed){
  canvas.dataset.depthQuality=sidePrefs.depthQuality;
  if(audioOn&&now>=nextTensionAt){nextTensionAt=now+220;sound.tension(Math.round(sideScoreTension(s)*20)/20);}
  const camera=sideCameraImpact(effects,now,reduced(),sidePrefs.depthQuality,sidePrefs.boxes&&mode!=='online');
+ const lens=sideWorldLens(s,sidePrefs.depthQuality);
  g.save();g.translate(camera.x,camera.y);
+ // Identical lens for the stage, two fighters and frame-data boxes. HUD and
+ // text stay in screen space. This is optical 2.5D only, not 3D movement.
+ g.translate(480+lens.shift,SIDE_FLOOR);g.scale(lens.zoom,lens.zoom);g.translate(-480,-SIDE_FLOOR);
  g.drawImage(stageCanvas,0,0);
  paintSideDepthBack(g,scene,now,s,sidePrefs.depthQuality,reduced());
  paintSideWeather(g,now,scene,reduced()||sidePrefs.depthQuality==='performance');
