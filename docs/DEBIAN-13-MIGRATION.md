@@ -59,3 +59,5 @@ Verify `/fight/health` through HTTPS, then a full **two-browser WebSocket duel**
 Keep the old server, verified backups, DNS rollback, Caddy configuration, earlier release/runtime symlinks and service units until the new site and game pass post-reboot checks. Back out the `/fight` handler and **only** `seamless-fight.service` if needed. Live matches and queues are memory-only and are lost on restart. Debian CI jobs validate an isolated container environment, not the live website or the OS cutover.
 
 A Debian systemd restart now sends a WebSocket **1012 Service Restart** close frame to connected fighters/viewers and closes their rooms; it does not persist unfinished matches or queue state. The service allows up to 1.5 seconds for close frames to flush before terminating remaining sockets. Test restart behaviour on staging, not by restarting the live website.
+
+The application also checks the production Debian runtime on startup when `DEBIAN_13_REQUIRED=1`, even if `ExecStartPre` is bypassed. `/fight/health` reports a non-stalled simulation tick loop; a 503 status means the loop has fallen behind, not merely that the HTTP listener is reachable.

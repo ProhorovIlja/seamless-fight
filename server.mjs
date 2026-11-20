@@ -5,6 +5,8 @@ import { performance } from 'node:perf_hooks';
 import { WebSocketServer } from 'ws';
 import { HZ, blank, match, step, canFeint, canAct } from './public/engine.mjs';
 
+import {validateRuntime} from './scripts/validate-runtime.mjs';
+
 import {RULESET,MAX_TICKS,packTick} from './public/replay.mjs';
 
 import {arenaId} from './public/arenas.mjs';
@@ -42,18 +44,28 @@ if(process.env.SITE_ART==='1'){
   assets.set('/fight/',[Buffer.from(html.toString('utf8').replace('data-site-art="off"','data-site-art="on"')),type]);
 }
 const rooms=new Map(), galleries=new Map(), casual=new Map();
+let lastSimulationTime=performance.now();
 let shuttingDown=false;
 const QUEUE_MS=120000;
 let queueOrder=0;
 const MAX_VIEWERS=6;
 const token=()=>randomBytes(9).toString('base64url');
 const origin=process.env.PUBLIC_ORIGIN;
+if(process.env.DEBIAN_13_REQUIRED==='1'){
+ const problems=validateRuntime(process.env,process.versions.node,readFileSync('/etc/os-release','utf8'));
+ if(problems.length)throw Error('Unsafe Debian 13 production runtime: '+problems.join(' '));
+}
 const http=createServer((req,res)=>{
   const path=req.url?.split('?')[0];
   if(shuttingDown){res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end('{"ok":false,"reason":"restarting"}');return;}
   if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405,{Allow:'GET, HEAD'}).end();return;}
   if(path==='/fight'){res.writeHead(308,{Location:'/fight/'+(req.url.includes('?')?'?'+req.url.split('?').slice(1).join('?'):'')}).end();return;}
-  if(path==='/fight/health'){res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'}).end('{"ok":true}');return;}
+  if(path==='/fight/health'){
+    const fresh=performance.now()-lastSimulationTime<500;
+    res.writeHead(fresh?200:503,{'Content-Type':'application/json','Cache-Control':'no-store'})
+      .end(JSON.stringify({ok:fresh,simulation:fresh?'running':'stalled'}));
+    return;
+  }
   const asset=assets.get(path);
   if(!asset){res.writeHead(404).end();return;}
   res.writeHead(200,{'Content-Type':asset[1],'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"});
@@ -192,7 +204,7 @@ let next=performance.now(),ticks=0;
 setInterval(()=>{
   const now=performance.now();let budget=4;
   while(now>=next&&budget-->0){
-    next+=dt;ticks++;
+    next+=dt;ticks++;lastSimulationTime=performance.now();
     for(const r of rooms.values()){
       if(r.peers.length<2){if(now-r.at>300000)r.peers[0].close(1000,'room expired');continue;}
       if(!r.s.over){

@@ -12,6 +12,8 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const child=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:String(port),HOST:'127.0.0.1',PUBLIC_ORIGIN:origin,SITE_ART:'1'},stdio:'inherit'});
  t.after(()=>child.kill());
  let ready=false;for(let i=0;i<50;i++){try{ready=(await fetch(origin+'/fight/health')).ok;if(ready)break;}catch{}await sleep(50);}assert(ready);
+ const health=await (await fetch(origin+'/fight/health')).json();
+ assert.deepEqual(health,{ok:true,simulation:'running'});
  const page=await fetch(origin+'/fight/');assert.match(await page.text(),/data-site-art="on"/);
  assert.equal((await fetch(origin+'/art/icon-blades.webp')).status,404,'the site proxy, not the duel process, owns shared art');
  const bad=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin:'https://example.invalid'});const [err]=await once(bad,'error');assert.match(err.message,/403/);
