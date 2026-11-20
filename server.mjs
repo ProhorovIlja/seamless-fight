@@ -62,7 +62,7 @@ function closeGallery(r,message){
   for(const viewer of r.viewers){send(viewer,{t:'error',message});viewer.close(1000);}
   r.viewers.clear();
 }
-function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.tape=[];r.votes.clear();for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
+function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.tape=[];r.cues.length=0;r.votes.clear();for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
 ws.on('connection',c=>{
   let room, slot, quota=0, quotaAt=performance.now();
   c.alive=true;c.input=blank();c.actions=[];c.cancel=false;c.at=0;c.seq=0;c.ack=0;
@@ -86,7 +86,7 @@ ws.on('connection',c=>{
       if(m.code==null){
         if(rooms.size>=96){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
         let code;do{code=token();}while(rooms.has(code)||galleries.has(code));
-        room={code,arena:arenaId(m.arena),outfits:[outfit(),outfit()],peers:[],viewers:new Set(),watchCode:null,tape:[],votes:new Set(),s:match(),at:now};rooms.set(code,room);
+        room={code,arena:arenaId(m.arena),outfits:[outfit(),outfit()],peers:[],viewers:new Set(),watchCode:null,tape:[],cues:[],votes:new Set(),s:match(),at:now};rooms.set(code,room);
       }else{
         const existing=typeof m.code==='string'&&rooms.get(m.code);
         if(!existing||existing.peers.length!==1){send(c,{t:'error',message:'Room is full or no longer exists.'});c.close(1008);return;}
@@ -150,11 +150,13 @@ setInterval(()=>{
           return {...(now-c.at<260?c.input:blank()),act};
         });
         if(r.tape.length<MAX_TICKS)r.tape.push(packTick(inputs));
-        step(r.s,inputs);
+        step(r.s,inputs,undefined,r.cues);
       }
       if(ticks%3===0){
-        for(const c of r.peers)send(c,{t:'state',s:r.s,ack:c.ack});
-        if(r.viewers.size){const frame=JSON.stringify({t:'state',s:r.s});for(const viewer of r.viewers)send(viewer,frame);}
+        const payload={t:'state',s:r.s,cues:r.cues};
+        for(const c of r.peers)send(c,{...payload,ack:c.ack});
+        if(r.viewers.size){const frame=JSON.stringify(payload);for(const viewer of r.viewers)send(viewer,frame);}
+        r.cues.length=0;
       }
     }
   }

@@ -41,3 +41,5 @@ The pistol has separate preparation and discharge cues. Its muzzle flash and rep
 The presentation pass adds an adaptive synthesized score, nonverbal exertion cues, animated armor/weapon and hit details, and a larger mobile text scoreboard. Music and exertion have independent saved mix settings; the master sound toggle still requires a gesture. Chromium CI captures screenshots of both arenas and the reduced-motion mobile layout.
 
 Touch devices show a pointer-captured movement stick and five combat buttons during play. Touch uses the same discrete inputs and move rules as keyboard/controller; cancellation and focus loss release held movement. Optional cue captions identify preparation, discharge, hits and interrupts without requiring audio. They do not expose hidden inputs.
+
+Online pistol discharge and impact cues come directly from the authoritative tick, batched into existing snapshots and shared with spectators. Impact sparks follow the strike direction. Offline feedback still uses local simulation state. This does not change simulation rules, replay compatibility or send cadence.

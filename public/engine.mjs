@@ -38,7 +38,7 @@ const engine = function engine(){
    p.spent=true;
    return {damage:m[5],stun:p.act==='shot'&&(q.act==='cut'||q.act==='hew')&&q.age<moves[q.act][0]};
  }
- function step(s,inputs,events){
+ function step(s,inputs,events,cues){
    s.tick++;
    if(s.over)return;
    if(s.end){if(!--s.end){s.p=[fighter(0),fighter(1)];s.clock=LIMIT;s.ready=120;s.round++;s.winner=null;}return;}
@@ -46,7 +46,14 @@ const engine = function engine(){
    const [a,b]=s.p;const priorA={x:a.x,y:a.y};motion(a,inputs[0],b);motion(b,inputs[1],priorA);
    const d=Math.hypot(a.x-b.x,a.y-b.y);
    if(d<34){const dx=d?(a.x-b.x)/d:-1,dy=d?(a.y-b.y)/d:0;for(const [p,k] of [[a,1],[b,-1]]){p.x=clamp(p.x+dx*(34-d)*.5*k,58,W-58);p.y=clamp(p.y+dy*(34-d)*.5*k,96,H-55);}}
+   if(cues)for(let i=0;i<2;i++){
+     const p=s.p[i];if(p.act==='shot'&&p.age===moves.shot[0])cues.push({name:'shot',x:p.x,actor:i,muzzle:i});
+   }
    const hits=[strike(b,a),strike(a,b)];
+   if(cues)for(let i=0;i<2;i++)if(hits[i]){
+     const p=s.p[i],q=s.p[1-i];
+     cues.push({name:hits[i].stun?'interrupt':'hit',x:p.x,actor:i,index:i,angle:Math.atan2(p.y-q.y,p.x-q.x)});
+   }
    if(events)for(let i=0;i<2;i++){
      const p=s.p[i],attacker=s.p[1-i],hit=hits[i],move=moves[p.act];
      if(hit){

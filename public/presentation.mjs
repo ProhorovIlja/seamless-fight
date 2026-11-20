@@ -14,13 +14,13 @@ export function paintAtmosphere(g,arena,now,reduced){
  }
  g.restore();
 }
-export function drawImpact(g,x,y,life,reduced,slot){
+export function drawImpact(g,x,y,life,reduced,slot,heading=null){
  g.save();g.translate(x,y+4);
  const q=1-life;
  g.globalAlpha=reduced?.63:life*.85;g.strokeStyle='#ffe2a9';g.lineWidth=1.4;
  g.beginPath();g.ellipse(0,0,23+(reduced?0:17*q),13+(reduced?0:7*q),0,0,TAU);g.stroke();
  if(!reduced)for(let i=0;i<8;i++){
-   const a=i*TAU/8+slot*.21,r=14+q*(23+i%3*4);
+   const a=heading===null?i*TAU/8+slot*.21:heading+(i-3.5)*.32,r=14+q*(23+i%3*4);
    const xx=Math.cos(a),yy=Math.sin(a);
    g.beginPath();g.moveTo(xx*r,yy*r*.6);g.lineTo(xx*(r+6*life),yy*(r+6*life)*.6);g.stroke();
  }

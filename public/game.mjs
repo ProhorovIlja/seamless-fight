@@ -53,7 +53,7 @@ let s=match(), mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=nul
 const audio=createAudio(), flashes=[0,0];
 let watching=false, watchLink=null;
 let metrics=createMetrics(), nextDiagnostic=0, skipFrameSample=false;
-const muzzle=[0,0];
+const muzzle=[0,0], impactAngle=[null,null];
 let seq=0,pending=[],predicted=null,correction={x:0,y:0};
 function sendInput(input){
  if(watching||ws?.readyState!==1||ws.bufferedAmount>=2048)return;
@@ -264,11 +264,11 @@ function online(code,watch=false){
    if(m.t==='watching'){showArena(m.arena);looks=pair(m.outfits);slot=-1;mode='spectate';status('Spectating · waiting for both fighters.');}
    if(m.t==='state'&&watching){
      if(s.tick===0)status('Spectating live · read-only.');
-     const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,null,at);s=m.s;feedback(s);return;
+     const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,null,at);s=m.s;feedback(s,m.cues);return;
    }
    if(m.t==='state'){const at=performance.now();remoteMotion.push(m.s,at);metrics.snapshot(m.s.tick,m.ack,at);if(mode!=='online')status('Online duel · first to two round wins.');if(!m.s.over){vote=false;$('rematch').textContent='Rematch';}const old=predicted;
      const continuous=mode==='online'&&playable(s)&&playable(m.s)&&m.s.round===s.round&&m.s.tick>s.tick;
-     mode='online';s=m.s;$('capture').disabled=false;feedback(s);
+     mode='online';s=m.s;$('capture').disabled=false;feedback(s,m.cues);
      const next=reconcile(s,slot,continuous?pending:[],m.ack);pending=next.pending;predicted=next.p;
      const dx=old?old.x+correction.x-predicted.x:0,dy=old?old.y+correction.y-predicted.y:0;
      if(continuous&&old&&!old.act&&!predicted.act)metrics.correction(Math.hypot(dx,dy));
@@ -298,9 +298,10 @@ $('sound').onclick=async()=>{
    mix();btn.textContent=soundOn?'Sound on':'Sound off';btn.setAttribute('aria-pressed',String(soundOn));
  }finally{soundBusy=false;}
 };
-function feedback(state){
+function feedback(state,confirmed){
  audio.tension(!state.ready&&!state.end&&!state.over&&state.p.some(p=>p.hp<=35)?1:0);
- const cues=soundChanges(lastSound,state,true);
+ const inferred=soundChanges(lastSound,state,true);
+ const cues=confirmed?[...inferred.filter(c=>c.index===undefined&&c.muzzle===undefined),...confirmed]:inferred;
  if(prefs.captions&&cues.length){
    cueText=cues.map(cue=>{
      const names={bell:'Round bell',cut:'Blade swing',hew:'Heavy swing',cock:'Pistol readied',shot:'Pistol fired',step:'Quickstep',feint:'Heavy feinted',hit:'Took a hit',interrupt:'Interrupted by pistol'};
@@ -313,7 +314,7 @@ function feedback(state){
    audio.play(cue.name,cue.x);
    if(cue.index!==undefined)audio.play(cue.index?'grunt-high':'grunt-low',cue.x);
    if(cue.muzzle!==undefined)muzzle[cue.muzzle]=1;
-   if(cue.index!==undefined)flashes[cue.index]=1;
+   if(cue.index!==undefined){flashes[cue.index]=1;impactAngle[cue.index]=cue.angle??null;}
  }
  lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age,x})=>({hp,act,age,x}))};
 }
@@ -464,7 +465,7 @@ function render(now){
  const poses=s.p.map((p,i)=>({p,i,x:foot?.[i].x??p.x,y:foot?.[i].y??p.y})).map(o=>mode==='online'&&o.i===slot&&predicted?{...o,x:predicted.x+correction.x,y:predicted.y+correction.y}:o).sort((a,b)=>a.y-b.y);
  for(const {p,i,x,y} of poses){
    drawFighter(p,i,x,y,now);
-   if(flashes[i]>0)drawImpact(g,x,y,flashes[i],reduced(),i);
+   if(flashes[i]>0)drawImpact(g,x,y,flashes[i],reduced(),i,impactAngle[i]);
  }
  const localSlot=mode==='review'?forkSlot:mode==='lab'&&labKind==='record'?1:slot;
  const timer=Math.ceil(s.clock/HZ);

@@ -53,5 +53,9 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  a.send({t:'gallery',open:true});const replacement=await a.get(m=>m.t==='gallery');
  assert.notEqual(replacement.code,gallery.code);
  const remaining=await open();remaining.send({t:'watch',code:replacement.code});await remaining.get(m=>m.t==='watching');
+ a.send({t:'input',x:0,y:0,act:'shot',seq:1});
+ const [report,watchReport]=await Promise.all([a.get(m=>m.cues?.some(c=>c.name==='shot')),remaining.get(m=>m.cues?.some(c=>c.name==='shot'))]);
+ assert.deepEqual(report.cues,watchReport.cues);assert.equal(report.cues.find(c=>c.name==='shot').muzzle,0);
+ assert.equal(watchReport.ack,undefined);
  b.c.close();assert.match((await remaining.get(m=>m.t==='error')).message,/disconnected/);assert.match((await a.get(m=>m.t==='error')).message,/disconnected/);
 });
