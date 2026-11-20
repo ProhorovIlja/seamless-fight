@@ -47,7 +47,7 @@ test('foley variants are bounded, repeatable and distinct',()=>{
 
 test('loopable ambience and varied exertions remain finite and avoid zero-energy loop gaps',async()=>{
  const {windPCM,exertionPCM}=await import('../public/score.mjs');
- for(const arena of ['lantern','cistern']){
+ for(const arena of ['lantern','cistern','reliquary']){
    const pcm=windPCM(8000,arena);
    assert.equal(pcm.length,64000);
    assert(pcm.every(x=>Number.isFinite(x)&&Math.abs(x)<1));
