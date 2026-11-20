@@ -49,6 +49,14 @@
   </div>
   <p class="muted">Your coat and sigil appear in sparring and private online invitations and are preserved in compatible replays. Full character sculpting and equipment rigging are not yet implemented.</p>
  </section>
+ <section class="panel"><h2>Character animation studio</h2>
+  <p class="muted">Load a real artist-produced 2D atlas and pose manifest for a **local browser preview**. This replaces the placeholder procedural hunters on your screen without editing combat frames or uploading private files to the server. The manifest must include every combat clip and explicit foot pivots.</p>
+  <label>Atlas manifest (.json) <input id="rig-manifest" type="file" accept=".json,application/json"></label>
+  <label>Transparent sprite atlas (.webp) <input id="rig-image" type="file" accept=".webp,image/webp"></label>
+  <div class="playbar"><button id="rig-apply" type="button">Preview authored sprites</button><button id="rig-reset" type="button">Reset character preview</button></div>
+  <output id="rig-status" aria-live="polite">Awaiting authored sprite frames. The visible hunters are prototype placeholders.</output>
+  <p class="muted">Preview art is local and not shared with online peers, and is cleared when the page is reloaded. Export the verified atlas and manifest through the normal GitHub asset-review process before any public release.</p>
+ </section>
  <section class="panel"><h2>Replay & takeover</h2>
   <div class="row"><button id="review" disabled>Review last bout</button><button id="takeover" disabled>Take over Veil</button><button id="resume" disabled>Play replay</button></div>
   <label>Replay frame <input type="range" id="replay-seek" min="0" max="0" step="1" value="0" disabled></label><output id="replay-frame">0 / 0</output>
