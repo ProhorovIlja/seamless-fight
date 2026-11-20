@@ -43,3 +43,13 @@ test('trained ghost can control either fighter and follows relative positioning'
  for(let tick=11;tick<=26;tick++){s.tick=tick;const move=g(s);if(tick>=22)assert.equal(move.x,1);}
  assert.throws(()=>createGhost(model,2),RangeError);
 });
+
+test('auto-learn eligibility requires explicit opt-in and a complete human-controlled match',()=>{
+ const {shouldAutoLearn}=await import('../public/ghost.mjs');
+ assert.equal(shouldAutoLearn(true,true,false,600),true);
+ assert.equal(shouldAutoLearn(false,true,false,600),false);
+ assert.equal(shouldAutoLearn(true,true,true,600),false);
+ assert.equal(shouldAutoLearn(true,false,false,600),false);
+ assert.equal(shouldAutoLearn(true,true,false,99),false);
+ assert.equal(shouldAutoLearn(true,true,false,32001),false);
+});

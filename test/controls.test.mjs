@@ -19,6 +19,11 @@ test('gamepad filters drift, prioritizes the D-pad and suppresses repeated actio
  assert.equal(samplePad(pad([2],[0,0],{index:1}),c.next,.3).act,'');
 });
 
+test('ghost auto-learning is disabled by default and only restored from explicit opt-in',()=>{
+ assert.equal(settings().ghostAuto,false);
+ assert.equal(settings({ghostAuto:true}).ghostAuto,true);
+ assert.equal(settings({ghostAuto:'yes'}).ghostAuto,false);
+});
 test('remaps swap existing controls and reject invalid or conflicting persisted layouts',()=>{
  const bindings={...DEFAULT_PAD};swapBinding(bindings,'shot',2);
  assert.equal(bindings.cut,5);

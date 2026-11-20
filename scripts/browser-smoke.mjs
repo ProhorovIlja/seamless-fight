@@ -194,6 +194,8 @@ try{
  await status(host,/Opponent disconnected/);
  await host.locator('#review-file').setInputFiles(savedReplay);
  await until(async()=>/Replay file loaded/.test(await host.locator('#review-info').textContent()),'replay file imported');
+ await host.locator('#ghost-auto').check();
+ assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.settings.v1')).ghostAuto),true);
  await host.locator('#ghost-learn').click();
  await until(async()=>/Ghost updated/.test(await host.locator('#ghost-status').textContent()),'ghost learned from captured online fighter');
  assert(await host.locator('#ghost-option').isEnabled());

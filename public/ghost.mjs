@@ -125,3 +125,6 @@ export function parseGhost(text){
  if(!model)throw Error('Invalid or corrupted ghost profile.');
  return model;
 }
+
+// Only completed, user-controlled practice can contribute to opted-in local training.
+export const shouldAutoLearn=(enabled,complete,exhibition,ticks)=>enabled===true&&complete===true&&!exhibition&&Number.isSafeInteger(ticks)&&ticks>120&&ticks<=32000;
