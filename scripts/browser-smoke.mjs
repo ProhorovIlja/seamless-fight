@@ -222,14 +222,16 @@ try{
  });
  await themed.route(origin+'/art/**',async route=>{
    requested.add(new URL(route.request().url()).pathname);
-   if(route.request().url().endsWith('icon-lantern.webp'))return route.fulfill({status:404,body:''});
+   if(/(?:icon-lantern|fog)\.webp$/.test(route.request().url()))return route.fulfill({status:404,body:''});
    await route.fulfill({contentType:'image/svg+xml',body:art});
  });
  await themed.route(origin+'/_next/static/media/**',route=>route.fulfill({status:404,body:''}));
  await themed.goto(url);
  await until(async()=>/\/art\/icon-blades.webp$/.test(await themed.locator('.duel-crest').getAttribute('src')),'site crest decoded');
  await until(async()=>await themed.locator('html').getAttribute('data-divider-ready')==='true','site divider decoded');
- assert(requested.has('/art/skyline-near.webp'));
+ await until(async()=>await themed.locator('html').getAttribute('data-site-sky')==='ready','site layers baked despite missing fog');
+ for(const layer of ['skyline-near','skyline-far','moon','fog'])assert(requested.has('/art/'+layer+'.webp'));
+ assert.equal(await host.locator('html').getAttribute('data-site-sky'),null);
  assert.match(await themed.locator('.arena-badge img').getAttribute('src'),/\.\/art\/lantern\.svg$/);
  assert.equal(await host.locator('html').getAttribute('data-site-art'),'off');
  await themed.screenshot({path:'artifacts/duel-seamless-hunt-theme.png'});

@@ -11,8 +11,8 @@ import {logInput,describe,eventLabel} from './analysis.mjs';
 import {dyes,sigils,outfit,pair,paintOutfit} from './wardrobe.mjs';
 import {footwork} from './footwork.mjs';
 const remoteMotion=footwork();
-import {applySiteTheme} from './site-theme.mjs';
-const siteHelm=applySiteTheme();
+import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
+const siteTheme=applySiteTheme(), siteHelm=siteTheme?.helm;
 const helm=new Image();helm.src=new URL('./art/visored-helm.svg',import.meta.url).href;
 import {drawHUD,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
@@ -42,6 +42,9 @@ for(const x of [81,230,730,879]){const p=b.createRadialGradient(x,156,0,x,156,11
 const vignette=b.createRadialGradient(480,280,150,480,280,540);vignette.addColorStop(0,'#0000');vignette.addColorStop(1,'#07050cb9');b.fillStyle=vignette;b.fillRect(0,0,W,H);
 
 textureFloor(b,'lantern',W,H);
+siteTheme?.scenery.then(images=>{
+ if(bakeSiteSky(b,images,W))document.documentElement.dataset.siteSky='ready';
+});
 const backdrops=new Map([['lantern',bg]]);
 let arena='lantern', backdrop=bg;
 function showArena(value){

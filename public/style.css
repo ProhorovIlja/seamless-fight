@@ -44,3 +44,19 @@ button.hunt-primary{background:var(--hunt-gold);border-color:var(--hunt-gold);co
 button.hunt-primary:hover:not(:disabled){background:#f0cf91;color:#15120c}
 :where(a,button,select,input,summary):focus-visible{outline:2px solid var(--hunt-gold);outline-offset:3px}
 #arena{border-color:#c9a86a80}#status{color:var(--hunt-text);margin:.6rem 0}
+
+/* Corner rules and inset slate surfaces mirror the site’s panel hierarchy. */
+.hunt-panel,details,#status{
+ --corner:#c9a86a99;
+ background:
+  linear-gradient(var(--corner),var(--corner)) top left/12px 1px no-repeat,
+  linear-gradient(var(--corner),var(--corner)) top left/1px 12px no-repeat,
+  linear-gradient(var(--corner),var(--corner)) bottom right/12px 1px no-repeat,
+  linear-gradient(var(--corner),var(--corner)) bottom right/1px 12px no-repeat,
+  linear-gradient(180deg,#191c22,#12151a);
+ border-color:#2b3038;
+}
+.hunt-nav a{text-decoration:none}
+.hunt-nav a:focus-visible{text-decoration:underline}
+.hunt-primary{border-radius:1px}
+details summary{letter-spacing:.035em}
