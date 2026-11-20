@@ -12,6 +12,7 @@ import {RULESET,MAX_TICKS,packTick} from './public/replay.mjs';
 import {arenaId} from './public/arenas.mjs';
 
 import {eligible,queueOptions} from './public/queue-policy.mjs';
+import {newSet,recordGame,SET_PAUSE_MS} from './server/set-policy.mjs';
 import {outfit} from './public/wardrobe.mjs';
 
 const assets = new Map([
@@ -95,10 +96,11 @@ function closeGallery(r,message){
   for(const viewer of r.viewers){send(viewer,{t:'error',message});viewer.close(1000);}
   r.viewers.clear();
 }
-function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.tape=[];r.cues.length=0;r.votes.clear();for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
-function makeRoom(arena,now,queued=false){
+function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.tape=[];r.cues.length=0;r.votes.clear();r.setRecorded=false;r.setNextAt=0;for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
+function makeRoom(arena,now,queued=false,format='casual'){
+ if(format!=='casual'&&format!=='set-preview')throw RangeError('Unknown room format.');
  let code;do{code=token();}while(rooms.has(code)||galleries.has(code));
- const room={code,queued,arena:arenaId(arena),outfits:[outfit(),outfit()],peers:[],viewers:new Set(),watchCode:null,tape:[],cues:[],votes:new Set(),s:match(),at:now};
+ const room={code,queued,format,set:format==='set-preview'?newSet():null,setRecorded:false,setNextAt:0,archive:[],arena:arenaId(arena),outfits:[outfit(),outfit()],peers:[],viewers:new Set(),watchCode:null,tape:[],cues:[],votes:new Set(),s:match(),at:now};
  rooms.set(code,room);return room;
 }
 ws.on('connection',c=>{
@@ -111,7 +113,7 @@ ws.on('connection',c=>{
   function join(target,look){
     dequeue();clearTimeout(deadline);room=target;slot=room.peers.length;
     room.outfits[slot]=look;room.peers.push(c);
-    send(c,{t:'room',code:room.queued?null:room.code,queued:room.queued,slot,arena:room.arena,outfits:room.outfits,...(room.quality?{quality:room.quality}:{})});
+    send(c,{t:'room',code:room.queued?null:room.code,queued:room.queued,slot,arena:room.arena,outfits:room.outfits,format:room.format,set:room.set,...(room.quality?{quality:room.quality}:{})});
     if(room.peers.length===2){
       reset(room);const looks={t:'outfits',outfits:room.outfits};
       for(const peer of [...room.peers,...room.viewers])send(peer,looks);
@@ -132,10 +134,10 @@ ws.on('connection',c=>{
     entry.rtt=entry.samples.sort((a,b)=>a-b)[1];entry.sampleAt=now;entry.samples=[];
     send(c,{t:'queue-quality',rtt:Math.round(entry.rtt)});
     if(rooms.size<96)for(const [peer,other] of casual){
-      if(peer===c||peer.readyState!==1||now>=other.expires||!eligible(entry,other,now))continue;
+      if(peer===c||peer.readyState!==1||entry.format!==other.format||now>=other.expires||!eligible(entry,other,now))continue;
       // Keep arrival order for arena selection, even if the second entrant probes faster.
       const [first,second]=entry.order<other.order?[entry,other]:[other,entry];
-      const target=makeRoom(first.arena,now,true);
+      const target=makeRoom(first.arena,now,true,first.format);
       target.quality=[first.rtt,second.rtt].map(Math.round);
       first.join(target,first.look);second.join(target,second.look);return;
     }
@@ -152,7 +154,7 @@ ws.on('connection',c=>{
       if(m.t==='queue'){
         if(rooms.size>=96||casual.size>=64){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
         clearTimeout(deadline);
-        const entry={...queueOptions(m),join,arena:arenaId(m.arena),look:outfit(m.outfit),order:++queueOrder,expires:now+QUEUE_MS,samples:[]};
+        const entry={...queueOptions(m),format:m.format==='set-preview'?'set-preview':'casual',join,arena:arenaId(m.arena),look:outfit(m.outfit),order:++queueOrder,expires:now+QUEUE_MS,samples:[]};
         casual.set(c,entry);
         queueTimer=setTimeout(()=>{dequeue();send(c,{t:'error',message:'Search expired. Queue again to keep looking.'});c.close(1000);},QUEUE_MS);
         send(c,{t:'queued'});probe(entry);return;
@@ -161,7 +163,7 @@ ws.on('connection',c=>{
         const target=typeof m.code==='string'&&galleries.get(m.code);
         if(!target||target.viewers.size>=MAX_VIEWERS){send(c,{t:'error',message:'Gallery is full or closed.'});c.close(1008);return;}
         clearTimeout(deadline);room=target;slot=-1;room.viewers.add(c);
-        send(c,{t:'watching',arena:room.arena,outfits:room.outfits});if(room.peers.length===2)send(c,{t:'state',s:room.s});
+        send(c,{t:'watching',arena:room.arena,outfits:room.outfits,format:room.format,set:room.set});if(room.peers.length===2)send(c,{t:'state',s:room.s});
         return;
       }
       if(m.t!=='hello')return;
@@ -179,7 +181,10 @@ ws.on('connection',c=>{
     if(slot===-1)return;
     if(m.t==='replay'){
       if(room.peers.length===2&&room.tape.length&&now-(c.lastReplay??-Infinity)>1500){
-        c.lastReplay=now;send(c,{t:'replay',rules:RULESET,arena:room.arena,outfits:room.outfits,tape:room.tape.join('')});
+        const game=Number.isSafeInteger(m.game)?m.game:null;
+        const archived=room.format==='set-preview'&&game!==null?room.archive[game-1]:null;
+        if(game!==null&&!archived)return;
+        c.lastReplay=now;send(c,archived?{t:'replay',...archived,game}:{t:'replay',rules:RULESET,arena:room.arena,outfits:room.outfits,tape:room.tape.join('')});
       }
       return;
     }
@@ -190,7 +195,7 @@ ws.on('connection',c=>{
       }else if(!m.open&&room.watchCode)closeGallery(room,'The host closed the gallery.');
       send(c,{t:'gallery',code:room.watchCode});return;
     }
-    if(m.t==='rematch'&&room.s.over){room.votes.add(slot);if(room.votes.size===2)reset(room);else for(const p of room.peers)send(p,{t:'vote',slot});return;}
+    if(m.t==='rematch'&&room.s.over){if(room.format==='set-preview'){send(c,{t:'notice',message:'This set advances automatically. Requeue after the set ends.'});return;}room.votes.add(slot);if(room.votes.size===2)reset(room);else for(const p of room.peers)send(p,{t:'vote',slot});return;}
     if(m.t!=='input'||![-1,0,1].includes(m.x)||![-1,0,1].includes(m.y)||!Number.isSafeInteger(m.seq)||m.seq<=c.seq)return;
     c.seq=m.seq;
     c.input={x:m.x,y:m.y,act:''};c.at=now;
@@ -227,6 +232,21 @@ setInterval(()=>{
         });
         if(r.tape.length<MAX_TICKS)r.tape.push(packTick(inputs));
         step(r.s,inputs,undefined,r.cues);
+      }
+      // One server-authoritative result per finished game; never credit a
+      // single game as a ranked result. Competitive preview is unrated.
+      if(r.format==='set-preview'&&r.s.over&&!r.setRecorded){
+        r.setRecorded=true;
+        r.set=recordGame(r.set,r.s.winner);
+        r.archive.push({rules:RULESET,arena:r.arena,outfits:r.outfits,tape:r.tape.join('')});
+        r.setNextAt=r.set.complete?0:now+SET_PAUSE_MS;
+        const notification={t:'set',set:r.set,phase:'game-ended',nextIn:r.set.complete?0:SET_PAUSE_MS};
+        for(const peer of [...r.peers,...r.viewers])send(peer,notification);
+      }
+      if(r.format==='set-preview'&&r.setRecorded&&!r.set.complete&&now>=r.setNextAt){
+        reset(r);
+        const notification={t:'set',set:r.set,phase:'next-game',nextIn:0};
+        for(const peer of [...r.peers,...r.viewers])send(peer,notification);
       }
       if(ticks%3===0){
         const payload={t:'state',s:r.s,cues:r.cues};

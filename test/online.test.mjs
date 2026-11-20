@@ -6,7 +6,7 @@ import {once} from 'node:events';
 import WebSocket from 'ws';
 import {createReview} from '../public/replay.mjs';
 const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
-test('health, origin rejection, private invite, authoritative snapshots and disconnect', {timeout:10000},async t=>{
+test('health, origin rejection, private invite, authoritative snapshots and disconnect', {timeout:17000},async t=>{
  const probe=createServer().listen(0,'127.0.0.1');await once(probe,'listening');const port=probe.address().port;await new Promise(r=>probe.close(r));
  const origin='http://127.0.0.1:'+port;
  const child=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:String(port),HOST:'127.0.0.1',PUBLIC_ORIGIN:origin,SITE_ART:'1'},stdio:'inherit'});
@@ -45,6 +45,18 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  assert.deepEqual(pair[0].quality,pair[1].quality);assert(pair[0].quality.every(rtt=>rtt<=120));
  slow.c.close();wifi.c.close();
  await second.get(m=>m.t==='state');first.c.close();await second.get(m=>m.t==='error');
+ const ranked1=await open();
+ ranked1.send({t:'queue',format:'set-preview',arena:'cistern',maxRtt:180});await ranked1.get(m=>m.t==='queue-quality');
+ const casualOnly=await open();casualOnly.send({t:'queue',format:'casual'});await casualOnly.get(m=>m.t==='queue-quality');
+ const ranked2=await open();ranked2.send({t:'queue',format:'set-preview',arena:'lantern',maxRtt:180});
+ const rankedPair=await Promise.all([ranked1.get(m=>m.t==='room'),ranked2.get(m=>m.t==='room')]);
+ assert.deepEqual(rankedPair.map(m=>m.format),['set-preview','set-preview']);
+ assert.deepEqual(rankedPair.map(m=>m.set),[{games:0,wins:[0,0],draws:0,complete:false,winner:null,reason:'in-progress'},{games:0,wins:[0,0],draws:0,complete:false,winner:null,reason:'in-progress'}]);
+ assert.equal(rankedPair[0].code,null);
+ ranked1.send({t:'rematch'});
+ assert.equal((await ranked1.get(m=>m.t==='state')).set,undefined,'per-game state is not a rating verdict');
+ ranked1.c.close();await ranked2.get(m=>m.t==='error');
+ casualOnly.c.close();
  const a=await open();a.send({t:'hello',arena:'cistern',outfit:{dye:'kelp',sigil:'moon',hp:999}});const room=await a.get(m=>m.t==='room');assert.equal(room.slot,0);assert.equal(room.arena,'cistern');
  const b=await open();b.send({t:'hello',code:room.code,outfit:{dye:'constructor',sigil:'thorn'}});const joined=await b.get(m=>m.t==='room');assert.equal(joined.slot,1);assert.equal(joined.arena,'cistern');assert.deepEqual(joined.outfits,[{dye:'kelp',sigil:'moon'},{dye:'ash',sigil:'thorn'}]);
  const full=await open();full.send({t:'hello',code:room.code});assert.match((await full.get(m=>m.t==='error')).message,/full/);
