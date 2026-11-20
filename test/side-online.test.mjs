@@ -36,6 +36,8 @@ test('experimental private side-view socket is authoritative, isolated, bounded 
  assert.match(room.code,/^[A-Za-z0-9_-]{12}$/);
  assert.equal(room.slot,0);assert.equal(room.stage,'cistern');assert.equal(room.rules,SIDE_RULESET);
  assert.deepEqual(room.looks[0],{dye:'ivory',sigil:'eye'});
+ host.send({t:'ping',id:12345.5});
+ assert.equal((await host.get(m=>m.t==='pong')).id,12345.5);
  const guest=await connect();
  guest.send({t:'hello',code:room.code,look:{dye:'garnet',sigil:'moon'}});
  const joined=await guest.get(m=>m.t==='room');
