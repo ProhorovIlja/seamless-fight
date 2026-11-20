@@ -36,6 +36,16 @@
   <label class="check"><input type="checkbox" id="high-contrast"> High-contrast fighter outlines</label>
   <p class="muted">Display-only settings never change attack geometry, stamina or replay parity. This test duel is not ranked.</p>
  </section>
+ <section class="panel"><h2>Hunter wardrobe</h2>
+  <div class="wardrobe-layout"><canvas id="look-preview" width="230" height="225" aria-label="Preview your customized side-view hunter coat, face silhouette, blade and sigil"></canvas>
+   <div class="wardrobe-options">
+    <label>Coat dye <select id="look-dye"></select></label>
+    <label>Hunter sigil <select id="look-sigil"></select></label>
+    <output id="look-note" aria-live="polite">Appearance-only customization. No hitbox, stamina, damage or rank advantage.</output>
+   </div>
+  </div>
+  <p class="muted">Your coat and sigil appear in sparring and private online invitations and are preserved in compatible replays. Full character sculpting and equipment rigging are not yet implemented.</p>
+ </section>
  <section class="panel"><h2>Replay & takeover</h2>
   <div class="row"><button id="review" disabled>Review last bout</button><button id="takeover" disabled>Take over Veil</button><button id="resume" disabled>Play replay</button></div>
   <label>Replay frame <input type="range" id="replay-seek" min="0" max="0" step="1" value="0" disabled></label><output id="replay-frame">0 / 0</output>
