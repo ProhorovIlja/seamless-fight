@@ -78,9 +78,12 @@ try{
  await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='false','muted Web Audio');
  await host.locator('summary').filter({hasText:'Duel lab'}).click();
  await host.locator('#combat-analysis summary').click();
+ await host.locator('#training-geometry').check();
+ assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.settings.v1')).trainingGeometry),true);
  await host.locator('#spacing').selectOption('far');
  await host.locator('#replay').click();
  await until(async()=>/Cinder Heavy missed/.test(await host.locator('#exchange-log').textContent()),'lab detects a heavy that fell short');
+ assert.match(await host.locator('#training-range-readout').textContent(),/Center spacing .* arena units/);
  await host.locator('#combat-analysis summary').click();
  await host.locator('#script').selectOption('mixup');
  await host.locator('#replay').click();
