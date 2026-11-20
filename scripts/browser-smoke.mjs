@@ -269,6 +269,19 @@ try{
  assert.match(await themed.locator('.arena-badge img').getAttribute('src'),/\.\/art\/lantern\.svg$/);
  assert.equal(await host.locator('html').getAttribute('data-site-art'),'off');
  await themed.screenshot({path:'artifacts/duel-seamless-hunt-theme.png'});
+ const q1=await browser.newPage(),q2=await browser.newPage();
+ for(const page of [q1,q2]){page.on('pageerror',err=>errors.push(err.message));await page.goto(url);}
+ await q1.locator('#queue-start').click();
+ await until(async()=>/Keep practicing/.test(await q1.locator('#queue-status').textContent()),'queue active during practice');
+ await until(async()=>/74 seconds/.test(await q1.locator('#round-score').textContent()),'practice simulation continues while queued');
+ await q1.locator('#queue-stop').click();
+ assert.match(await q1.locator('#queue-status').textContent(),/cancelled/);
+ await q1.locator('#queue-start').click();
+ await until(async()=>/Keep practicing/.test(await q1.locator('#queue-status').textContent()),'requeued after cancel');
+ await q2.locator('#queue-start').click();
+ await Promise.all([status(q1,/Online duel/),status(q2,/Online duel/)]);
+ assert(await q1.locator('#invite').isHidden());
+ assert(await q2.locator('#queue-stop').isHidden());
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}

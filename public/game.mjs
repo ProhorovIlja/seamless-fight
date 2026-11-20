@@ -54,8 +54,9 @@ function showArena(value){
  if(!backdrops.has(arena)){const layer=document.createElement('canvas');layer.width=W;layer.height=H;const ctx=layer.getContext('2d');paintCistern(ctx,W,H);textureFloor(ctx,arena,W,H);backdrops.set(arena,layer);}
  backdrop=backdrops.get(arena);audio.setArena(arena);
 }
-$('arena-select').onchange=()=>{if(mode==='practice')practice();else if(!mode)showArena($('arena-select').value);};
+$('arena-select').onchange=()=>{if(mode==='practice'&&!searchSocket)practice();else if(!mode)showArena($('arena-select').value);};
 const status=t=>{$('status').textContent=t;};
+let searchSocket=null;
 let s=match(), mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null;
 const audio=createAudio(), flashes=[0,0];
 let lastRange=null,lastRangeAt=-Infinity;
@@ -233,7 +234,7 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){lesson=-1;$('lesson').hidden=true;practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){stopSearch();lesson=-1;$('lesson').hidden=true;practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();showArena($('arena-select').value);mode='practice';spar=createSparring($('drill').value);if($('drill').value==='lesson'){lesson=0;showLesson();}$('capture').disabled=false;status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -301,15 +302,48 @@ function setGallery(code){
 }
 $('gallery-toggle').onclick=()=>{if(ws?.readyState===1)ws.send(JSON.stringify({t:'gallery',open:!watchLink}));};
 $('watch-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('watch-link').value);status('Watch link copied.');}catch{$('watch-link').focus();$('watch-link').select();}};
+function socketUrl(){
+ const url=new URL('./socket',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';return url;
+}
+function stopSearch(message=''){
+ const socket=searchSocket;searchSocket=null;socket?.close();
+ $('queue-stop').hidden=true;
+ $('queue-status').textContent=message;
+}
+function queue(){
+ if(searchSocket||!['','practice','lab'].includes(mode))return;
+ if(!mode)practice();
+ $('queue-start').disabled=true;$('queue-stop').hidden=false;
+ $('queue-status').textContent='Connecting to casual matchmaking…';
+ const c=searchSocket=new WebSocket(socketUrl());
+ c.onopen=()=>{if(c===searchSocket)c.send(JSON.stringify({t:'queue',arena:arena,outfit:prefs.outfit}));};
+ c.onmessage=e=>{
+   if(c!==searchSocket)return;
+   const m=JSON.parse(e.data);
+   if(m.t==='queued')$('queue-status').textContent='Searching for a casual duel. Keep practicing.';
+   if(m.t==='error')stopSearch(m.message);
+   if(m.t==='room'&&m.queued){
+     searchSocket=null;leave();mode='connecting';attachOnline(c);
+     c.onmessage(e);
+   }
+ };
+ c.onclose=()=>{if(c===searchSocket)stopSearch('Search connection closed. You can queue again.');};
+ document.activeElement?.blur();
+}
+$('queue-start').onclick=queue;
+$('queue-stop').onclick=()=>{stopSearch('Search cancelled.');document.activeElement?.blur();};
 function online(code,watch=false){
  leave();watching=watch;mode='connecting';status('Connecting to the duel…');
- const url=new URL('./socket',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';
- const c=ws=new WebSocket(url);
+ const c=new WebSocket(socketUrl());
  c.onopen=()=>c.send(JSON.stringify({t:watch?'watch':'hello',code,arena:$('arena-select').value,outfit:prefs.outfit}));
+ attachOnline(c);
+}
+function attachOnline(c){
+ ws=c;
  c.onmessage=e=>{
    if(c!==ws)return;const m=JSON.parse(e.data);
    if(m.t==='room'){
-     showArena(m.arena);looks=pair(m.outfits);slot=m.slot;$('gallery').hidden=slot!==0;const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
+     showArena(m.arena);looks=pair(m.outfits);slot=m.slot;$('gallery').hidden=slot!==0||m.queued;if(m.queued){status('Casual opponent found.');return;}const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
    }
    if(m.t==='replay'){try{loadCapture(m);}catch(e){reviewInfo(e.message);}return;}
    if(m.t==='gallery')setGallery(m.code);
@@ -334,7 +368,7 @@ function online(code,watch=false){
  c.onclose=()=>{if(c===ws){leave();mode='';status('Connection closed. Create a new room.');}};
  document.activeElement?.blur();
 }
-$('practice').onclick=practice;$('drill').onchange=()=>{if(mode==='practice')practice();};$('online').onclick=()=>online(null);
+$('practice').onclick=practice;$('drill').onchange=()=>{if(mode==='practice'&&!searchSocket)practice();};$('online').onclick=()=>online(null);
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('invite').value);status('Invite copied.');}catch{$('invite').focus();$('invite').select();}};
 $('rematch').onclick=()=>{document.activeElement?.blur();if(mode==='practice')practice();else if(ws?.readyState===1&&!vote){vote=true;$('rematch').textContent='Waiting for opponent';ws.send('{"t":"rematch"}');}};
 let soundOn=false,soundBusy=false;
@@ -535,6 +569,7 @@ function render(now){
  while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){if(s.over){read();continue;}const inputs=[read(),spar(s)];if(practiceTape.length<MAX_TICKS)practiceTape.push(packTick(inputs));if(!s.over&&!s.end&&!s.ready)observeInputs(s.tick+1,inputs);collect(events=>step(s,inputs,events));feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  for(let i=0;i<2;i++){flashes[i]=Math.max(0,flashes[i]-elapsed/220);muzzle[i]=Math.max(0,muzzle[i]-elapsed/95);}
+ $('queue-start').disabled=Boolean(searchSocket)||!['','practice','lab'].includes(mode);
  const touchVisible=touchUI.matches&&touchLive();
  if(touchVisible!==nextTouch){nextTouch=touchVisible;$('touch-controls').hidden=!touchVisible;if(!touchVisible)releaseTouch();}
  const caption=$('cue-caption'), showCue=prefs.captions&&now<cueUntil;

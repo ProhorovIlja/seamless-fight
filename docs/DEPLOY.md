@@ -28,3 +28,5 @@ The standalone build uses the Seamless Hunt palette, locally bundled fallback ic
 Lantern Court also composites `/art/skyline-far.webp`, `/art/moon.webp`, `/art/skyline-near.webp`, and `/art/fog.webp` once into the cached backdrop above the fighting floor. These paths stay on the host site; missing layers do not block the duel. The standalone procedural skyline and the Cistern remain independent of these files.
 
 Optional HUD ornament paths on the same host: `/art/icon-vial.webp`, `/art/icon-bell.webp`, `/art/icon-skull.webp`. Missing ornament files do not block HUD or round text.
+
+Casual matchmaking is in-memory and instance-local. A multi-instance deployment needs a shared matchmaker or sticky routing before advertising a shared queue. No new endpoint, port, or reverse proxy rule is required.

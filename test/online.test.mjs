@@ -21,6 +21,12 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
    await once(c,'open');
    return {c,send:m=>c.send(JSON.stringify(m)),get:async pred=>{for(let i=0;i<110;i++){const k=pending.findIndex(pred);if(k>=0)return pending.splice(k,1)[0];await sleep(35);}throw Error('Missing expected server message');}};
  };
+ const dropped=await open();dropped.send({t:'queue'});await dropped.get(m=>m.t==='queued');dropped.c.close();await once(dropped.c,'close');
+ const first=await open();first.send({t:'queue',arena:'cistern'});await first.get(m=>m.t==='queued');
+ const second=await open();second.send({t:'queue',arena:'lantern'});
+ const pair=await Promise.all([first.get(m=>m.t==='room'),second.get(m=>m.t==='room')]);
+ assert.deepEqual(pair.map(x=>[x.slot,x.queued,x.code,x.arena]),[[0,true,null,'cistern'],[1,true,null,'cistern']]);
+ await second.get(m=>m.t==='state');first.c.close();await second.get(m=>m.t==='error');
  const a=await open();a.send({t:'hello',arena:'cistern',outfit:{dye:'kelp',sigil:'moon',hp:999}});const room=await a.get(m=>m.t==='room');assert.equal(room.slot,0);assert.equal(room.arena,'cistern');
  const b=await open();b.send({t:'hello',code:room.code,outfit:{dye:'constructor',sigil:'thorn'}});const joined=await b.get(m=>m.t==='room');assert.equal(joined.slot,1);assert.equal(joined.arena,'cistern');assert.deepEqual(joined.outfits,[{dye:'kelp',sigil:'moon'},{dye:'ash',sigil:'thorn'}]);
  const full=await open();full.send({t:'hello',code:room.code});assert.match((await full.get(m=>m.t==='error')).message,/full/);

@@ -38,7 +38,8 @@ if(process.env.SITE_ART==='1'){
   const [html,type]=assets.get('/fight/');
   assets.set('/fight/',[Buffer.from(html.toString('utf8').replace('data-site-art="off"','data-site-art="on"')),type]);
 }
-const rooms=new Map(), galleries=new Map();
+const rooms=new Map(), galleries=new Map(), casual=new Map();
+const QUEUE_MS=120000;
 const MAX_VIEWERS=6;
 const token=()=>randomBytes(9).toString('base64url');
 const origin=process.env.PUBLIC_ORIGIN;
@@ -68,11 +69,27 @@ function closeGallery(r,message){
   r.viewers.clear();
 }
 function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.tape=[];r.cues.length=0;r.votes.clear();for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
+function makeRoom(arena,now,queued=false){
+ let code;do{code=token();}while(rooms.has(code)||galleries.has(code));
+ const room={code,queued,arena:arenaId(arena),outfits:[outfit(),outfit()],peers:[],viewers:new Set(),watchCode:null,tape:[],cues:[],votes:new Set(),s:match(),at:now};
+ rooms.set(code,room);return room;
+}
 ws.on('connection',c=>{
   let room, slot, quota=0, quotaAt=performance.now();
   c.alive=true;c.input=blank();c.actions=[];c.cancel=false;c.at=0;c.seq=0;c.ack=0;
   c.on('error',()=>c.terminate());c.on('pong',()=>c.alive=true);
+  let queueTimer;
   const deadline=setTimeout(()=>c.close(1008,'join timeout'),10000);
+  function dequeue(){casual.delete(c);clearTimeout(queueTimer);}
+  function join(target,look){
+    dequeue();clearTimeout(deadline);room=target;slot=room.peers.length;
+    room.outfits[slot]=look;room.peers.push(c);
+    send(c,{t:'room',code:room.queued?null:room.code,queued:room.queued,slot,arena:room.arena,outfits:room.outfits});
+    if(room.peers.length===2){
+      reset(room);const looks={t:'outfits',outfits:room.outfits};
+      for(const peer of [...room.peers,...room.viewers])send(peer,looks);
+    }
+  }
   c.on('message',(data,binary)=>{
     const now=performance.now();
     if(now-quotaAt>=1000){quotaAt=now;quota=0;}
@@ -80,6 +97,20 @@ ws.on('connection',c=>{
     let m;try{m=JSON.parse(data);}catch{return;}
     if(!m||typeof m!=='object')return;
     if(!room){
+      if(casual.has(c))return;
+      if(m.t==='queue'){
+        if(rooms.size>=96||casual.size>=64){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
+        const look=outfit(m.outfit), arena=arenaId(m.arena);
+        for(const [peer,entry] of casual){
+          if(peer.readyState!==1||now>=entry.expires){casual.delete(peer);continue;}
+          const target=makeRoom(entry.arena,now,true);
+          entry.join(target,entry.look);join(target,look);return;
+        }
+        clearTimeout(deadline);
+        casual.set(c,{join,arena,look,expires:now+QUEUE_MS});
+        queueTimer=setTimeout(()=>{dequeue();send(c,{t:'error',message:'Search expired. Queue again to keep looking.'});c.close(1000);},QUEUE_MS);
+        send(c,{t:'queued'});return;
+      }
       if(m.t==='watch'){
         const target=typeof m.code==='string'&&galleries.get(m.code);
         if(!target||target.viewers.size>=MAX_VIEWERS){send(c,{t:'error',message:'Gallery is full or closed.'});c.close(1008);return;}
@@ -90,18 +121,11 @@ ws.on('connection',c=>{
       if(m.t!=='hello')return;
       if(m.code==null){
         if(rooms.size>=96){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
-        let code;do{code=token();}while(rooms.has(code)||galleries.has(code));
-        room={code,arena:arenaId(m.arena),outfits:[outfit(),outfit()],peers:[],viewers:new Set(),watchCode:null,tape:[],cues:[],votes:new Set(),s:match(),at:now};rooms.set(code,room);
+        join(makeRoom(m.arena,now),outfit(m.outfit));
       }else{
         const existing=typeof m.code==='string'&&rooms.get(m.code);
-        if(!existing||existing.peers.length!==1){send(c,{t:'error',message:'Room is full or no longer exists.'});c.close(1008);return;}
-        room=existing;
-      }
-      clearTimeout(deadline);slot=room.peers.length;room.outfits[slot]=outfit(m.outfit);room.peers.push(c);send(c,{t:'room',code:room.code,slot,arena:room.arena,outfits:room.outfits});
-      if(room.peers.length===2){
-        reset(room);
-        const looks={t:'outfits',outfits:room.outfits};
-        for(const peer of [...room.peers,...room.viewers])send(peer,looks);
+        if(!existing||existing.queued||existing.peers.length!==1){send(c,{t:'error',message:'Room is full or no longer exists.'});c.close(1008);return;}
+        join(existing,outfit(m.outfit));
       }
       return;
     }
@@ -128,7 +152,7 @@ ws.on('connection',c=>{
     if(['cut','hew','shot','step'].includes(m.act)&&c.actions.length<3)c.actions.push({act:m.act,until:now+110});
   });
   c.on('close',()=>{
-    clearTimeout(deadline);if(!room)return;
+    dequeue();clearTimeout(deadline);if(!room)return;
     if(slot===-1){room.viewers.delete(c);return;}
     if(!rooms.delete(room.code))return;
     closeGallery(room,'The duel ended because a fighter disconnected.');
