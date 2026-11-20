@@ -48,6 +48,11 @@ test('mouse is opt-in and rejects invalid actions and duplicates',()=>{
  swapBinding(mouse,2,'shot');assert.deepEqual(mouse,{0:'hew',2:'shot'});
 });
 
+test('UI scale validates saved values without changing controls or combat',()=>{
+ assert.equal(settings().uiScale,100);
+ for(const scale of [100,115,130,150])assert.equal(settings({uiScale:scale}).uiScale,scale);
+ for(const invalid of [-5,0,200,125,'130',null,{},NaN])assert.equal(settings({uiScale:invalid}).uiScale,100);
+});
 test('recorded foley setting is enabled by default and explicitly reversible',()=>{
  assert.equal(settings().foley,true);
  assert.equal(settings({foley:false}).foley,false);
