@@ -181,7 +181,7 @@ function loadCapture(data){
  if(saveUrl)URL.revokeObjectURL(saveUrl);
  saveUrl=URL.createObjectURL(new Blob([JSON.stringify(clip)],{type:'application/json'}));
  $('review-save').href=saveUrl;$('review-save').hidden=false;$('review-open').disabled=false;
- reviewInfo(view.complete?'Completed match captured.':'Partial match captured · '+view.total+' ticks.');
+ reviewInfo(view.complete?'Completed match captured.':view.total===MAX_TICKS?'Capture limit reached · review the recorded opening of this match.':'Partial match captured · '+view.total+' ticks.');
 }
 $('capture').onclick=()=>{
  if(mode!=='online'||ws?.readyState!==1)return;
@@ -192,6 +192,7 @@ $('review-file').onchange=async e=>{
  try{
    if(file.size>MAX_TICKS*2+512)throw Error('Replay file is too large.');
    loadCapture(JSON.parse(await file.text()));
+   reviewInfo('Replay file loaded · '+capture.total+' ticks'+(capture.complete?' · completed match.':capture.total===MAX_TICKS?' · capture limit reached.':' · partial match.'));
  }catch(err){reviewInfo('Could not open replay: '+err.message);}
 };
 function syncReview(){

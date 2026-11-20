@@ -106,7 +106,7 @@ try{
  await guest.close();
  await status(host,/Opponent disconnected/);
  await host.locator('#review-file').setInputFiles(savedReplay);
- await until(async()=>/match captured/.test(await host.locator('#review-info').textContent()),'replay file imported');
+ await until(async()=>/Replay file loaded/.test(await host.locator('#review-info').textContent()),'replay file imported');
  await host.locator('#review-open').click();
  await status(host,/Online match review/);
  await host.locator('#review-step').click();
