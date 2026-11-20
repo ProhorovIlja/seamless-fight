@@ -271,17 +271,9 @@ $('sound').onclick=async()=>{
  }finally{soundBusy=false;}
 };
 function feedback(state){
- // A one-tick shot can fall between two 20 Hz snapshots. Detect the
- // authoritative phase crossing, then display a short presentation-only cue.
- if(lastSound&&state.tick>lastSound.tick&&state.round===lastSound.round){
-   for(let i=0;i<2;i++){
-     const p=state.p[i], old=lastSound.p[i];
-     // The engine advances age after resolving the active tick.
-     if(p.act==='shot'&&p.age>moves.shot[0]&&(old.act!=='shot'||old.age<=moves.shot[0]||old.age>p.age))muzzle[i]=1;
-   }
- }
  for(const cue of soundChanges(lastSound,state)){
    audio.play(cue.name,cue.x);
+   if(cue.muzzle!==undefined)muzzle[cue.muzzle]=1;
    if(cue.index!==undefined)flashes[cue.index]=1;
  }
  lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age})=>({hp,act,age}))};

@@ -35,3 +35,5 @@ Use **Rewind before event** to seek 12 ticks before the last selected marker, th
 Hunter Wardrobe provides four coat dyes and three sigil options (including none), with a preview and local persistence. Each fighter's look is locked for the room and retained in spectator and replay metadata. A local default-look setting overrides cosmetics without affecting other clients. Dyes and sigils do not change fighter outlines, telegraphs, stats, or replay rules.
 
 Online neutral footwork uses a bounded presentation buffer targeting 50–100 ms from the received snapshot stream. Local prediction, authoritative combat and effects are not buffered. Attacks and round transitions discard buffered neutral poses. The diagnostics target is not measured one-way network latency.
+
+The pistol has separate preparation and discharge cues. Its muzzle flash and report share one trigger derived from the authoritative firing phase, including when the firing tick is between snapshots. Damage feedback can still play on the same snapshot.

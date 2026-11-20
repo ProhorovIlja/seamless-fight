@@ -1,7 +1,9 @@
+import {moves} from './engine.mjs';
+
 // Original synthesized sound bank. No sample downloads or per-frame synthesis.
 const recipes={
  cut:[.16,490,110,.52,1800],hew:[.29,390,54,.62,1100],
- shot:[.24,160,43,.9,2400],step:[.14,200,72,.68,520],
+ cock:[.085,930,385,.58,2200],shot:[.24,160,43,.9,2400],step:[.14,200,72,.68,520],
  feint:[.13,620,250,.42,1900],hit:[.24,145,39,.61,760],
  interrupt:[.35,330,82,.67,2100],bell:[1.2,196,192,.025,1700],
 };
@@ -28,8 +30,13 @@ export function soundChanges(before,after){
  if(before.ready&&!after.ready&&!after.end)out.push({name:'bell',x:480});
  for(let i=0;i<2;i++){
    const p=after.p[i],q=before.p[i];
+   const changed=p.act!==q.act||p.age<q.age;
+   if(p.act==='shot'){
+     const startup=moves.shot[0];
+     if(p.age>startup&&(changed||q.age<=startup))out.push({name:'shot',x:p.x,muzzle:i});
+     else if(changed&&p.age<=startup)out.push({name:'cock',x:p.x});
+   }else if(changed&&Object.hasOwn(recipes,p.act))out.push({name:p.act,x:p.x});
    if(p.hp<q.hp)out.push({name:p.act==='stun'?'interrupt':'hit',x:p.x,index:i});
-   else if(Object.hasOwn(recipes,p.act)&&(p.act!==q.act||p.age<q.age))out.push({name:p.act,x:p.x});
  }
  return out;
 }
