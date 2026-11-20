@@ -30,7 +30,7 @@ try{
  await page.locator('#impact-camera').uncheck();
  await page.locator('#depth-quality').selectOption('cinematic');
  assert.equal(await page.locator('#depth-quality').inputValue(),'cinematic');
- assert.equal(await page.locator('#fight-canvas').getAttribute('data-depth-quality'),'cinematic');
+ await until(async()=>await page.locator('#fight-canvas').getAttribute('data-depth-quality')==='cinematic','next render reflects selected 2.5D quality');
  assert.match(await page.locator('#stage-title').textContent(),/ASHEN RELIQUARY/);
  assert.equal(await page.locator('#fight-canvas').getAttribute('data-mode'),'idle');
  assert.match(await page.locator('#live-spacing').textContent(),/Center distance/);
