@@ -62,13 +62,13 @@ export function rangeBand(distance,previous){
 }
 export function createAudio(Context=globalThis.AudioContext){
  let ctx,master,effects,ambience,assist,music,musicDuck,voice,pulseGain,wind,enabled=false,arena='lantern',score=[],intensity=0;
- let center=false;
+ let center=false,foleyEnabled=true;
  const scores=new Map();
  const beds=new Map();
  const bank=new Map(),playing=new Set(), takes=new Map(),recorded=new Map();
  let sampleRequested=false;
  function prepareSamples(){
-   if(sampleRequested||!ctx||typeof fetch!=='function')return;
+   if(sampleRequested||!foleyEnabled||!ctx||typeof fetch!=='function')return;
    sampleRequested=true;
    // A missing or undecodable optional sample leaves the original synthesized
    // sound fully functional. Fetch only after explicit user audio activation.
@@ -157,6 +157,7 @@ export function createAudio(Context=globalThis.AudioContext){
    mix(sfx,bed,scoreLevel,grunts){if(ctx){set(effects,sfx);set(ambience,bed);set(music,scoreLevel);set(voice,grunts);}},
    tension(n){if(n===intensity)return;intensity=n;if(ctx)pulseGain.gain.setTargetAtTime(n,ctx.currentTime,.35);},
    assist(level,mono){if(ctx)set(assist,level);center=mono;},
+   foley(active){foleyEnabled=active===true;if(foleyEnabled&&enabled)prepareSamples();},
    play(name,x){
      if(!enabled||ctx.state!=='running'||playing.size>=12||!bank.has(name))return;
      if(['shot','hit','interrupt','bell'].includes(name)){
@@ -168,7 +169,7 @@ export function createAudio(Context=globalThis.AudioContext){
      const clips=bank.get(name), take=takes.get(name)||0;
      source.buffer=clips[take];takes.set(name,(take+1)%clips.length);pan.pan.value=center||name.startsWith('range')?0:Math.max(-.65,Math.min(.65,(x-480)/480));source.connect(pan);pan.connect(name.startsWith('range')?assist:name.startsWith('grunt-')?voice:effects);
      playing.add(source);source.onended=()=>{playing.delete(source);source.disconnect();pan.disconnect();};source.start();
-     const sample=recorded.get(name);
+     const sample=foleyEnabled?recorded.get(name):null;
      if(sample&&playing.size<12){
        const layer=ctx.createBufferSource(),gain=ctx.createGain(),position=ctx.createStereoPanner();
        layer.buffer=sample;

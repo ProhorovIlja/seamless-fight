@@ -58,6 +58,10 @@ try{
  await host.locator('#rangeVolume').fill('40');
  assert.deepEqual(await host.evaluate(()=>{const {centerCues,rangeAudio,rangeVolume}=JSON.parse(localStorage.getItem('seamless-fight.settings.v1'));return [centerCues,rangeAudio,rangeVolume];}),[true,true,40]);
  assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.settings.v1')).music),31);
+ assert(await host.locator('#foley').isChecked());
+ await host.locator('#foley').uncheck();
+ assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.settings.v1')).foley),false);
+ await host.locator('#foley').check();
  await host.locator('#sound').click();
  await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='true','user-enabled Web Audio');
  await host.locator('#sound').click();

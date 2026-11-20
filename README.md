@@ -101,3 +101,5 @@ Directional hit cues and combat captions now consistently attribute a landed hit
 Match Review now displays a local comparative combat report for loaded replays: confirmed damage and hits, misses, punishes, interrupts, movement duration and separately labeled attempted action inputs. These figures come from deterministic simulation and do not award ranked points or upload match data.
 
 An optional set of three tiny CC0 Kenney recordings now layers quietly with the existing original synthesized hit/interrupt and quickstep foley. Sound stays disabled until the user enables it; audio downloads start only after that action, preserve the separate effects volume setting and fall back to synthesis if samples fail to load. Nothing is streamed from Kenney at runtime; the vetted Ogg assets ship under `/fight/audio/` on the same origin.
+
+The Sound Mix panel also offers an explicit recorded-foley toggle (on by default). Disabling it retains all original procedural sounds, prevents fresh recorded sample downloads when audio has not been enabled, and stores the choice locally. Users can switch layers without restarting a match.

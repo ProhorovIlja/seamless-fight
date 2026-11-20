@@ -47,3 +47,9 @@ test('mouse is opt-in and rejects invalid actions and duplicates',()=>{
  assert.deepEqual(mouse,{0:'shot',2:'hew'});
  swapBinding(mouse,2,'shot');assert.deepEqual(mouse,{0:'hew',2:'shot'});
 });
+
+test('recorded foley setting is enabled by default and explicitly reversible',()=>{
+ assert.equal(settings().foley,true);
+ assert.equal(settings({foley:false}).foley,false);
+ assert.equal(settings({foley:true}).foley,true);
+});

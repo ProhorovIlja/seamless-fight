@@ -462,8 +462,8 @@ $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('invite').
 $('rematch').onclick=()=>{document.activeElement?.blur();if(mode==='practice')practice();else if(ws?.readyState===1&&!vote){vote=true;$('rematch').textContent='Waiting for opponent';ws.send('{"t":"rematch"}');}};
 let soundOn=false,soundBusy=false;
 const mixIds=['sfx','ambience','music','voice'];
-function mix(){audio.mix(...mixIds.map(id=>Number($(id).value)/100));audio.assist(prefs.rangeVolume/100,prefs.centerCues);}
-for(const id of ['rangeAudio','centerCues','rangeVolume']){
+function mix(){audio.mix(...mixIds.map(id=>Number($(id).value)/100));audio.assist(prefs.rangeVolume/100,prefs.centerCues);audio.foley(prefs.foley);}
+for(const id of ['foley','rangeAudio','centerCues','rangeVolume']){
  const node=$(id);if(node.type==='checkbox')node.checked=prefs[id];else node.value=prefs[id];
  node.oninput=()=>{prefs[id]=node.type==='checkbox'?node.checked:Number(node.value);lastRange=null;mix();persist();};
 }

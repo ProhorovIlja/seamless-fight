@@ -27,7 +27,7 @@ export function settings(raw){
    const act=raw?.mouse?.[i];
    if(typeof act==='string'&&Object.hasOwn(DEFAULT_KEYS,act)&&!used.has(act)){mouse[i]=act;used.add(act);}
  }
- return {keys,move,pad,mouse,queue:queueOptions(raw?.queue),setFormat:raw?.setFormat==='set-preview'?'set-preview':'casual',stick:raw?.stick==='right'?'right':'left',outfit:outfit(raw?.outfit),classic:raw?.classic===true,captions:raw?.captions===true,ghostAuto:raw?.ghostAuto===true,rangeAudio:raw?.rangeAudio===true,centerCues:raw?.centerCues===true,rangeVolume:clamp(raw?.rangeVolume,26,0,100),deadzone:clamp(raw?.deadzone,30,15,65),sfx:clamp(raw?.sfx,65,0,100),ambience:clamp(raw?.ambience,15,0,100),music:clamp(raw?.music,22,0,100),voice:clamp(raw?.voice,35,0,100),reduce:raw?.reduce===true,contrast:raw?.contrast===true};
+ return {keys,move,pad,mouse,queue:queueOptions(raw?.queue),setFormat:raw?.setFormat==='set-preview'?'set-preview':'casual',stick:raw?.stick==='right'?'right':'left',outfit:outfit(raw?.outfit),classic:raw?.classic===true,captions:raw?.captions===true,foley:raw?.foley!==false,ghostAuto:raw?.ghostAuto===true,rangeAudio:raw?.rangeAudio===true,centerCues:raw?.centerCues===true,rangeVolume:clamp(raw?.rangeVolume,26,0,100),deadzone:clamp(raw?.deadzone,30,15,65),sfx:clamp(raw?.sfx,65,0,100),ambience:clamp(raw?.ambience,15,0,100),music:clamp(raw?.music,22,0,100),voice:clamp(raw?.voice,35,0,100),reduce:raw?.reduce===true,contrast:raw?.contrast===true};
 }
 export function samplePad(pad,prior,threshold,bindings=DEFAULT_PAD,stick='left'){
  if(!pad?.connected||pad.mapping!=='standard')return {x:0,y:0,act:'',next:null};
