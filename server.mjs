@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { WebSocketServer } from 'ws';
 import { HZ, blank, match, step, canFeint, canAct } from './public/engine.mjs';
@@ -43,6 +43,7 @@ if(process.env.SITE_ART==='1'){
   const [html,type]=assets.get('/fight/');
   assets.set('/fight/',[Buffer.from(html.toString('utf8').replace('data-site-art="off"','data-site-art="on"')),type]);
 }
+const validators=new Map([...assets].map(([path,[body]])=>[path,'"'+createHash('sha256').update(body).digest('hex')+'"']));
 const rooms=new Map(), galleries=new Map(), casual=new Map();
 let lastSimulationTime=performance.now();
 let shuttingDown=false;
@@ -68,7 +69,14 @@ const http=createServer((req,res)=>{
   }
   const asset=assets.get(path);
   if(!asset){res.writeHead(404).end();return;}
-  res.writeHead(200,{'Content-Type':asset[1],'Cache-Control':'no-cache','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"});
+  const etag=validators.get(path);
+  const headers={'Content-Type':asset[1],'Cache-Control':'no-cache','ETag':etag,
+    'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer',
+    'Content-Security-Policy':"default-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"};
+  if(req.headers['if-none-match']?.split(',').some(value=>value.trim()===etag)){
+    res.writeHead(304,headers).end();return;
+  }
+  res.writeHead(200,{...headers,'Content-Length':asset[0].byteLength});
   res.end(req.method==='HEAD'?undefined:asset[0]);
 });
 const ws=new WebSocketServer({noServer:true,maxPayload:512,perMessageDeflate:false});

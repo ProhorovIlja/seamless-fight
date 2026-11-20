@@ -28,3 +28,7 @@ Lantern Court also composites `/art/skyline-far.webp`, `/art/moon.webp`, `/art/s
 Optional HUD ornament paths on the same host: `/art/icon-vial.webp`, `/art/icon-bell.webp`, `/art/icon-skull.webp`. Missing ornament files do not block HUD or round text.
 
 Casual matchmaking is in-memory and instance-local. A multi-instance deployment needs a shared matchmaker or sticky routing before advertising a shared queue. No new endpoint, port, or reverse proxy rule is required.
+
+### Browser static asset revalidation
+
+The duel process serves HTML, JavaScript and CSS with `Cache-Control: no-cache`, strong SHA-256 `ETag` values and conditional `304` responses. Retain these headers when validating the staged reverse proxy; do not blanket-cache `/fight/health`, `/fight/socket` or unversioned game scripts without revalidation. The site's existing `/art/` and `/_next/` caching remains the website's responsibility.

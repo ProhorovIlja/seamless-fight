@@ -15,6 +15,17 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const health=await (await fetch(origin+'/fight/health')).json();
  assert.deepEqual(health,{ok:true,simulation:'running'});
  const page=await fetch(origin+'/fight/');assert.match(await page.text(),/data-site-art="on"/);
+ const etag=page.headers.get('etag');assert.match(etag,/^"[a-f0-9]{64}"$/);
+ const revalidated=await fetch(origin+'/fight/',{headers:{'If-None-Match':etag}});
+ assert.equal(revalidated.status,304);
+ assert.equal(revalidated.headers.get('etag'),etag);
+ assert.equal(revalidated.headers.get('cache-control'),'no-cache');
+ assert.match(revalidated.headers.get('content-security-policy'),/frame-ancestors 'none'/);
+ const head=await fetch(origin+'/fight/game.mjs',{method:'HEAD'});
+ const get=await fetch(origin+'/fight/game.mjs');
+ assert.equal(head.headers.get('content-length'),get.headers.get('content-length'));
+ assert(get.headers.get('content-length')>5000);
+ assert.equal((await fetch(origin+'/fight/game.mjs',{headers:{'If-None-Match':head.headers.get('etag')}})).status,304);
  assert.equal((await fetch(origin+'/art/icon-blades.webp')).status,404,'the site proxy, not the duel process, owns shared art');
  const bad=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin:'https://example.invalid'});const [err]=await once(bad,'error');assert.match(err.message,/403/);
  const open=async(pongDelay=0)=>{
