@@ -17,7 +17,7 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const sidePage=await fetch(origin+'/fight/side/');
  assert.equal(sidePage.status,200);
  assert.match(await sidePage.text(),/SIDE-VIEW LAB/);
- for(const name of ['side.css','side-view.mjs','side-engine.mjs','side-ai.mjs','side-art.mjs','side-replay.mjs']){
+ for(const name of ['side.css','side-view.mjs','side-engine.mjs','side-ai.mjs','side-art.mjs','side-replay.mjs','side-inspector.mjs']){
   const asset=await fetch(origin+'/fight/'+name);
   assert.equal(asset.status,200,'side-view module '+name+' served from isolated route');
   assert(asset.headers.get('content-length')>100);
