@@ -59,3 +59,5 @@ Practice offers balanced, pressure, and range-keeping opponents alongside the ev
 **Learn the basics** uses a still target and advances when the simulation observes movement, a cut, a quickstep, a pistol discharge, and a successful heavy feint. It uses existing remapped inputs and does not add any player assist in online matches.
 
 **Find casual duel** is an unranked first-in-first-out queue on a single server. It keeps the current Practice or Duel Lab session running until another fighter connects, then starts a fresh online duel. Search can be cancelled or expires after two minutes; leaving training for a different mode cancels search. The first queued player's arena is used. Private invite rooms remain separate; no ranks, accounts, region/ping filters or public room listing.
+
+The arena and opponent selectors are locked during a search so the settings on screen match the request already sent to the server. Cancel to change them; local combat inputs keep working while queued.

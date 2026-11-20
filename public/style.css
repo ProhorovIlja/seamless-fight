@@ -72,3 +72,5 @@ details summary{letter-spacing:.035em}
 #lesson{margin:.5rem 0;padding:.55rem .85rem;border-left:2px solid var(--hunt-gold);background:var(--hunt-panel)}#lesson p{margin:.15rem 0}#lesson-title{color:var(--hunt-gold);font:1.17rem var(--hunt-serif)}#lesson-tip{color:var(--hunt-text);font-size:.88rem}
 
 .queue-panel{gap:.55rem .9rem}.queue-panel #queue-start{color:var(--hunt-gold);border-color:#c9a86a8c;background:linear-gradient(#262a31,#14171c);font-family:var(--hunt-serif);letter-spacing:.045em}.queue-panel #queue-status{color:var(--hunt-text);font-size:.9rem}
+
+.queue-note{color:#aea590;font:1rem var(--hunt-serif);line-height:1.4}.queue-panel:has(#queue-stop:not([hidden])) .queue-note{display:none}
