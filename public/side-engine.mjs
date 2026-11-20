@@ -128,7 +128,15 @@ export function sideStep(s,inputs=[sideInput(),sideInput()],events){
  }
  if(s.ready){s.ready--;return s;}
  const a=s.p[0],b=s.p[1];
+ const previous=s.p.map(p=>({act:p.act,age:p.age}));
  drive(a,b,inputs[0]);drive(b,a,inputs[1]);
+ if(events)for(let i=0;i<2;i++){
+  const p=s.p[i],old=previous[i];
+  if(p.act&&p.age===0&&(p.act!==old.act||old.age>0)&&!['stun','guardBreak'].includes(p.act))
+   events.push({tick:s.tick,kind:'action',actor:i,move:p.act,x:p.x,y:p.y-85});
+  if(p.act==='shot'&&p.age===SIDE_MOVES.shot.startup)
+   events.push({tick:s.tick,kind:'fire',actor:i,move:'shot',x:p.x+p.dir*47,y:p.y-84});
+ }
  if(Math.abs(a.y-b.y)<55&&Math.abs(a.x-b.x)<38){
   const dir=a.x<=b.x?-1:1,d=(38-Math.abs(a.x-b.x))/2;
   a.x=clamp(a.x+dir*d,65,SIDE_W-65);b.x=clamp(b.x-dir*d,65,SIDE_W-65);
