@@ -36,7 +36,8 @@ const status=t=>{$('status').textContent=t;};
 let s=match(), prev=null, at=0, mode='', ws, slot=0, action='', vote=false, ping=0, lastSound=null;
 const audio=createAudio(), flashes=[0,0];
 let watching=false, watchLink=null;
-let metrics=createMetrics(), nextDiagnostic=0;
+let metrics=createMetrics(), nextDiagnostic=0, skipFrameSample=false;
+const muzzle=[0,0];
 let seq=0,pending=[],predicted=null,correction={x:0,y:0};
 function sendInput(input){
  if(watching||ws?.readyState!==1||ws.bufferedAmount>=2048)return;
@@ -91,7 +92,7 @@ function read(){
 }
 function flush(){pressed.clear();action='';prior=null;armed=false;padFrame={x:0,y:0};sendInput(blank());}
 addEventListener('blur',()=>{flush();cancelBinding();});
-document.addEventListener('visibilitychange',()=>{metrics.clearFrame();if(document.hidden)flush();});
+document.addEventListener('visibilitychange',()=>{metrics.clearFrame();skipFrameSample=true;if(document.hidden)flush();});
 addEventListener('keydown',ev=>{
  if(binding){
    ev.preventDefault();ev.stopImmediatePropagation();
@@ -112,7 +113,7 @@ addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
-function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -130,7 +131,7 @@ function seekLab(){
  if(mode!=='lab'||labKind!=='play')return;
  labHold=true;flush();
  const frame=restoreDrill(spacing,tape,attempt,Number($('seek').value));
- s=frame.state;trace=frame.trace;labTick=frame.tick;labNote='';lastSound=null;flashes.fill(0);
+ s=frame.state;trace=frame.trace;labTick=frame.tick;labNote='';lastSound=null;flashes.fill(0);muzzle.fill(0);
  syncScrub();status('Paused at tick '+labTick+'. Take over to try a different response.');
 }
 $('seek').oninput=seekLab;
@@ -228,6 +229,15 @@ $('sound').onclick=async()=>{
  }finally{soundBusy=false;}
 };
 function feedback(state){
+ // A one-tick shot can fall between two 20 Hz snapshots. Detect the
+ // authoritative phase crossing, then display a short presentation-only cue.
+ if(lastSound&&state.tick>lastSound.tick&&state.round===lastSound.round){
+   for(let i=0;i<2;i++){
+     const p=state.p[i], old=lastSound.p[i];
+     // The engine advances age after resolving the active tick.
+     if(p.act==='shot'&&p.age>moves.shot[0]&&(old.act!=='shot'||old.age<=moves.shot[0]||old.age>p.age))muzzle[i]=1;
+   }
+ }
  for(const cue of soundChanges(lastSound,state)){
    audio.play(cue.name,cue.x);
    if(cue.index!==undefined)flashes[cue.index]=1;
@@ -263,7 +273,7 @@ function syncReview(){
 }
 function seekReview(t){
  s=review.at(t);reviewTick=t;replayPlaying=false;forkSlot=-1;
- lastSound=null;flashes.fill(0);flush();syncReview();
+ lastSound=null;flashes.fill(0);muzzle.fill(0);flush();syncReview();
  reviewInfo('Reviewing original duel.');
 }
 $('review-open').onclick=()=>{
@@ -330,12 +340,17 @@ function drawFighter(p,i,x,y,time){
  g.strokeStyle=p.act==='stun'?'#ffe7a8':active?'#fff0cf':'#c5b9a9';g.lineWidth=p.act==='shot'?4:2;g.stroke();
  g.fillStyle='#a58258';g.fillRect(hx-4,hy-3,7,6);
  if(p.act==='feint'){g.strokeStyle='#e6ba78';g.lineWidth=1.5;g.beginPath();g.arc(0,0,23,-1.3,1.3);g.stroke();}
- if(p.act==='shot'&&active){g.fillStyle='#ffe6a0';g.beginPath();g.arc(tx,ty,5,0,Math.PI*2);g.fill();}
+ if(p.act==='shot'&&muzzle[i]>0){
+   g.save();g.globalAlpha=reduced()?.7:Math.min(1,muzzle[i]*1.4);g.fillStyle='#ffe6a0';
+   g.beginPath();g.arc(tx+4,ty,4,0,Math.PI*2);g.fill();
+   if(!reduced()){g.strokeStyle='#efbb75';g.lineWidth=1.5;g.beginPath();g.moveTo(tx+8,ty);g.lineTo(tx+25,ty);g.stroke();}
+   g.restore();
+ }
  g.restore();
 }
 function bar(x,y,w,v,color){g.fillStyle='#171420';g.fillRect(x,y,w,8);g.fillStyle=color;g.fillRect(x,y,w*Math.max(0,v)/100,8);}
 function render(now){
- if(!document.hidden&&now>=prevFrame)metrics.frame(now-prevFrame);
+ if(!document.hidden&&now>=prevFrame){if(!skipFrameSample)metrics.frame(now-prevFrame);skipFrameSample=false;}
  if(now>=nextDiagnostic&&$('diagnostics').open){
    nextDiagnostic=now+500;
    const m=metrics.summary(), fmt=(n,unit='ms')=>n===null?'—':n.toFixed(1)+' '+unit;
@@ -346,7 +361,7 @@ function render(now){
  let budget=5;
  while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){step(s,[read(),trainingInput(s,$('drill').value)]);feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
- for(let i=0;i<2;i++)flashes[i]=Math.max(0,flashes[i]-elapsed/220);
+ for(let i=0;i<2;i++){flashes[i]=Math.max(0,flashes[i]-elapsed/220);muzzle[i]=Math.max(0,muzzle[i]-elapsed/95);}
  g.drawImage(bg,0,0);
  if(!reduced()){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=i%3?'#e3d6dc1d':'#e7a16082';g.fillRect(x,y,2,2);}}
  const blend=(mode==='online'||mode==='spectate')&&prev?Math.min(1,(now-at)/50):1;
