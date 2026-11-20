@@ -156,7 +156,14 @@ function sample(){
 const soundEvent=(name,x)=>{if(audioOn)sound.play(name,x);};
 function effectsFrom(events){
  for(const e of events){
-  if(['hit','parry','block'].includes(e.kind)){
+  if(e.kind==='action'){
+   soundEvent(e.move==='shot'?'cock':e.move,e.x);
+   if(e.move==='shot')$('fight-caption').textContent=(e.actor?'Cinder':'Veil')+' · pistol readied';
+  }else if(e.kind==='fire'){
+   soundEvent('shot',e.x);
+   effects.push({e,life:.6});if(effects.length>MAX_EFFECTS)effects.shift();
+   $('fight-caption').textContent=(e.actor?'Cinder':'Veil')+' · pistol fired';
+  }else if(['hit','parry','block'].includes(e.kind)){
    effects.push({e,life:1});if(effects.length>MAX_EFFECTS)effects.shift();
    const name=e.kind==='parry'?'interrupt':e.kind==='hit'?'hit':'cock';soundEvent(name,e.x);
    $('fight-caption').textContent=e.kind==='parry'?'Perfect deflect':e.kind==='block'?'Guarded '+e.damage+' chip':e.move+' hit · '+e.damage+' damage';
@@ -336,7 +343,6 @@ function runTick(){
   const own=sample(),enemy=sidePrefs.level==='dummy'?sideInput():bot(s),pair=[own,enemy],events=[];
   if(tape.length<SIDE_TAPE_LIMIT){tape.push(packSideTick(pair));if(tape.length===1)updateButtons();}
   sideStep(s,pair,events);effectsFrom(events);
-  if(own.act&&s.p[0].act===own.act)soundEvent(own.act==='shot'?'cock':own.act,s.p[0].x);
   if(s.over)updateButtons();
  }else if(mode==='review'&&reviewPlaying){
   if(cursor>=review.total){reviewPlaying=false;setStatus('Replay finished. Seek backward or take over before the final frame.');return;}
