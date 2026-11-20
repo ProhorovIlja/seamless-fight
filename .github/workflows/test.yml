@@ -39,6 +39,7 @@ jobs:
       - run: npm install --ignore-scripts --no-audit --no-save playwright@1.58.2
       - run: npx --no-install playwright install --with-deps chromium
       - run: node scripts/browser-smoke.mjs
+      - run: node scripts/side-browser-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
