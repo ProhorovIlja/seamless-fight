@@ -141,7 +141,11 @@ for(const button of document.querySelectorAll('#touch button')){
  for(const name of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(name,released);
 }
 const touchQuery=matchMedia('(pointer:coarse)');
-function updateTouch(){$('touch').hidden=!touchQuery.matches;}
+function updateTouch(){
+ const visible=touchQuery.matches&&controlsActive();
+ $('touch').hidden=!visible;
+ if(!visible){touchHeld.clear();for(const button of document.querySelectorAll('#touch button'))button.classList.remove('held');}
+}
 updateTouch();touchQuery.addEventListener?.('change',updateTouch);
 function sample(){
  const active=controlsActive(),has=c=>held.has(c);
@@ -176,6 +180,7 @@ function effectsFrom(events){
  }
 }
 function updateButtons(){
+ updateTouch();
  const replayReady=Boolean(capture||tape.length);
  $('record-save').disabled=!replayReady;
  $('review').disabled=!replayReady;
