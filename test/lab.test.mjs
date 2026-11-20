@@ -18,6 +18,19 @@ test('preset replay recreates the same fight state and feint timing',()=>{
  const a=run();assert.deepEqual(a,run());assert.equal(a.frames[18],'hew');
  assert.equal(a.frames[28],'feint');assert.equal(a.frames[54],'cut');assert.equal(a.s.p[0].hp,81);
 });
+test('unseen mix-up chooses distinct deterministic authored actions and stays replayable',()=>{
+ const names=['whiff','bait','interrupt'];
+ for(let i=0;i<3;i++){
+  const tape=preset('mixup',i),expected=preset(names[i]);
+  assert.deepEqual(tape,expected);
+  assert.deepEqual(preset('mixup',i+3),expected);
+  const s=makeLab('edge');for(const input of tape)practiceTick(s,[blank(),input]);
+  const reconstructed=makeLab('edge');for(const input of expected)practiceTick(reconstructed,[blank(),input]);
+  assert.deepEqual(s,reconstructed);
+ }
+ assert.notDeepEqual(preset('mixup',0),preset('mixup',1));
+ assert.notDeepEqual(preset('mixup',1),preset('mixup',2));
+});
 test('practice presets are isolated and reset spacing, ammo and stamina',()=>{
  const t=preset('whiff');t[18].act='shot';assert.equal(preset('whiff')[18].act,'hew');
  const a=makeLab('far');assert.equal(a.p[1].x-a.p[0].x,190);a.p[1].ammo=0;
