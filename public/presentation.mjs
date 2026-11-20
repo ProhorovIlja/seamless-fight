@@ -47,3 +47,36 @@ export function drawHUD(g,s,local,timer,contrast){
  g.strokeStyle='#ae8958';g.stroke();g.fillStyle=timer<=10?'#ffb190':'#f4dfb6';g.font='bold 28px Georgia';g.fillText(String(timer),480,38);
  g.restore();
 }
+
+// Easing is presentation-only; arc endpoints and the active timing still use the move table.
+export function bladeAngle(act,age,move){
+ if(act==='shot')return 0;
+ if(act==='feint')return -.9*(1-Math.min(1,age/move[2]));
+ if(act!=='cut'&&act!=='hew')return .42;
+ const [start,active,recover]=move, arc=Math.acos(.45), ease=t=>t*t*(3-2*t);
+ if(age<start)return -.35-(arc-.35)*ease(age/start);
+ if(age<start+active)return -arc+2*arc*ease((age-start+1)/active);
+ return arc+(.42-arc)*ease(Math.min(1,(age-start-active)/recover));
+}
+export function drawBladeWake(g,act,sweep,reach){
+ const width=act==='hew'?.62:.43;
+ g.save();g.translate(7,10);
+ g.strokeStyle='#fff2cd96';g.lineWidth=2;
+ g.beginPath();g.arc(0,0,reach+1,sweep-width,sweep);g.stroke();
+ g.strokeStyle='#e7b17a4a';g.lineWidth=3;
+ g.beginPath();g.arc(0,0,reach-4,sweep-width*.9,sweep);g.stroke();
+ g.restore();
+}
+// Sparse, seeded material weathering is baked into the stage once, not every frame.
+export function textureFloor(g,arena,W,H){
+ let state=arena==='cistern'?39877:71037;
+ const random=()=>((state=(Math.imul(state,1664525)+1013904223)>>>0)/4294967296);
+ g.save();g.beginPath();g.rect(48,97,W-96,H-156);g.clip();
+ for(let i=0;i<460;i++){
+   const x=48+random()*(W-96),y=97+random()*(H-156),n=2+random()*8;
+   g.fillStyle=i%3===0?'#c9bdaa18':'#05050d31';
+   g.fillRect(x,y,n,1);
+   if(i%13===0){g.strokeStyle='#07070f42';g.beginPath();g.moveTo(x,y);g.lineTo(x+n*.4,y+3);g.lineTo(x+n,y+5);g.stroke();}
+ }
+ g.restore();
+}

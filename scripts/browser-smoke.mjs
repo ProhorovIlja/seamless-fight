@@ -192,6 +192,15 @@ try{
  await host.locator('#review-cinder').click();
  assert(await host.locator('#review-speed').isDisabled());
  await until(async()=>/^Tick 12[0-9] |^Tick 1[3-9][0-9] |^Tick [2-9][0-9]{2,} /.test(await host.locator('#review-tick').textContent()),'takeover runs with slow playback disabled');
+ await host.locator('#arena').screenshot({path:'artifacts/duel-cistern-review.png'});
+ await host.locator('#practice').click();
+ await host.locator('#arena-select').selectOption('lantern');
+ await until(async()=>/Lantern Court/.test(await host.locator('#arena-title').textContent()),'Lantern Court selected');
+ await host.locator('#arena').screenshot({path:'artifacts/duel-lantern-practice.png'});
+ const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,reducedMotion:'reduce'});
+ await phone.goto(url);
+ assert(await phone.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await phone.locator('#arena').screenshot({path:'artifacts/duel-mobile-reduced-motion.png'});
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}

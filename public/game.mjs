@@ -11,7 +11,7 @@ import {logInput,describe,eventLabel} from './analysis.mjs';
 import {dyes,sigils,outfit,pair,paintOutfit} from './wardrobe.mjs';
 import {footwork} from './footwork.mjs';
 const remoteMotion=footwork();
-import {drawHUD,drawImpact,drawMail,paintAtmosphere} from './presentation.mjs';
+import {drawHUD,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -38,11 +38,12 @@ for(let i=0;i<7;i++){b.beginPath();b.ellipse(480,325,67+i*11,46+i*8,0,0,Math.PI*
 for(const x of [81,230,730,879]){const p=b.createRadialGradient(x,156,0,x,156,110);p.addColorStop(0,'#eb9a5264');p.addColorStop(1,'#e9753800');b.fillStyle=p;b.fillRect(x-110,46,220,220);b.fillStyle='#0f1017';b.fillRect(x-2,153,4,50);b.fillStyle='#ffce87';b.fillRect(x-4,149,8,12);}
 const vignette=b.createRadialGradient(480,280,150,480,280,540);vignette.addColorStop(0,'#0000');vignette.addColorStop(1,'#07050cb9');b.fillStyle=vignette;b.fillRect(0,0,W,H);
 
+textureFloor(b,'lantern',W,H);
 const backdrops=new Map([['lantern',bg]]);
 let arena='lantern', backdrop=bg;
 function showArena(value){
  arena=arenaId(value);$('arena-title').textContent=ARENAS[arena];canvas.setAttribute('aria-label',ARENAS[arena]+' duel arena');
- if(!backdrops.has(arena)){const layer=document.createElement('canvas');layer.width=W;layer.height=H;paintCistern(layer.getContext('2d'),W,H);backdrops.set(arena,layer);}
+ if(!backdrops.has(arena)){const layer=document.createElement('canvas');layer.width=W;layer.height=H;const ctx=layer.getContext('2d');paintCistern(ctx,W,H);textureFloor(ctx,arena,W,H);backdrops.set(arena,layer);}
  backdrop=backdrops.get(arena);audio.setArena(arena);
 }
 $('arena-select').onchange=()=>{if(mode==='practice')practice();else if(!mode)showArena($('arena-select').value);};
@@ -387,11 +388,9 @@ function drawFighter(p,i,x,y,time){
  g.fillStyle='#12141b';g.beginPath();g.ellipse(3,0,11,10,0,0,Math.PI*2);g.fill();
  drawMail(g,color,p.act==='stun');
  const melee=p.act==='cut'||p.act==='hew';
- let sweep=.42;
- if(melee){const arc=Math.acos(.45);sweep=p.age<m[0]?-arc*p.age/m[0]:active?-arc+2*arc*Math.min(1,(p.age-m[0]+1)/m[1]):arc*(1-Math.min(1,(p.age-m[0]-m[1])/m[2]));}
- else if(p.act==='feint')sweep=-.9*(1-p.age/m[2]);
- else if(p.act==='shot')sweep=0;
+ const sweep=bladeAngle(p.act,p.age,m);
  const reach=p.act==='hew'?36:29, hx=7,hy=10, tx=hx+Math.cos(sweep)*reach,ty=hy+Math.sin(sweep)*reach;
+ if(melee&&active&&!reduced())drawBladeWake(g,p.act,sweep,reach);
  g.strokeStyle='#0b0c12';g.lineWidth=6;g.beginPath();g.moveTo(hx,hy);g.lineTo(tx,ty);g.stroke();
  g.strokeStyle=p.act==='stun'?'#ffe7a8':active?'#fff0cf':'#c5b9a9';g.lineWidth=p.act==='shot'?4:2;g.stroke();
  g.fillStyle='#a58258';g.fillRect(hx-4,hy-3,7,6);

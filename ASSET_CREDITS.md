@@ -1,6 +1,6 @@
 # References and asset credits
 
-Shipped art: procedural Canvas render code for original Lantern Court and the two placeholder fighters. Shipped hit audio: procedural Web Audio. No external game art, music, fonts, or proprietary game files are bundled.
+Shipped art: procedural Canvas render code for original Lantern Court and the two placeholder fighters. Shipped hit audio: procedural Web Audio. Lorc’s two credited UI vectors are bundled; no external music, fonts, or proprietary game files are bundled.
 
 - [ws](https://github.com/websockets/ws) — MIT WebSocket runtime; dependency, not copied source.
 - [GGPO](https://github.com/pond3r/ggpo) — MIT rollback reference; not integrated. Prototype uses server authority and interpolated snapshots. Measure attack responsiveness and fairness under asymmetric latency before choosing prediction/rollback rules.
@@ -12,7 +12,7 @@ Art direction: dusk courtyard, warm lanterns and cold stone, distinct silhouette
 
 ## Lantern Court audio
 
-The shipped combat cues, round bell and arena bed are original synthesis. No samples, recordings, voices or music tracks are bundled. [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds) is a verified CC0 foley candidate for listening comparisons, not an imported dependency. [MDN AudioContext](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext) informed use of a shared context and interactive latency hint; latency is not guaranteed. The separate combat and ambience controls preserve combat cues when the atmospheric layer is turned down. Online cues follow server snapshots, not local input prediction; the sound layer does not modify simulation timing.
+The shipped combat cues, round bell and arena bed are original synthesis. No third-party samples or recorded voices are bundled; the original score and exertion cues are synthesized locally. [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds) is a verified CC0 foley candidate for listening comparisons, not an imported dependency. [MDN AudioContext](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext) informed use of a shared context and interactive latency hint; latency is not guaranteed. The separate combat and ambience controls preserve combat cues when the atmospheric layer is turned down. Online cues follow server snapshots, not local input prediction; the sound layer does not modify simulation timing.
 
 ## Presentation pass
 
@@ -22,3 +22,5 @@ Candidates screened but not bundled: [Kenney Impact Sounds](https://kenney.nl/as
 
 - **crossed-swords** by Lorc, [upstream SVG](https://github.com/game-icons/icons/blob/master/lorc/crossed-swords.svg), upstream blob `38f2a8c74b206fc0285f470c1731e62aa0e310f2`. [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Modified: removed the black square and recolored the path. Served locally.
 - **lantern** by Lorc, [upstream SVG](https://github.com/game-icons/icons/blob/master/lorc/lantern.svg), upstream blob `7f68ddecb57e27fb2eb2f04e0c38145675c7a601`. [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Modified: removed the black square and recolored the path. Served locally.
+
+The duel stage floor now includes seeded, baked material weathering, and attack animations ease between key poses without changing the active hit window. CI captures both arena presentations and a narrow reduced-motion layout for visual review.
