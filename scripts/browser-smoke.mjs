@@ -22,6 +22,11 @@ try{
  const status=(page,pattern)=>until(async()=>pattern.test(await page.locator('#status').textContent()),String(pattern));
  let snapshot;
  host.on('websocket',ws=>ws.on('framereceived',frame=>{const m=JSON.parse(frame.payload);if(m.t==='state')snapshot=m.s;}));
+ await host.addInitScript(()=>{
+   const pad={connected:true,index:0,mapping:'standard',axes:[0,0],buttons:Array.from({length:16},()=>({pressed:false}))};
+   window.testPad=pad;
+   Object.defineProperty(navigator,'getGamepads',{value:()=>[pad]});
+ });
  await host.goto(url);
  await host.locator('#input-settings summary').click();
  await host.locator('#bind-cut').click();
@@ -94,6 +99,21 @@ try{
  await guest.keyboard.down('ArrowLeft');
  try{await until(()=>snapshot?.p[1].x<guestX-12,'authoritative guest movement through asymmetric delay');}
  finally{await guest.keyboard.up('ArrowLeft');}
+ await host.bringToFront();
+ await until(()=>host.evaluate(()=>document.hasFocus()),'controller tab focused');
+ // Allow a neutral poll to arm the gamepad after refocusing.
+ await host.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+ const padY=snapshot.p[0].y;
+ await host.evaluate(()=>{window.testPad.axes[1]=-.9;});
+ try{await until(()=>snapshot?.p[0].y<padY-12,'authoritative gamepad movement');}
+ finally{await host.evaluate(()=>{window.testPad.axes[1]=0;});}
+ await host.evaluate(()=>{window.testPad.buttons[5].pressed=true;});
+ try{
+   await until(()=>snapshot?.p[0].ammo===2,'controller pistol edge');
+   const first=snapshot.tick;
+   await until(()=>snapshot?.tick>first+38,'held controller action does not repeat');
+   assert.equal(snapshot.p[0].ammo,2);
+ }finally{await host.evaluate(()=>{window.testPad.buttons[5].pressed=false;});}
  assert(impairment.up>1&&impairment.down>1);
  await host.locator('#gallery-toggle').click();
  await until(async()=>Boolean(await host.locator('#watch-link').inputValue()),'watch link issued');
