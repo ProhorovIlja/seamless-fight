@@ -7,6 +7,7 @@ import {reconcileSide,SIDE_PREDICTION_LIMIT} from './side-prediction.mjs';
 import {createSideTransport,SIDE_INVITE_PATTERN} from './side-online-client.mjs';
 import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTraining,drawSideHUD,drawSideImpact} from './side-art.mjs';
 import {SIDE_DEPTH_QUALITY,paintSideDepthStatic,paintSideDepthBack,paintSideDepthFront} from './side-depth.mjs';
+import {sideCameraImpact,sideScoreTension,sideIsFootstep} from './side-cinema.mjs';
 import {createAudio} from './audio.mjs';
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
@@ -64,6 +65,7 @@ let scene=sidePrefs.stage,stageCanvas=null,sceneMap=new Map(),mode='idle',priorF
 let s=sideMatch(),bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.level);
 let tape=[],capture=null,review=null,replayLooks=null,cursor=0,reviewPlaying=false;
 const effects=[],MAX_EFFECTS=10;
+const footstepAt=[-99,-99];let nextTensionAt=0;
 let audioOn=false,queued='',priorPad=null,padQueued='',padMove={x:0,y:0,guard:false};
 let inspectorAt=0;const renderIntervals=[];
 let onlineSlot=-1,onlineCode='',onlineLooks=null,onlineTick=-1;
@@ -201,17 +203,26 @@ function effectsFrom(events){
    if(e.move==='shot')$('fight-caption').textContent=(e.actor?'Cinder':'Veil')+' · pistol readied';
   }else if(e.kind==='fire'){
    soundEvent('shot',e.x);
-   effects.push({e,life:.6});if(effects.length>MAX_EFFECTS)effects.shift();
+   effects.push({e,life:.6,at:performance.now()});if(effects.length>MAX_EFFECTS)effects.shift();
    $('fight-caption').textContent=(e.actor?'Cinder':'Veil')+' · pistol fired';
   }else if(['hit','parry','block'].includes(e.kind)){
-   effects.push({e,life:1});if(effects.length>MAX_EFFECTS)effects.shift();
+   effects.push({e,life:1,at:performance.now()});if(effects.length>MAX_EFFECTS)effects.shift();
    const name=e.kind==='parry'?'interrupt':e.kind==='hit'?'hit':'cock';soundEvent(name,e.x);
+   if(e.kind==='hit')soundEvent(e.move==='hew'?'grunt-high':'grunt-low',e.x);
    $('fight-caption').textContent=e.kind==='parry'?'Perfect deflect':e.kind==='block'?'Guarded '+e.damage+' chip':e.move+' hit · '+e.damage+' damage';
   }else if(e.kind==='round'){
    soundEvent('bell',480);
    $('fight-caption').textContent=e.winner===-1?'Round drawn':(e.winner?'Cinder':'Veil')+(e.over?' wins the bout':' takes the round');
    if(e.over){setStatus('Bout finished. Review or save the recorded inputs.');}
   }
+ }
+}
+function sideFootstepCues(){
+ if(!audioOn)return;
+ for(let i=0;i<2;i++){
+  const p=s.p[i];
+  if(s.tick<footstepAt[i])footstepAt[i]=-99;
+  if(sideIsFootstep(p)&&s.tick-footstepAt[i]>=16){soundEvent('step',p.x);footstepAt[i]=s.tick;}
  }
 }
 function updateButtons(){
@@ -331,7 +342,7 @@ const sideTransport=createSideTransport({
  state(m){
   if(mode!=='online'||m.s?.rules!==SIDE_RULESET||
      !Number.isSafeInteger(m.s.tick)||m.s.tick<onlineTick)return;
-  onlineTick=m.s.tick;s=m.s;sideFootwork.push(s,performance.now());
+  onlineTick=m.s.tick;s=m.s;sideFootwork.push(s,performance.now());sideFootstepCues();
   onlineAck=Number.isSafeInteger(m.ack)?m.ack:onlineAck;
   onlinePending=onlinePending.filter(i=>i.seq>onlineAck).slice(-SIDE_PREDICTION_LIMIT);
   effectsFrom(Array.isArray(m.events)?m.events:[]);
@@ -395,7 +406,7 @@ function runTick(){
   if(s.over)return; // Do not append inputs after a completed match.
   const own=sample(),enemy=sidePrefs.level==='dummy'?sideInput():bot(s),pair=[own,enemy],events=[];
   if(tape.length<SIDE_TAPE_LIMIT){tape.push(packSideTick(pair));if(tape.length===1)updateButtons();}
-  sideStep(s,pair,events);effectsFrom(events);
+  sideStep(s,pair,events);effectsFrom(events);sideFootstepCues();
   if(s.over)updateButtons();
  }else if(mode==='review'&&reviewPlaying){
   if(cursor>=review.total){reviewPlaying=false;setStatus('Replay finished. Seek backward or take over before the final frame.');return;}
@@ -428,6 +439,10 @@ function paint(now,elapsed){
  canvas.dataset.veilHp=String(Math.round(s.p[0].hp));
  canvas.dataset.cinderHp=String(Math.round(s.p[1].hp));
  canvas.dataset.mode=mode;
+ canvas.dataset.depthQuality=sidePrefs.depthQuality;
+ if(audioOn&&now>=nextTensionAt){nextTensionAt=now+220;sound.tension(Math.round(sideScoreTension(s)*20)/20);}
+ const camera=sideCameraImpact(effects,now,reduced(),sidePrefs.depthQuality,sidePrefs.boxes&&mode!=='online');
+ g.save();g.translate(camera.x,camera.y);
  g.drawImage(stageCanvas,0,0);
  paintSideDepthBack(g,scene,now,s,sidePrefs.depthQuality,reduced());
  paintSideWeather(g,now,scene,reduced()||sidePrefs.depthQuality==='performance');
@@ -446,6 +461,8 @@ function paint(now,elapsed){
  paintSideDepthFront(g,scene,now,s,sidePrefs.depthQuality,reduced());
  if(sidePrefs.boxes&&mode!=='online'&&mode!=='connecting')drawSideTraining(g,s);
  for(const item of effects)drawSideImpact(g,item.e,item.life,reduced());
+ g.restore();
+ if(camera.flash){g.fillStyle='rgba(233,205,160,'+camera.flash.toFixed(4)+')';g.fillRect(0,0,960,540);}
  drawSideHUD(g,s,mode==='online'?onlineSlot:0);
  if(s.ready>0||s.over||s.end){
   const label=s.over?(s.winner===-1?'DUEL DRAWN':s.winner===0?'VEIL PREVAILS':'CINDER PREVAILS'):
