@@ -8,6 +8,7 @@ import {createSideTransport,SIDE_INVITE_PATTERN} from './side-online-client.mjs'
 import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTraining,drawSideHUD,drawSideImpact} from './side-art.mjs';
 import {SIDE_DEPTH_QUALITY,paintSideDepthStatic,paintSideDepthBack,paintSideDepthFront} from './side-depth.mjs';
 import {sideCameraImpact,sideScoreTension,sideIsFootstep,sideWorldLens} from './side-cinema.mjs';
+import {drawPaintedStage,loadPaintedStage,paintIllustratedAir} from './side-painted.mjs';
 import {createAudio} from './audio.mjs';
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
@@ -24,6 +25,7 @@ let sidePrefs={stage:Object.hasOwn(SIDE_STAGES,stored.stage)?stored.stage:'reliq
  boxes:stored.boxes===true,reduce:stored.reduce===true,contrast:stored.contrast===true,
  impactCamera:stored.impactCamera!==false,
  depthQuality:SIDE_DEPTH_QUALITY.includes(stored.depthQuality)?stored.depthQuality:'balanced',
+ illustrated:stored.illustrated!==false,
  keys:{...original.keys},move:{...original.move},guard:'KeyO',look:outfit(stored.look||original.outfit)};
 function validateBindings(candidate){
  const keys={...sidePrefs.keys,...candidate?.keys},move={...sidePrefs.move,...candidate?.move},guard=candidate?.guard??sidePrefs.guard;
@@ -38,6 +40,7 @@ $('stage-select').value=sidePrefs.stage;$('opponent').value=sidePrefs.level;
 $('show-boxes').checked=sidePrefs.boxes;$('reduce-motion').checked=sidePrefs.reduce;
 $('high-contrast').checked=sidePrefs.contrast;
 $('depth-quality').value=sidePrefs.depthQuality;
+$('painted-stage').checked=sidePrefs.illustrated;
 $('impact-camera').checked=sidePrefs.impactCamera;
 $('depth-quality').onchange=()=>{sidePrefs.depthQuality=SIDE_DEPTH_QUALITY.includes($('depth-quality').value)?$('depth-quality').value:'balanced';persist();};
 // Customization is an appearance-only, bounded local setting.
@@ -75,16 +78,20 @@ const sideFootwork=footwork();let onlinePending=[],onlineAck=0;
 let onlineRtt=null,nextOnlinePingAt=0;const rttSamples=[];
 const held=new Set(),touchHeld=new Set();
 const sound=createAudio();
-const siteAssets=applySiteTheme();let siteSkyImages=null;
+const siteAssets=applySiteTheme();let siteSkyImages=null,paintedReliquary=null;
+const hasIllustratedScene=()=>scene==='reliquary'&&sidePrefs.illustrated&&Boolean(paintedReliquary);
 function setStatus(message){$('fight-status').textContent=message;}
 function setReplayStatus(message){$('replay-status').textContent=message;}
 function setStage(next){
  scene=Object.hasOwn(SIDE_STAGES,next)?next:'reliquary';
  if(!sceneMap.has(scene)){
   const off=document.createElement('canvas');off.width=960;off.height=540;
-  const ctx=off.getContext('2d');paintSideStage(ctx,scene);
-  paintSideDepthStatic(ctx,scene);
-  if(siteSkyImages)bakeSiteSky(ctx,siteSkyImages,960);
+  const ctx=off.getContext('2d');
+  if(!hasIllustratedScene()||!drawPaintedStage(ctx,paintedReliquary,scene)){
+   paintSideStage(ctx,scene);
+   paintSideDepthStatic(ctx,scene);
+   if(siteSkyImages)bakeSiteSky(ctx,siteSkyImages,960);
+  }
   sceneMap.set(scene,off);
  }
  stageCanvas=sceneMap.get(scene);
@@ -93,9 +100,21 @@ function setStage(next){
  sidePrefs.stage=scene;persist();
 }
 setStage(sidePrefs.stage);
+loadPaintedStage('reliquary').then(image=>{
+ if(!image)return;
+ paintedReliquary=image;sceneMap.delete('reliquary');
+ if(scene==='reliquary')setStage('reliquary');
+});
+$('painted-stage').onchange=()=>{
+ sidePrefs.illustrated=$('painted-stage').checked;
+ sceneMap.delete('reliquary');setStage(scene);persist();
+};
 siteAssets?.scenery.then(images=>{
  siteSkyImages=images;
- for(const layer of sceneMap.values())bakeSiteSky(layer.getContext('2d'),images,960);
+ for(const [id,layer] of sceneMap){
+  if(id==='reliquary'&&hasIllustratedScene())continue;
+  bakeSiteSky(layer.getContext('2d'),images,960);
+ }
 });
 $('stage-select').onchange=()=>{
  if(mode==='live'||mode==='paused')restart();
@@ -442,6 +461,8 @@ function paint(now,elapsed){
  canvas.dataset.cinderHp=String(Math.round(s.p[1].hp));
  canvas.dataset.mode=mode;
  canvas.dataset.depthQuality=sidePrefs.depthQuality;
+ const illustrated=hasIllustratedScene();
+ canvas.dataset.artMode=illustrated?'illustrated':'procedural';
  if(audioOn&&now>=nextTensionAt){nextTensionAt=now+220;sound.tension(Math.round(sideScoreTension(s)*20)/20);}
  const camera=sideCameraImpact(effects,now,reduced()||!sidePrefs.impactCamera,sidePrefs.depthQuality,sidePrefs.boxes&&mode!=='online');
  const lens=sideWorldLens(s,sidePrefs.depthQuality);
@@ -450,8 +471,11 @@ function paint(now,elapsed){
  // text stay in screen space. This is optical 2.5D only, not 3D movement.
  g.translate(480+lens.shift,SIDE_FLOOR);g.scale(lens.zoom,lens.zoom);g.translate(-480,-SIDE_FLOOR);
  g.drawImage(stageCanvas,0,0);
- paintSideDepthBack(g,scene,now,s,sidePrefs.depthQuality,reduced());
- paintSideWeather(g,now,scene,reduced()||sidePrefs.depthQuality==='performance');
+ if(illustrated)paintIllustratedAir(g,now,reduced(),sidePrefs.depthQuality);
+ else{
+  paintSideDepthBack(g,scene,now,s,sidePrefs.depthQuality,reduced());
+  paintSideWeather(g,now,scene,reduced()||sidePrefs.depthQuality==='performance');
+ }
  const appearance=mode==='online'&&Array.isArray(onlineLooks)&&onlineLooks.length===2?onlineLooks:(mode==='review'||mode==='takeover')&&replayLooks?replayLooks:[sidePrefs.look,outfit({dye:'oxblood',sigil:'thorn'})];
  const neutralFoot=mode==='online'?sideFootwork.sample(now):null;
  const ownPrediction=mode==='online'&&onlineSlot>=0?reconcileSide(s,onlineSlot,onlinePending,onlineAck):null;
@@ -464,7 +488,7 @@ function paint(now,elapsed){
    mode==='online'&&i!==onlineSlot&&smooth?{...p,x:smooth.x,y:smooth.y}:p;
   paintSideFighter(g,pose,appearance[i],now,reduced(),sidePrefs.contrast);
  }
- paintSideDepthFront(g,scene,now,s,sidePrefs.depthQuality,reduced());
+ if(!illustrated)paintSideDepthFront(g,scene,now,s,sidePrefs.depthQuality,reduced());
  if(sidePrefs.boxes&&mode!=='online'&&mode!=='connecting')drawSideTraining(g,s);
  for(const item of effects)drawSideImpact(g,item.e,item.life,reduced());
  g.restore();
