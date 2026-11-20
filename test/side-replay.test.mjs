@@ -34,10 +34,10 @@ test('side replay restores exactly across arbitrary checkpoint and takeover bran
 });
 test('untrusted side replay rejects values outside packed alphabet range and after match end',()=>{
  assert.throws(()=>createSideReview({rules:SIDE_RULESET,tape:'__AA'}),/Invalid side-view replay input value/);
- const s=sideMatch();s.ready=0;s.p[0].hp=100;s.p[1].hp=1;s.p[0].x=460;s.p[1].x=520;
- let tape='',total=0;
- while(!s.over&&total<8000){
-  const pair=[{x:0,y:0,act:total%35===0?'cut':'',guard:false},sideInput()];
+ const s=sideMatch();let tape='',total=0;
+ while(!s.over&&total<12000){
+  const distance=s.p[1].x-s.p[0].x;
+  const pair=[{x:distance>90?1:0,y:0,act:distance<=90?'cut':'',guard:false},sideInput()];
   tape+=packSideTick(pair);sideStep(s,pair);total++;
  }
  assert(s.over,'match must complete');
