@@ -34,7 +34,7 @@ Combat Inspector and match-review markers identify misses, recovery punishes and
 
 Use **Rewind before event** to seek 12 ticks before the last selected marker, then take over either fighter from there. This is a fixed lead-in, not a guaranteed reaction window.
 
-Hunter Wardrobe provides four coat dyes and three sigil options (including none), with a preview and local persistence. Each fighter's look is locked for the room and retained in spectator and replay metadata. A local default-look setting overrides cosmetics without affecting other clients. Dyes and sigils do not change fighter outlines, telegraphs, stats, or replay rules.
+Hunter Wardrobe provides eight coat dyes and six sigil options (including none), with a preview and local persistence. Each fighter's look is locked for the room and retained in spectator and replay metadata. A local default-look setting overrides cosmetics without affecting other clients. Dyes and sigils do not change fighter outlines, telegraphs, stats, or replay rules.
 
 Online neutral footwork uses a bounded presentation buffer targeting 50–100 ms from the received snapshot stream. Local prediction, authoritative combat and effects are not buffered. Attacks and round transitions discard buffered neutral poses. The diagnostics target is not measured one-way network latency.
 
