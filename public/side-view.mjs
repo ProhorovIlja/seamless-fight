@@ -7,6 +7,7 @@ import {reconcileSide,SIDE_PREDICTION_LIMIT} from './side-prediction.mjs';
 import {createSideTransport,SIDE_INVITE_PATTERN} from './side-online-client.mjs';
 import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTraining,drawSideHUD,drawSideImpact} from './side-art.mjs';
 import {createAudio} from './audio.mjs';
+import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
 import {outfit} from './wardrobe.mjs';
 
@@ -44,13 +45,16 @@ const sideFootwork=footwork();let onlinePending=[],onlineAck=0;
 let onlineRtt=null,nextOnlinePingAt=0;const rttSamples=[];
 const held=new Set(),touchHeld=new Set();
 const sound=createAudio();
+const siteAssets=applySiteTheme();let siteSkyImages=null;
 function setStatus(message){$('fight-status').textContent=message;}
 function setReplayStatus(message){$('replay-status').textContent=message;}
 function setStage(next){
  scene=Object.hasOwn(SIDE_STAGES,next)?next:'reliquary';
  if(!sceneMap.has(scene)){
   const off=document.createElement('canvas');off.width=960;off.height=540;
-  paintSideStage(off.getContext('2d'),scene);sceneMap.set(scene,off);
+  const ctx=off.getContext('2d');paintSideStage(ctx,scene);
+  if(siteSkyImages)bakeSiteSky(ctx,siteSkyImages,960);
+  sceneMap.set(scene,off);
  }
  stageCanvas=sceneMap.get(scene);
  $('stage-title').textContent=SIDE_STAGES[scene].toUpperCase();
@@ -58,6 +62,10 @@ function setStage(next){
  sidePrefs.stage=scene;persist();
 }
 setStage(sidePrefs.stage);
+siteAssets?.scenery.then(images=>{
+ siteSkyImages=images;
+ for(const layer of sceneMap.values())bakeSiteSky(layer.getContext('2d'),images,960);
+});
 $('stage-select').onchange=()=>{
  if(mode==='live'||mode==='paused')restart();
  setStage($('stage-select').value);
