@@ -25,3 +25,5 @@ Performance and connection diagnostics run locally and report rolling frame inte
 Choose Lantern Court or The Drowned Cistern for a new duel, practice or the lab. The host's choice is fixed for the room and shared with guests and gallery viewers. Captures retain the arena; old captures default to Lantern Court. Arena visuals and ambient audio are original; both stages have identical geometry and combat rules.
 
 Open Combat inspector in practice, Duel Lab or match review to see both fighters’ input history and current combat phases, including the usable heavy-feint window. Seeking reconstructs recent inputs; takeover replaces only the controlled side going forward. The inspector does not show opponent input during live play.
+
+Match review also supports stepping backward and ½× or ¼× playback. Taking over a fighter always runs at normal speed.

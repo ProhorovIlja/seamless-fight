@@ -123,7 +123,7 @@ addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
-let histories=[[],[]], nextInspect=0;
+let histories=[[],[]], nextInspect=0, reviewPulse=0;
 function observeInputs(tick,inputs){for(let i=0;i<2;i++)logInput(histories[i],tick,inputs[i]);}
 function inspect(now){
  if(!$('combat-analysis').open||now<nextInspect)return;
@@ -293,10 +293,12 @@ function syncReview(){
  $('review-play').textContent=replayPlaying?'Pause':'Play';
  $('review-play').disabled=reviewTick>=review.total;
  $('review-step').disabled=replayPlaying||reviewTick>=review.total;
+ $('review-back').disabled=replayPlaying||reviewTick===0;
+ $('review-speed').disabled=forkSlot>=0;
  for(const id of ['review-veil','review-cinder'])$(id).disabled=replayPlaying||s.over||reviewTick>=review.total;
 }
 function seekReview(t){
- s=review.at(t);reviewTick=t;
+ s=review.at(t);reviewTick=t;reviewPulse=0;
  histories=[[],[]];for(let j=Math.max(0,t-120);j<t;j++)observeInputs(j+1,review.inputs(j));nextInspect=0;replayPlaying=false;forkSlot=-1;
  lastSound=null;flashes.fill(0);muzzle.fill(0);flush();syncReview();
  reviewInfo('Reviewing original duel.');
@@ -319,6 +321,8 @@ $('review-play').onclick=()=>{
  if(forkSlot>=0){const t=reviewTick;seekReview(t);}
  replayPlaying=!replayPlaying;syncReview();
 };
+$('review-back').onclick=()=>seekReview(Math.max(0,reviewTick-1));
+$('review-speed').onchange=()=>{reviewPulse=0;};
 $('review-step').onclick=()=>seekReview(Math.min(review.total,reviewTick+1));
 for(const [id,i] of [['review-veil',0],['review-cinder',1]])$(id).onclick=()=>{
  seekReview(reviewTick);forkSlot=i;replayPlaying=true;document.activeElement?.blur();syncReview();
@@ -326,6 +330,10 @@ for(const [id,i] of [['review-veil',0],['review-cinder',1]])$(id).onclick=()=>{
 };
 function reviewStep(){
  if(!replayPlaying)return;
+ // Slow down playback, never simulation or live takeover timing.
+ const stride=forkSlot>=0?1:Number($('review-speed').value);
+ if(++reviewPulse<stride)return;
+ reviewPulse=0;
  const inputs=review.inputs(reviewTick);
  if(forkSlot>=0)inputs[forkSlot]=read();
  observeInputs(reviewTick+1,inputs);step(s,inputs);reviewTick++;feedback(s);
@@ -384,7 +392,7 @@ function render(now){
  const elapsed=Math.min(100,now-prevFrame);prevFrame=now;acc+=elapsed;
  pollPad();
  let budget=5;
- while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){const inputs=[read(),trainingInput(s,$('drill').value)];if(!s.over)observeInputs(s.tick+1,inputs);step(s,inputs);feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
+ while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){const inputs=[read(),trainingInput(s,$('drill').value)];if(!s.over&&!s.end&&!s.ready)observeInputs(s.tick+1,inputs);step(s,inputs);feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  for(let i=0;i<2;i++){flashes[i]=Math.max(0,flashes[i]-elapsed/220);muzzle[i]=Math.max(0,muzzle[i]-elapsed/95);}
  inspect(now);

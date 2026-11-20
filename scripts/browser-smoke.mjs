@@ -167,6 +167,12 @@ try{
  assert.match(await host.locator('#review-tick').textContent(),/^Tick 120 /);
  await until(async()=>/120/.test(await host.locator('#inputs-0').textContent()),'inspector rebuilt input history after seek');
  assert.equal(await host.locator('#phase-0').textContent(),'Ready');
+ await host.locator('#review-back').click();
+ assert.match(await host.locator('#review-tick').textContent(),/^Tick 119 /);
+ await host.locator('#review-speed').selectOption('4');
+ await host.locator('#review-cinder').click();
+ assert(await host.locator('#review-speed').isDisabled());
+ await until(async()=>/^Tick 12[0-9] |^Tick 1[3-9][0-9] |^Tick [2-9][0-9]{2,} /.test(await host.locator('#review-tick').textContent()),'takeover runs with slow playback disabled');
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}
