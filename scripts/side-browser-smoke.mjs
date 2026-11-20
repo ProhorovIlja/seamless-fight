@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {setTimeout as sleep} from 'node:timers/promises';
 import {chromium} from 'playwright';
+import {SIDE_SPRITE_CLIPS} from '../public/side-sprite-rig.mjs';
 const base='http://127.0.0.1:18872';
 const server=spawn(process.execPath,['server.mjs'],{env:{...process.env,PORT:'18872',HOST:'127.0.0.1',PUBLIC_ORIGIN:base},stdio:'inherit'});
 let browser;
@@ -128,6 +129,17 @@ try{
  await page.locator('#fight-canvas').screenshot({path:'artifacts/side-online-authoritative-1v1.png'});
  await guest.close();
  await until(async()=>await page.locator('#fight-canvas').getAttribute('data-mode')==='idle','private opponent disconnect closes match');
+ // Artist pipeline: real same-origin WebP decoded from a user file using a
+ // valid test manifest. Content is reset immediately; no fake sprite ships.
+ const clips=Object.fromEntries(SIDE_SPRITE_CLIPS.map(key=>[key,{loop:['idle','run','guard','crouch','jump'].includes(key),frames:[{x:0,y:0,w:300,h:420,px:150,py:403,ticks:8}]}]));
+ const rig={version:1,character:'smoke-qa-original',texture:'/fight/art/hunters/smoke-qa-original.webp',
+  width:1600,height:900,scale:.4,creator:'Seamless Fight visual QA',license:'Original test-only artwork',clips};
+ await page.locator('#rig-manifest').setInputFiles({name:'qa.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(rig))});
+ await page.locator('#rig-image').setInputFiles('public/art/reliquary-painted.webp');
+ await page.locator('#rig-apply').click();
+ await until(async()=>/Local authored atlas active/.test(await page.locator('#rig-status').textContent()),'local sprite atlas preview successfully decoded');
+ await page.locator('#rig-reset').click();
+ assert.match(await page.locator('#rig-status').textContent(),/Prototype fighter fallback/);
  assert.deepEqual(errors,[]);
  console.log('Side-view Chromium: horizontal movement, jump, crouch, combat hitbox, replay seek/takeover, bindings, all stages, mobile touch and reduced effects passed.');
 }finally{try{await browser?.close();}finally{server.kill();}}
