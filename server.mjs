@@ -29,6 +29,7 @@ const assets = new Map([
   ['side-pose.mjs',['side-pose.mjs','text/javascript']],
   ['side-painted.mjs',['side-painted.mjs','text/javascript']],
   ['side-sprite-rig.mjs',['side-sprite-rig.mjs','text/javascript']],
+  ['side-resolution.mjs',['side-resolution.mjs','text/javascript']],
   ['side-ai.mjs',['side-ai.mjs','text/javascript']],
   ['side-replay.mjs',['side-replay.mjs','text/javascript']],
   ['side-inspector.mjs',['side-inspector.mjs','text/javascript']],
