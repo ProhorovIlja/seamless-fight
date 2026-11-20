@@ -44,6 +44,11 @@ try{
  await host.locator('#sound').click();
  await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='false','muted Web Audio');
  await host.locator('summary').filter({hasText:'Duel lab'}).click();
+ await host.locator('#combat-analysis summary').click();
+ await host.locator('#spacing').selectOption('far');
+ await host.locator('#replay').click();
+ await until(async()=>/Cinder Heavy missed/.test(await host.locator('#exchange-log').textContent()),'lab detects a heavy that fell short');
+ await host.locator('#combat-analysis summary').click();
  await host.locator('#record').click();
  await host.keyboard.down('ArrowLeft');
  await sleep(300);
@@ -169,6 +174,9 @@ try{
  assert.equal(await host.locator('#phase-0').textContent(),'Ready');
  await host.locator('#review-back').click();
  assert.match(await host.locator('#review-tick').textContent(),/^Tick 119 /);
+ await host.locator('#review-lead').click();
+ assert.match(await host.locator('#review-tick').textContent(),/^Tick 108 /);
+ await host.locator('#review-event').selectOption('120');
  await host.locator('#review-speed').selectOption('4');
  await host.locator('#review-cinder').click();
  assert(await host.locator('#review-speed').isDisabled());

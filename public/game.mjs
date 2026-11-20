@@ -123,7 +123,7 @@ addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
-let histories=[[],[]], nextInspect=0, reviewPulse=0, exchanges=[];
+let histories=[[],[]], nextInspect=0, reviewPulse=0, exchanges=[], selectedEvent=null;
 const eventBuffer=[];
 function collect(run){eventBuffer.length=0;run(eventBuffer);for(const event of eventBuffer){exchanges.push(event);if(exchanges.length>6)exchanges.shift();}}
 function observeInputs(tick,inputs){for(let i=0;i<2;i++)logInput(histories[i],tick,inputs[i]);}
@@ -311,6 +311,7 @@ $('review-open').onclick=()=>{
  if(!capture)return;
  if((mode==='online'||mode==='connecting'||mode==='spectate')&&!window.confirm('Leave the current room and open the replay?'))return;
  leave();mode='review';review=capture;showArena(review.arena);
+ selectedEvent=null;$('review-lead').disabled=true;
  const events=$('review-event');events.length=1;
  for(const {tick,label} of review.events){const option=document.createElement('option');option.value=tick;option.textContent='Tick '+tick+' · '+label;events.append(option);}
  events.disabled=review.events.length===0;
@@ -319,8 +320,10 @@ $('review-open').onclick=()=>{
 };
 $('review-seek').oninput=()=>seekReview(Number($('review-seek').value));
 $('review-event').onchange=()=>{
- const event=$('review-event');if(event.value!=='')seekReview(Number(event.value));event.value='';
+ const event=$('review-event');if(event.value==='')return;
+ selectedEvent=Number(event.value);seekReview(selectedEvent);$('review-lead').disabled=false;event.value='';
 };
+$('review-lead').onclick=()=>{if(mode==='review'&&selectedEvent!==null)seekReview(Math.max(0,selectedEvent-12));};
 $('review-play').onclick=()=>{
  if(forkSlot>=0){const t=reviewTick;seekReview(t);}
  replayPlaying=!replayPlaying;syncReview();
