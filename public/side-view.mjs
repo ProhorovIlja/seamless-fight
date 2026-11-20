@@ -1,6 +1,7 @@
 import {SIDE_HZ,SIDE_RULESET,SIDE_MOVES,sideInput,sideMatch,sideStep,SIDE_FLOOR} from './side-engine.mjs';
 import {createSideBot} from './side-ai.mjs';
 import {createSideReview,packSideTick,SIDE_TAPE_LIMIT} from './side-replay.mjs';
+import {sideReadout} from './side-inspector.mjs';
 import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTraining,drawSideHUD,drawSideImpact} from './side-art.mjs';
 import {createAudio} from './audio.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
@@ -34,6 +35,7 @@ let s=sideMatch(),bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.l
 let tape=[],capture=null,review=null,cursor=0,reviewPlaying=false;
 const effects=[],MAX_EFFECTS=10;
 let audioOn=false,queued='',priorPad=null,padQueued='',padMove={x:0,y:0,guard:false};
+let inspectorAt=0;const renderIntervals=[];
 const held=new Set(),touchHeld=new Set();
 const sound=createAudio();
 function setStatus(message){$('fight-status').textContent=message;}
@@ -268,6 +270,18 @@ function runTick(){
  }
 }
 function paint(now,elapsed){
+ if(elapsed>0&&elapsed<100){renderIntervals.push(elapsed);if(renderIntervals.length>120)renderIntervals.shift();}
+ if(now>=inspectorAt){
+  inspectorAt=now+125;
+  const view=sideReadout(s);
+  $('live-spacing').textContent='Center distance '+view.distance+' units · hurtbox gap '+view.gap+' units';
+  for(let side=0;side<2;side++){
+   $('live-phase-'+side).textContent=view.fighters[side];
+   $('live-contact-'+side).textContent=view.contact[side].status;
+  }
+  if(renderIntervals.length){const sorted=renderIntervals.slice().sort((a,b)=>a-b),p95=sorted[Math.ceil(sorted.length*.95)-1];
+   $('live-performance').textContent='Local render frame interval p95 '+p95.toFixed(1)+' ms (not input-to-photon or network latency).';}
+ }
  // Read-only local smoke diagnostics. No network send or hidden enemy inputs.
  canvas.dataset.tick=String(s.tick);
  canvas.dataset.veilX=String(Math.round(s.p[0].x));
