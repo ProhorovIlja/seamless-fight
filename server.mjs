@@ -36,6 +36,9 @@ const assets = new Map([
   ['footwork.mjs',['footwork.mjs','text/javascript']],
   ['score.mjs',['score.mjs','text/javascript']],
   ['presentation.mjs',['presentation.mjs','text/javascript']],
+  ['audio/impactMetal_light_000.ogg',['audio/impactMetal_light_000.ogg','audio/ogg']],
+  ['audio/impactMetal_heavy_000.ogg',['audio/impactMetal_heavy_000.ogg','audio/ogg']],
+  ['audio/footstep_concrete_000.ogg',['audio/footstep_concrete_000.ogg','audio/ogg']],
   ['art/crossed-swords.svg',['art/crossed-swords.svg','image/svg+xml']],
   ['art/lantern.svg',['art/lantern.svg','image/svg+xml']],
   ['art/visored-helm.svg',['art/visored-helm.svg','image/svg+xml']]

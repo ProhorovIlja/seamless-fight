@@ -99,3 +99,5 @@ After an unrated competitive BO3 set ends, a **Find next competitive set** contr
 Directional hit cues and combat captions now consistently attribute a landed hit to the *attacking* fighter while keeping the impact flash, pain voice and positional effects on the *target*. The authoritative simulation and replays are unchanged.
 
 Match Review now displays a local comparative combat report for loaded replays: confirmed damage and hits, misses, punishes, interrupts, movement duration and separately labeled attempted action inputs. These figures come from deterministic simulation and do not award ranked points or upload match data.
+
+An optional set of three tiny CC0 Kenney recordings now layers quietly with the existing original synthesized hit/interrupt and quickstep foley. Sound stays disabled until the user enables it; audio downloads start only after that action, preserve the separate effects volume setting and fall back to synthesis if samples fail to load. Nothing is streamed from Kenney at runtime; the vetted Ogg assets ship under `/fight/audio/` on the same origin.

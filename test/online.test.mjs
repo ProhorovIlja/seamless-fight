@@ -27,6 +27,14 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  assert(get.headers.get('content-length')>5000);
  assert.equal((await fetch(origin+'/fight/game.mjs',{headers:{'If-None-Match':head.headers.get('etag')}})).status,304);
  assert.equal((await fetch(origin+'/art/icon-blades.webp')).status,404,'the site proxy, not the duel process, owns shared art');
+ for(const path of ['impactMetal_light_000.ogg','impactMetal_heavy_000.ogg','footstep_concrete_000.ogg']){
+   const reply=await fetch(origin+'/fight/audio/'+path);
+   assert.equal(reply.status,200);
+   assert.match(reply.headers.get('content-type'),/audio\\/ogg/);
+   const body=Buffer.from(await reply.arrayBuffer());
+   assert.equal(body.subarray(0,4).toString(),'OggS');
+   assert(body.length<128000);
+ }
  const bad=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin:'https://example.invalid'});const [err]=await once(bad,'error');assert.match(err.message,/403/);
  const open=async(pongDelay=0)=>{
    const c=new WebSocket(origin.replace('http','ws')+'/fight/socket',{origin,autoPong:!pongDelay});t.after(()=>c.terminate());

@@ -42,3 +42,13 @@ The optional shared-site HUD uses the website’s vial emblem and its bell/skull
 The ghost workshop's import/export and analytics use original JavaScript and no third-party art or model weights. They follow the explicit opt-in and deletion practices visible in Tekken 8 Super Ghost Battle (Bandai Namco, https://tk8.tekken-official.jp/en/mode/offline.php); this project does not use its models or player data.
 
 Ambient loops now use a periodic two-pass noise filter and stay non-silent at the loop boundary; the source is fully synthesized. Exertion uses three deterministic generated takes for each voice range, with no third-party samples or impersonations. Both variants are generated when audio is enabled, not in the render loop.
+
+### Kenney Impact Sounds (selected optional layers)
+
+Source: [Kenney — Impact Sounds](https://kenney.nl/assets/impact-sounds) · author Kenney · license Creative Commons Zero 1.0 (CC0-1.0). The [original pack's license](https://creativecommons.org/publicdomain/zero/1.0/) permits redistribution and modification. Downloaded exact Ogg files from the independently indexed [GeorgeQLe/assets-sfx-combat](https://github.com/GeorgeQLe/assets-sfx-combat) mirror, whose manifest records the Kenney source and CC0 for each file. These assets remain unmodified. Git blob SHA-1 is listed for source verification.
+
+- `public/audio/impactMetal_light_000.ogg` — `assets/kenney/impact-sounds/Audio/impactMetal_light_000.ogg` — Git SHA-1 `7d49262cc9f69eb517cf644f61940ace16714f22`. Low-level hit layer.
+- `public/audio/impactMetal_heavy_000.ogg` — `assets/kenney/impact-sounds/Audio/impactMetal_heavy_000.ogg` — Git SHA-1 `d4432f48b6ff5b4a501045ef0b8068963ef5530d`. Interrupt impact layer.
+- `public/audio/footstep_concrete_000.ogg` — `assets/kenney/impact-sounds/Audio/footstep_concrete_000.ogg` — Git SHA-1 `163cc56468f1734fe694351e7ff984699afa8b86`. Quickstep layer.
+
+Audio is decoded on demand after an explicit click to enable sound, mixed at a low fixed gain *in addition to* the procedural sample bank, and never requested from third-party servers at runtime. If the browser does not support Ogg decoding or an asset fails, the generated effect remains available. The source Bloodborne/Yharnam game audio was not used.

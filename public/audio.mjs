@@ -2,6 +2,11 @@ import {scorePCM,exertionPCM,windPCM} from './score.mjs';
 import {moves} from './engine.mjs';
 
 // Original synthesized sound bank. No sample downloads or per-frame synthesis.
+const sampleFiles=Object.freeze({
+ hit:'./audio/impactMetal_light_000.ogg',
+ interrupt:'./audio/impactMetal_heavy_000.ogg',
+ step:'./audio/footstep_concrete_000.ogg'
+});
 const recipes={
  rangeCut:[.14,565,770,.04,1800],rangeShot:[.13,272,348,.035,1500],rangeExit:[.12,385,244,.03,1400],
  cut:[.16,490,110,.52,1800],hew:[.29,390,54,.62,1100],
@@ -60,7 +65,24 @@ export function createAudio(Context=globalThis.AudioContext){
  let center=false;
  const scores=new Map();
  const beds=new Map();
- const bank=new Map(),playing=new Set(), takes=new Map();
+ const bank=new Map(),playing=new Set(), takes=new Map(),recorded=new Map();
+ let sampleRequested=false;
+ function prepareSamples(){
+   if(sampleRequested||!ctx||typeof fetch!=='function')return;
+   sampleRequested=true;
+   // A missing or undecodable optional sample leaves the original synthesized
+   // sound fully functional. Fetch only after explicit user audio activation.
+   for(const [name,path] of Object.entries(sampleFiles)){
+     fetch(new URL(path,import.meta.url)).then(async response=>{
+       if(!response.ok)throw Error('Sound sample unavailable');
+       if(Number(response.headers.get('content-length'))>128000)throw Error('Sound sample too large');
+       const bytes=await response.arrayBuffer();
+       if(bytes.byteLength>128000||bytes.byteLength<128)throw Error('Invalid sample size');
+       return ctx.decodeAudioData(bytes);
+     }).then(clip=>{if(clip.duration<=3)recorded.set(name,clip);}).catch(()=>{});
+   }
+ }
+
  const set=(node,value)=>node.gain.setTargetAtTime(value,ctx.currentTime,.025);
  function build(){
    ctx=new Context({latencyHint:'interactive'});
@@ -122,7 +144,7 @@ export function createAudio(Context=globalThis.AudioContext){
    },
    async enable(){
      if(!Context)return false;
-     try{if(!ctx)build();await ctx.resume();enabled=ctx.state==='running';if(enabled){startWind();startScore();set(master,.7);}return enabled;}
+     try{if(!ctx)build();await ctx.resume();enabled=ctx.state==='running';if(enabled){startWind();startScore();set(master,.7);prepareSamples();}return enabled;}
      catch{return false;}
    },
    mute(){
@@ -146,6 +168,17 @@ export function createAudio(Context=globalThis.AudioContext){
      const clips=bank.get(name), take=takes.get(name)||0;
      source.buffer=clips[take];takes.set(name,(take+1)%clips.length);pan.pan.value=center||name.startsWith('range')?0:Math.max(-.65,Math.min(.65,(x-480)/480));source.connect(pan);pan.connect(name.startsWith('range')?assist:name.startsWith('grunt-')?voice:effects);
      playing.add(source);source.onended=()=>{playing.delete(source);source.disconnect();pan.disconnect();};source.start();
+     const sample=recorded.get(name);
+     if(sample&&playing.size<12){
+       const layer=ctx.createBufferSource(),gain=ctx.createGain(),position=ctx.createStereoPanner();
+       layer.buffer=sample;
+       gain.gain.value=name==='step'?.13:name==='hit'?.22:.25;
+       position.pan.value=pan.pan.value;
+       layer.connect(gain);gain.connect(position);position.connect(effects);
+       playing.add(layer);
+       layer.onended=()=>{playing.delete(layer);layer.disconnect();gain.disconnect();position.disconnect();};
+       layer.start();
+     }
    }
  };
 }
