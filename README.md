@@ -31,3 +31,5 @@ Match review also supports stepping backward and ½× or ¼× playback. Taking o
 Combat Inspector and match-review markers identify misses, recovery punishes and pistol interrupts from the same simulation that applies damage. A whiff punish means damage during recovery after an attack that did not connect. This is analysis only: no balance, server snapshot, or replay format changes.
 
 Use **Rewind before event** to seek 12 ticks before the last selected marker, then take over either fighter from there. This is a fixed lead-in, not a guaranteed reaction window.
+
+Hunter Wardrobe provides four coat dyes and three sigil options (including none), with a preview and local persistence. Each fighter's look is locked for the room and retained in spectator and replay metadata. A local default-look setting overrides cosmetics without affecting other clients. Dyes and sigils do not change fighter outlines, telegraphs, stats, or replay rules.

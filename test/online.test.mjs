@@ -19,13 +19,13 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
    await once(c,'open');
    return {c,send:m=>c.send(JSON.stringify(m)),get:async pred=>{for(let i=0;i<110;i++){const k=pending.findIndex(pred);if(k>=0)return pending.splice(k,1)[0];await sleep(35);}throw Error('Missing expected server message');}};
  };
- const a=await open();a.send({t:'hello',arena:'cistern'});const room=await a.get(m=>m.t==='room');assert.equal(room.slot,0);assert.equal(room.arena,'cistern');
- const b=await open();b.send({t:'hello',code:room.code});const joined=await b.get(m=>m.t==='room');assert.equal(joined.slot,1);assert.equal(joined.arena,'cistern');
+ const a=await open();a.send({t:'hello',arena:'cistern',outfit:{dye:'kelp',sigil:'moon',hp:999}});const room=await a.get(m=>m.t==='room');assert.equal(room.slot,0);assert.equal(room.arena,'cistern');
+ const b=await open();b.send({t:'hello',code:room.code,outfit:{dye:'constructor',sigil:'thorn'}});const joined=await b.get(m=>m.t==='room');assert.equal(joined.slot,1);assert.equal(joined.arena,'cistern');assert.deepEqual(joined.outfits,[{dye:'kelp',sigil:'moon'},{dye:'ash',sigil:'thorn'}]);
  const full=await open();full.send({t:'hello',code:room.code});assert.match((await full.get(m=>m.t==='error')).message,/full/);
  const denied=await open();denied.send({t:'watch',code:room.code});
  assert.match((await denied.get(m=>m.t==='error')).message,/closed/);
  a.send({t:'gallery',open:true});const gallery=await a.get(m=>m.t==='gallery');assert.notEqual(gallery.code,room.code);
- const spectator=await open();spectator.send({t:'watch',code:gallery.code});await spectator.get(m=>m.t==='watching');
+ const spectator=await open();spectator.send({t:'watch',code:gallery.code});assert.deepEqual((await spectator.get(m=>m.t==='watching')).outfits,joined.outfits);
  const watched=await spectator.get(m=>m.t==='state'&&!m.s.ready);assert.equal(watched.ack,undefined);
  spectator.send({t:'input',x:1,y:0,act:'shot',seq:1});
  const unchanged=await spectator.get(m=>m.t==='state'&&m.s.tick>watched.s.tick+12);
@@ -41,7 +41,7 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  b.send({t:'input',x:0,y:0,act:'feint',seq:3});
  const feinted=await b.get(m=>m.t==='state'&&m.ack===3&&m.s.p[1].act==='feint');assert.equal(feinted.s.p[1].st,62);
  b.send({t:'replay'});
- const capture=await b.get(m=>m.t==='replay'), review=createReview(capture);assert.equal(capture.arena,'cistern');
+ const capture=await b.get(m=>m.t==='replay'), review=createReview(capture);assert.equal(capture.arena,'cistern');assert.deepEqual(capture.outfits,joined.outfits);
  assert.deepEqual(review.at(feinted.s.tick),feinted.s);
  assert.equal(review.complete,false);
  spectator.send({t:'replay'});spectator.send({t:'ping',id:999});

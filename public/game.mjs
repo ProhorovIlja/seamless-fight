@@ -8,6 +8,7 @@ import {DEFAULT_KEYS,STORAGE_KEY,allowed,settings,samplePad} from './controls.mj
 import {createMetrics} from './metrics.mjs';
 import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
 import {logInput,describe,eventLabel} from './analysis.mjs';
+import {dyes,sigils,outfit,pair,paintOutfit} from './wardrobe.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -60,6 +61,19 @@ function sendInput(input){
 let rawPrefs;
 try{rawPrefs=JSON.parse(localStorage.getItem(STORAGE_KEY));}catch{}
 const prefs=settings(rawPrefs), reduced=()=>prefs.reduce||motionQuery.matches;
+let looks=pair();
+const classic=outfit();
+function previewOutfit(){
+ const g=$('look-preview').getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,112,64);
+ g.translate(62,32);g.scale(1.4,1.4);paintOutfit(g,prefs.outfit);g.strokeStyle='#8fc8c0';g.stroke();
+}
+for(const [id,table] of [['dye',dyes],['sigil',sigils]]){
+ const select=$(id);
+ for(const [value,label] of Object.entries(table)){const o=document.createElement('option');o.value=value;o.textContent=Array.isArray(label)?label[0]:label;select.append(o);}
+ select.value=prefs.outfit[id];select.onchange=()=>{prefs.outfit=outfit({...prefs.outfit,[id]:select.value});persist();previewOutfit();};
+}
+$('classic').checked=prefs.classic;$('classic').onchange=()=>{prefs.classic=$('classic').checked;persist();};
+previewOutfit();
 const pressed=new Set(), moveKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'];
 const labels={cut:'Cut',hew:'Heavy',shot:'Pistol',feint:'Feint',step:'Quickstep'};
 let binding='', prior=null, padFrame={x:0,y:0}, armed=false;
@@ -137,7 +151,7 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function leave(){looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();prev=null;review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();showArena($('arena-select').value);mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
@@ -209,15 +223,16 @@ function online(code,watch=false){
  leave();watching=watch;mode='connecting';status('Connecting to the duel…');
  const url=new URL('./socket',location.href);url.protocol=location.protocol==='https:'?'wss:':'ws:';
  const c=ws=new WebSocket(url);
- c.onopen=()=>c.send(JSON.stringify({t:watch?'watch':'hello',code,arena:$('arena-select').value}));
+ c.onopen=()=>c.send(JSON.stringify({t:watch?'watch':'hello',code,arena:$('arena-select').value,outfit:prefs.outfit}));
  c.onmessage=e=>{
    if(c!==ws)return;const m=JSON.parse(e.data);
    if(m.t==='room'){
-     showArena(m.arena);slot=m.slot;$('gallery').hidden=slot!==0;const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
+     showArena(m.arena);looks=pair(m.outfits);slot=m.slot;$('gallery').hidden=slot!==0;const invite=new URL('./',location.href);invite.searchParams.set('room',m.code);$('invite').value=invite.href;$('copy').hidden=$('invite').hidden=false;status(slot?'Opponent found.':'Waiting for an opponent. Share the invite link.');
    }
    if(m.t==='replay'){try{loadCapture(m);}catch(e){reviewInfo(e.message);}return;}
    if(m.t==='gallery')setGallery(m.code);
-   if(m.t==='watching'){showArena(m.arena);slot=-1;mode='spectate';status('Spectating · waiting for both fighters.');}
+   if(m.t==='outfits'){looks=pair(m.outfits);return;}
+   if(m.t==='watching'){showArena(m.arena);looks=pair(m.outfits);slot=-1;mode='spectate';status('Spectating · waiting for both fighters.');}
    if(m.t==='state'&&watching){
      prev=m.s.tick>s.tick&&m.s.round===s.round&&m.s.ready<=s.ready?s:null;
      if(s.tick===0)status('Spectating live · read-only.');
@@ -271,8 +286,8 @@ function feedback(state){
  lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age})=>({hp,act,age}))};
 }
 function loadCapture(data){
- const clip={rules:data.rules,tape:data.tape,arena:arenaId(data.arena)}, view=createReview(clip);
- view.arena=clip.arena;
+ const clip={rules:data.rules,tape:data.tape,arena:arenaId(data.arena),outfits:pair(data.outfits)}, view=createReview(clip);
+ view.arena=clip.arena;view.outfits=clip.outfits;
  capture=view;
  if(saveUrl)URL.revokeObjectURL(saveUrl);
  saveUrl=URL.createObjectURL(new Blob([JSON.stringify(clip)],{type:'application/json'}));
@@ -310,7 +325,7 @@ function seekReview(t){
 $('review-open').onclick=()=>{
  if(!capture)return;
  if((mode==='online'||mode==='connecting'||mode==='spectate')&&!window.confirm('Leave the current room and open the replay?'))return;
- leave();mode='review';review=capture;showArena(review.arena);
+ leave();mode='review';review=capture;showArena(review.arena);looks=review.outfits;
  selectedEvent=null;$('review-lead').disabled=true;
  const events=$('review-event');events.length=1;
  for(const {tick,label} of review.events){const option=document.createElement('option');option.value=tick;option.textContent='Tick '+tick+' · '+label;events.append(option);}
@@ -366,7 +381,9 @@ function drawFighter(p,i,x,y,time){
  }
  const stride=reduced()?0:Math.sin(time/55)*Math.min(4,Math.hypot(p.vx,p.vy));
  g.fillStyle='#12131a';g.fillRect(-12+stride,-12,15,8);g.fillRect(-12-stride,5,15,8);
- g.fillStyle='#312d3a';g.beginPath();g.moveTo(9,-13);g.lineTo(-7,-18);g.lineTo(-23,-15);g.lineTo(-19,15);g.lineTo(-7,18);g.lineTo(9,12);g.closePath();g.fill();
+ const local=(mode===''||mode==='practice'||mode==='lab'), localSlot=mode==='lab'&&labKind==='record'?1:0;
+ const look=prefs.classic?classic:local?(i===localSlot?prefs.outfit:classic):looks[i];
+ paintOutfit(g,look);
  g.strokeStyle=color;g.lineWidth=prefs.contrast?3.5:2;g.stroke();
  g.fillStyle='#12141b';g.beginPath();g.ellipse(3,0,11,10,0,0,Math.PI*2);g.fill();
  g.fillStyle=color;g.fillRect(8,-5,3,10);

@@ -66,6 +66,9 @@ try{
  await host.locator('#takeover').click();
  await status(host,/Takeover/);
  await until(async()=>Number(await seek.inputValue())>5,'live takeover advances from the rewind point');
+ await host.locator('#wardrobe summary').click();
+ await host.locator('#dye').selectOption('oxblood');
+ await host.locator('#sigil').selectOption('moon');
  await host.locator('#arena-select').selectOption('cistern');
  await host.locator('#online').click();
  await until(async()=>/Drowned Cistern/.test(await host.locator('#arena-title').textContent()),'host arena accepted');
@@ -156,6 +159,8 @@ try{
  const download=await downloadEvent;
  assert.equal(download.suggestedFilename(),'seamless-fight-replay.json');
  const savedReplay=await download.path();
+ const {readFile}=await import('node:fs/promises');
+ assert.deepEqual(JSON.parse(await readFile(savedReplay,'utf8')).outfits[0],{dye:'oxblood',sigil:'moon'});
  await guest.close();
  await status(host,/Opponent disconnected/);
  await host.locator('#review-file').setInputFiles(savedReplay);

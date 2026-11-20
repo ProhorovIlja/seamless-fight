@@ -1,3 +1,4 @@
+import {outfit} from './wardrobe.mjs';
 export const DEFAULT_KEYS={cut:'KeyJ',hew:'KeyK',shot:'KeyL',feint:'KeyI',step:'Space'};
 export const STORAGE_KEY='seamless-fight.settings.v1';
 export const allowed=code=>typeof code==='string'&&/^(Key[A-Z]|Digit[0-9]|Space|Enter|ShiftLeft|ShiftRight)$/.test(code)&&!['KeyW','KeyA','KeyS','KeyD','KeyR','KeyT'].includes(code);
@@ -5,7 +6,7 @@ export function settings(raw){
  const keys={...DEFAULT_KEYS}, values=Object.keys(keys).map(a=>raw?.keys?.[a]);
  if(values.every(allowed)&&new Set(values).size===values.length)Object.keys(keys).forEach((a,i)=>keys[a]=values[i]);
  const clamp=(v,d,min,max)=>Number.isFinite(v)?Math.max(min,Math.min(max,v)):d;
- return {keys,deadzone:clamp(raw?.deadzone,30,15,65),sfx:clamp(raw?.sfx,65,0,100),ambience:clamp(raw?.ambience,15,0,100),reduce:raw?.reduce===true,contrast:raw?.contrast===true};
+ return {keys,outfit:outfit(raw?.outfit),classic:raw?.classic===true,deadzone:clamp(raw?.deadzone,30,15,65),sfx:clamp(raw?.sfx,65,0,100),ambience:clamp(raw?.ambience,15,0,100),reduce:raw?.reduce===true,contrast:raw?.contrast===true};
 }
 const buttons=[[1,'step'],[2,'cut'],[3,'hew'],[5,'shot'],[4,'feint']];
 export function samplePad(pad,prior,threshold){

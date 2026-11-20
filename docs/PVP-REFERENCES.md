@@ -26,3 +26,5 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - [Street Fighter 6 input history](https://www.playstation.com/en-us/games/street-fighter-6/everything-you-need-to-know-about-street-fighter-6/) and [Tekken 8 Practice](https://tk8.tekken-official.jp/mode/offline.php): make inputs and combat phase separately inspectable when repeating a setup. No third-party code or assets used.
 
 - [Fighting Game Glossary: Whiff Punish](https://glossary.infil.net/?t=Whiff+Punish): distinguish a missed attack from the follow-up hit during its recovery. [Street Fighter 6 training recording](https://game.capcom.com/manual/SF6/en/ps5/page/8/6) provides the repeatable-exchange reference. No external combat code imported.
+
+- [Brawlhalla cosmetics](https://brawlhalla.wiki.gg/wiki/Cosmetics) and [Guilty Gear Strive appearance locks](https://www.guiltygear.com/ggst/en/news/post-2963/): keep customization outside combat and let viewers suppress it locally. All coat and sigil art is original Canvas drawing.
