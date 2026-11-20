@@ -21,3 +21,10 @@ export function describe(p){
  if(p.age<start+active)return name+' · active · '+(start+active-p.age)+' left';
  return name+' · recovery · '+(start+active+recovery-p.age)+' left';
 }
+
+export function eventLabel(event){
+ const actor=event.actor?'Cinder':'Veil', move=actionNames[event.move];
+ if(event.kind==='miss')return actor+' '+move+' missed';
+ const target=event.target?'Cinder':'Veil';
+ return actor+' '+move+' · '+event.kind+' · '+target+' −'+event.damage+' HP';
+}

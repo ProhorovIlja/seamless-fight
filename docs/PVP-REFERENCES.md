@@ -24,3 +24,5 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - [The Art of VALORANT Map Environments](https://playvalorant.com/en-us/news/dev/the-art-of-valorant-map-environments/): place stronger decoration outside the fighting area and keep materials in the play space lower-contrast than the fighters. The Cistern changes presentation only; no assets were imported.
 
 - [Street Fighter 6 input history](https://www.playstation.com/en-us/games/street-fighter-6/everything-you-need-to-know-about-street-fighter-6/) and [Tekken 8 Practice](https://tk8.tekken-official.jp/mode/offline.php): make inputs and combat phase separately inspectable when repeating a setup. No third-party code or assets used.
+
+- [Fighting Game Glossary: Whiff Punish](https://glossary.infil.net/?t=Whiff+Punish): distinguish a missed attack from the follow-up hit during its recovery. [Street Fighter 6 training recording](https://game.capcom.com/manual/SF6/en/ps5/page/8/6) provides the repeatable-exchange reference. No external combat code imported.

@@ -38,7 +38,7 @@ const engine = function engine(){
    p.spent=true;
    return {damage:m[5],stun:p.act==='shot'&&(q.act==='cut'||q.act==='hew')&&q.age<moves[q.act][0]};
  }
- function step(s,inputs){
+ function step(s,inputs,events){
    s.tick++;
    if(s.over)return;
    if(s.end){if(!--s.end){s.p=[fighter(0),fighter(1)];s.clock=LIMIT;s.ready=120;s.round++;s.winner=null;}return;}
@@ -47,6 +47,16 @@ const engine = function engine(){
    const d=Math.hypot(a.x-b.x,a.y-b.y);
    if(d<34){const dx=d?(a.x-b.x)/d:-1,dy=d?(a.y-b.y)/d:0;for(const [p,k] of [[a,1],[b,-1]]){p.x=clamp(p.x+dx*(34-d)*.5*k,58,W-58);p.y=clamp(p.y+dy*(34-d)*.5*k,96,H-55);}}
    const hits=[strike(b,a),strike(a,b)];
+   if(events)for(let i=0;i<2;i++){
+     const p=s.p[i],attacker=s.p[1-i],hit=hits[i],move=moves[p.act];
+     if(hit){
+       const recovering=move?.[5]&&p.age>=move[0]+move[1];
+       const kind=hit.stun?'interrupt':recovering&&!p.spent?'whiff punish':recovering||p.act==='feint'?'recovery punish':'hit';
+       events.push({tick:s.tick,kind,actor:1-i,target:i,move:attacker.act,damage:Math.min(p.hp,hit.damage)});
+     }
+     if(move?.[5]&&!p.spent&&p.age===move[0]+move[1]-1)
+       events.push({tick:s.tick,kind:'miss',actor:i,move:p.act});
+   }
    for(let i=0;i<2;i++)if(hits[i]){const p=s.p[i];p.hp=Math.max(0,p.hp-hits[i].damage);if(hits[i].stun){p.act='stun';p.age=0;}}
    for(const p of s.p)if(p.act)p.age++;
    if(--s.clock<=0||!a.hp||!b.hp){s.winner=a.hp===b.hp?-1:a.hp>b.hp?0:1;if(s.winner>=0)s.score[s.winner]++;s.over=s.score.includes(2);s.end=s.over?0:150;}

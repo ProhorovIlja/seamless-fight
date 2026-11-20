@@ -18,8 +18,8 @@ export function makeLab(spacing='edge') {
  s.ready=0;s.p[0].x=480-d/2;s.p[1].x=480+d/2;
  return s;
 }
-export function practiceTick(s, inputs) {
- step(s,inputs);
+export function practiceTick(s, inputs, events) {
+ step(s,inputs,events);
  // End only on a KO; refresh time without touching cooldowns or resources.
  if(!s.end&&!s.over&&s.clock<2)s.clock=75*HZ;
 }
@@ -37,14 +37,15 @@ export function preset(name) {
 }
 
 export function restoreDrill(spacing, opponent, player, requested) {
- const state=makeLab(spacing), trace=[];
+ const state=makeLab(spacing), trace=[], recent=[];
  const limit=Math.min(opponent.length+HZ,MAX_TAPE+HZ);
  const target=Number.isSafeInteger(requested)?Math.max(0,Math.min(requested,limit)):0;
  let tick=0;
  while(tick<target&&!state.end&&!state.over){
-   practiceTick(state,[tapeInput(player,tick),tapeInput(opponent,tick)]);
+   practiceTick(state,[tapeInput(player,tick),tapeInput(opponent,tick)],recent);
+   if(recent.length>6)recent.splice(0,recent.length-6);
    trace.push(state.p.map(phase));if(trace.length>TIMELINE)trace.shift();
    tick++;
  }
- return {state,trace,tick,limit};
+ return {state,trace,tick,limit,recent};
 }

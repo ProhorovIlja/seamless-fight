@@ -27,3 +27,5 @@ Choose Lantern Court or The Drowned Cistern for a new duel, practice or the lab.
 Open Combat inspector in practice, Duel Lab or match review to see both fighters’ input history and current combat phases, including the usable heavy-feint window. Seeking reconstructs recent inputs; takeover replaces only the controlled side going forward. The inspector does not show opponent input during live play.
 
 Match review also supports stepping backward and ½× or ¼× playback. Taking over a fighter always runs at normal speed.
+
+Combat Inspector and match-review markers identify misses, recovery punishes and pistol interrupts from the same simulation that applies damage. A whiff punish means damage during recovery after an attack that did not connect. This is analysis only: no balance, server snapshot, or replay format changes.
