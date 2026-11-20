@@ -35,3 +35,11 @@ test('portable ghost validates rules, counters, duplicate filenames and corrupte
  assert.throws(()=>parseGhost(JSON.stringify({...JSON.parse(json),model:{...model,counts:[Infinity]}})),/corrupted/);
  assert.equal(json.includes('seamlesshunt.com'),false);
 });
+test('trained ghost can control either fighter and follows relative positioning',()=>{
+ const model=trainGhost(view(),0),g=createGhost(model,0),s=match();s.ready=0;
+ for(let tick=0;tick<10;tick++){s.tick=tick;assert.deepEqual(g(s),blank());}
+ s.tick=10;assert.deepEqual(g(s),{x:-1,y:0,act:''});
+ s.p[0].x=780;s.p[1].x=400;
+ for(let tick=11;tick<=26;tick++){s.tick=tick;const move=g(s);if(tick>=22)assert.equal(move.x,1);}
+ assert.throws(()=>createGhost(model,2),RangeError);
+});

@@ -219,12 +219,14 @@ addEventListener('keydown',ev=>{
 },true);
 addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
-let spar=createSparring(), practiceTape=[], lesson=-1;
+let spar=createSparring(), sparHost=null, practiceTape=[], lesson=-1;
 let ghost=null;try{ghost=restoreGhost(JSON.parse(localStorage.getItem(GHOST_KEY)));}catch{}
 let ghostUrl='';
 function ghostStatus(note=''){
  $('ghost-option').disabled=!ghost;
  $('ghost-clear').disabled=!ghost;
+ $('ghost-exhibition').disabled=!ghost;
+ if(!ghost)$('ghost-exhibition').checked=false;
  $('ghost-export').hidden=!ghost;
  if(ghostUrl){URL.revokeObjectURL(ghostUrl);ghostUrl='';}
  if(ghost){
@@ -252,8 +254,17 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){stopSearch();lesson=-1;$('lesson').hidden=true;practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
-function practice(){leave();showArena($('arena-select').value);mode='practice';spar=$('drill').value==='ghost'&&ghost?createGhost(ghost):createSparring($('drill').value,$('spar-level').value);if($('drill').value==='lesson'){lesson=0;showLesson();}$('capture').disabled=false;status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
+function leave(){stopSearch();sparHost=null;lesson=-1;$('lesson').hidden=true;practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function practice(){
+ leave();showArena($('arena-select').value);mode='practice';
+ const exhibition=Boolean(ghost&&$('ghost-exhibition').checked);
+ spar=exhibition?createGhost(ghost):$('drill').value==='ghost'&&ghost?createGhost(ghost):createSparring($('drill').value,$('spar-level').value);
+ sparHost=exhibition?createSparring('duelist',$('spar-level').value,0):null;
+ if(!exhibition&&$('drill').value==='lesson'){lesson=0;showLesson();}
+ $('capture').disabled=false;
+ status(exhibition?'Exhibition · '+$('spar-level').selectedOptions[0].textContent+' AI vs trained ghost · first to two.':'Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');
+ document.activeElement?.blur();
+}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
  $('lab-meter').hidden=false;
@@ -333,7 +344,7 @@ function stopSearch(message=''){
 }
 function syncSearchControls(){
  const pending=searchSocket!==null, disabled=pending||!['','practice','lab'].includes(mode);
- for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending],['spar-level',pending],['queue-rtt',pending],['queue-link',pending]]){
+ for(const [id,value] of [['queue-start',disabled],['arena-select',pending],['drill',pending||Boolean(ghost&&$('ghost-exhibition').checked&&mode==='practice')],['spar-level',pending],['queue-rtt',pending],['queue-link',pending]]){
    const el=$(id);if(el.disabled!==value)el.disabled=value;
  }
 }
@@ -495,6 +506,7 @@ $('ghost-import').onchange=async event=>{
  }catch(err){ghostStatus(err.message);}
 };
 addEventListener('pagehide',()=>{if(ghostUrl){URL.revokeObjectURL(ghostUrl);ghostUrl='';}});
+$('ghost-exhibition').onchange=()=>{if(mode==='practice'&&!searchSocket)practice();};
 $('ghost-clear').onclick=()=>{
  ghost=null;try{localStorage.removeItem(GHOST_KEY);}catch{}
  if($('drill').value==='ghost')$('drill').value='duelist';
@@ -627,7 +639,7 @@ function render(now){
  const elapsed=Math.min(100,now-prevFrame);prevFrame=now;acc+=elapsed;
  pollPad();
  let budget=5;
- while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){if(s.over){read();continue;}const inputs=[read(),spar(s)];if(practiceTape.length<MAX_TICKS)practiceTape.push(packTick(inputs));if(!s.over&&!s.end&&!s.ready)observeInputs(s.tick+1,inputs);collect(events=>step(s,inputs,events));feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
+ while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){if(s.over){read();continue;}const veilsInput=sparHost?sparHost(s):read();if(sparHost)read();const inputs=[veilsInput,spar(s)];if(practiceTape.length<MAX_TICKS)practiceTape.push(packTick(inputs));if(!s.over&&!s.end&&!s.ready)observeInputs(s.tick+1,inputs);collect(events=>step(s,inputs,events));feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  for(let i=0;i<2;i++){flashes[i]=Math.max(0,flashes[i]-elapsed/220);muzzle[i]=Math.max(0,muzzle[i]-elapsed/95);}
  syncSearchControls();

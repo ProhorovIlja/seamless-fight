@@ -235,6 +235,18 @@ try{
  await host.locator('#practice').click();
  await host.locator('#arena-select').selectOption('lantern');
  await until(async()=>/Lantern Court/.test(await host.locator('#arena-title').textContent()),'Lantern Court selected');
+ await host.locator('#ghost-exhibition').check();
+ await status(host,/Exhibition · Normal AI vs trained ghost/);
+ await until(async()=>/74 seconds/.test(await host.locator('#round-score').textContent()),'ghost and bot exhibition round');
+ await host.locator('#capture').click();
+ const exhibitDownload=host.waitForEvent('download');
+ await host.locator('#review-save').click();
+ const exhibitFile=await exhibitDownload;
+ const exhibit=JSON.parse(await readFile(await exhibitFile.path(),'utf8'));
+ assert(exhibit.tape.length>=260,'exhibition tape includes live round');
+ assert([...exhibit.tape.slice(240)].some((symbol,i)=>i%2===0&&symbol!=='Y'),'Veil bot moves');
+ assert([...exhibit.tape.slice(240)].some((symbol,i)=>i%2===1&&symbol!=='Y'),'Cinder ghost moves');
+ await host.locator('#ghost-exhibition').uncheck();
  await host.locator('#drill').selectOption('ghost');
  await status(host,/Practice · Trained ghost/);
  assert.equal(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.ghost.v1')).sources.length),1);

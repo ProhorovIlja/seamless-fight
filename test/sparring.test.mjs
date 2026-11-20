@@ -40,3 +40,11 @@ test('Hard observes earlier than Normal and Easy without seeing current opponent
  for(let tick=0;tick<=24;tick++){s.tick=tick;for(let i=0;i<bots.length;i++){const a=bots[i](s);if(first[i]===null&&a.x)first[i]=tick;}}
  assert.deepEqual(first,[20,12,8]);
 });
+
+test('built-in opponent can play Veil with delayed observations',()=>{
+ const s=match(),bot=createSparring('duelist','hard',0);s.ready=0;
+ let first=null;
+ for(let i=0;i<16;i++){s.tick=i;const move=bot(s);if(first===null&&move.x)first=i;}
+ assert.equal(first,8);
+ assert.throws(()=>createSparring('duelist','normal',2),RangeError);
+});

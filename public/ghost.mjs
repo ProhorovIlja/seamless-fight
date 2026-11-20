@@ -61,15 +61,17 @@ export function trainGhost(view,slot,prior){
  if(samples<12||active<4)throw Error('Capture more live movement or combat before training a ghost.');
  return {version:1,counts,sources:[...(prior?.sources||[]),id].slice(-16)};
 }
-export function createGhost(model){
- const fallback=createSparring('duelist'), ring=Array(DELAY+1);
- let previous=-1, round=-1, seed=0x17c4a35, held=blank(), next=0;
+export function createGhost(model,slot=1){
+ if(slot!==0&&slot!==1)throw RangeError('Invalid ghost slot.');
+ if(!restoreGhost(model))throw TypeError('Invalid ghost model.');
+ const fallback=createSparring('duelist','normal',slot), ring=Array(DELAY+1);
+ let previous=-1, round=-1, seed=(0x17c4a35^Math.imul(slot+1,0x9e3779b9))>>>0, held=blank(), next=0;
  return s=>{
    const defaultInput=fallback(s);
    if(s.tick!==previous+1||s.round!==round||s.ready||s.end||s.over){ring.fill(null);held=blank();next=0;}
    previous=s.tick;round=s.round;
    if(s.ready||s.end||s.over)return blank();
-   const [p,q]=s.p;ring[s.tick%ring.length]={x:p.x,y:p.y,act:p.act,age:p.age};
+   const p=s.p[1-slot],q=s.p[slot];ring[s.tick%ring.length]={x:p.x,y:p.y,act:p.act,age:p.age};
    const seen=ring[(s.tick+1)%ring.length];
    if(!seen||(!canAct(q)&&!canFeint(q)))return blank();
    if(s.tick<next&&!canFeint(q))return held;
