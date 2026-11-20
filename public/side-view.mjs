@@ -266,6 +266,13 @@ function runTick(){
  }
 }
 function paint(now,elapsed){
+ // Read-only local smoke diagnostics. No network send or hidden enemy inputs.
+ canvas.dataset.tick=String(s.tick);
+ canvas.dataset.veilX=String(Math.round(s.p[0].x));
+ canvas.dataset.veilY=String(Math.round(s.p[0].y));
+ canvas.dataset.veilHp=String(Math.round(s.p[0].hp));
+ canvas.dataset.cinderHp=String(Math.round(s.p[1].hp));
+ canvas.dataset.mode=mode;
  g.drawImage(stageCanvas,0,0);
  paintSideWeather(g,now,scene,reduced());
  const appearance=[outfit({dye:'ash',sigil:'lantern'}),outfit({dye:'oxblood',sigil:'thorn'})];
