@@ -303,7 +303,7 @@ function feedback(state){
  const cues=soundChanges(lastSound,state,true);
  if(prefs.captions&&cues.length){
    cueText=cues.map(cue=>{
-     const names={bell:'Round bell',cut:'Blade swing',hew:'Heavy swing',cock:'Pistol readied',shot:'Pistol fired',step:'Quickstep',feint:'Heavy feinted',hit:'Hit confirmed',interrupt:'Pistol interrupt'};
+     const names={bell:'Round bell',cut:'Blade swing',hew:'Heavy swing',cock:'Pistol readied',shot:'Pistol fired',step:'Quickstep',feint:'Heavy feinted',hit:'Took a hit',interrupt:'Interrupted by pistol'};
      const side=cue.actor===undefined?'':(cue.actor?'Cinder: ':'Veil: ');
      return side+names[cue.name];
    }).join(' · ');
@@ -453,7 +453,7 @@ function render(now){
  const touchVisible=touchUI.matches&&touchLive();
  if(touchVisible!==nextTouch){nextTouch=touchVisible;$('touch-controls').hidden=!touchVisible;if(!touchVisible)releaseTouch();}
  const caption=$('cue-caption'), showCue=prefs.captions&&now<cueUntil;
- if(caption.hidden===showCue)caption.hidden=!showCue;
+ if(caption.hidden!==!showCue)caption.hidden=!showCue;
  if(showCue&&caption.textContent!==cueText)caption.textContent=cueText;
  inspect(now);
  g.drawImage(backdrop,0,0);

@@ -1,6 +1,6 @@
 # References and asset credits
 
-Shipped art: procedural Canvas render code for original Lantern Court and the two placeholder fighters. Shipped hit audio: procedural Web Audio. Lorc’s two credited UI vectors are bundled; no external music, fonts, or proprietary game files are bundled.
+Shipped art: procedural Canvas render code for original Lantern Court and the two placeholder fighters. Shipped hit audio: procedural Web Audio. Lorc’s three credited UI vectors are bundled; no external music, fonts, or proprietary game files are bundled.
 
 - [ws](https://github.com/websockets/ws) — MIT WebSocket runtime; dependency, not copied source.
 - [GGPO](https://github.com/pond3r/ggpo) — MIT rollback reference; not integrated. Prototype uses server authority and interpolated snapshots. Measure attack responsiveness and fairness under asymmetric latency before choosing prediction/rollback rules.

@@ -207,7 +207,7 @@ try{
  await phone.locator('#captions').check();
  await phone.locator('#practice').click();
  await until(async()=>await phone.locator('#touch-controls').isVisible(),'coarse pointer controls visible');
- await phone.waitForTimeout(2150);
+ await until(async()=>/74 seconds/.test(await phone.locator('#round-score').textContent()),'mobile round is live');
  await phone.locator('[data-action=shot]').tap();
  await until(async()=>/Veil: Pistol fired/.test(await phone.locator('#cue-caption').textContent()),'authoritative shot caption without audio');
  assert.match(await phone.locator('#fighter-score-0').textContent(),/2 shots/);
