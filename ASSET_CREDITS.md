@@ -30,3 +30,7 @@ The duel stage floor now includes seeded, baked material weathering, and attack 
 The score briefly ducks under hits, interruptions, pistol discharge, and round bells, independently of the player's saved music volume.
 
 Combat foley uses three original precomputed takes for cut, heavy, quickstep, impact, interrupt and discharge. Metal resonance is more pronounced on interrupts; the pistol has a separate short crack layered into its synthesis. [Brian MacIntosh’s Metal Impact Sounds](https://opengameart.org/content/metal-impact-sounds) (CC0) was evaluated as a candidate but no sample was downloaded or bundled.
+
+### Shared Seamless Hunt presentation
+
+The site shell uses the ash, bone, and gold colors and the Garamond hierarchy inspected in the supplied website export. With `SITE_ART=1`, the duel references the host site's own blade, lantern, tricorn, divider and near skyline images plus its existing EB Garamond face. The export, font binaries, private uploads, co-op builds and production configuration are not copied into this repository. The existing Lorc icons remain as standalone fallbacks. HUD resource separation was compared with [Capcom's Battle HUD](https://game.capcom.com/manual/SF6/en/ps4/page/3/2); Kenney's CC0 Impact Sounds remains a foley candidate, not bundled.

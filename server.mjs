@@ -26,6 +26,7 @@ const assets = new Map([
   ['arenas.mjs',['arenas.mjs','text/javascript']],
   ['analysis.mjs',['analysis.mjs','text/javascript']],
   ['wardrobe.mjs',['wardrobe.mjs','text/javascript']],
+  ['site-theme.mjs',['site-theme.mjs','text/javascript']],
   ['footwork.mjs',['footwork.mjs','text/javascript']],
   ['score.mjs',['score.mjs','text/javascript']],
   ['presentation.mjs',['presentation.mjs','text/javascript']],
@@ -33,6 +34,10 @@ const assets = new Map([
   ['art/lantern.svg',['art/lantern.svg','image/svg+xml']],
   ['art/visored-helm.svg',['art/visored-helm.svg','image/svg+xml']]
 ].map(([path,[file,type]])=>['/fight/'+path,[readFileSync(new URL('./public/'+file,import.meta.url)),type]]));
+if(process.env.SITE_ART==='1'){
+  const [html,type]=assets.get('/fight/');
+  assets.set('/fight/',[Buffer.from(html.toString('utf8').replace('data-site-art="off"','data-site-art="on"')),type]);
+}
 const rooms=new Map(), galleries=new Map();
 const MAX_VIEWERS=6;
 const token=()=>randomBytes(9).toString('base64url');

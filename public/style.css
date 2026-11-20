@@ -19,3 +19,28 @@ select{border:1px solid #856c59;border-radius:4px;background:#221d24;color:#f1e4
 #readable-score{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}#readable-score p{margin:.25rem 0}#readable-score strong{color:#f0cc97;margin-right:.4em}@media(max-width:600px){#readable-score{position:static;width:auto;height:auto;overflow:visible;clip-path:none;white-space:normal;padding:.55rem .75rem;background:#1b1520;border:1px solid #785b48;font-size:.84rem}#round-score{color:#c9b294}}
 
 #cue-caption{box-sizing:border-box;position:relative;margin:-2.5rem auto .5rem;width:max-content;max-width:94%;background:#100c16ec;border:1px solid #876b58;padding:.35rem .7rem;font-size:.82rem;text-align:center;pointer-events:none}#touch-controls{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:.7rem 0;padding:.55rem;background:#17111c;border:1px solid #755743}#touch-stick{position:relative;flex:0 0 86px;height:86px;touch-action:none;border:2px solid #ad8a66;border-radius:50%;background:radial-gradient(circle,#2d2531,#18121e);user-select:none}#touch-stick span{position:absolute;inset:29px;border-radius:50%;background:#c49a6c;pointer-events:none}#touch-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.3rem}#touch-actions button{min-width:48px;min-height:44px;padding:.35rem;font-size:.8rem;touch-action:none;user-select:none}#touch-actions button[data-action=step]{border-color:#8fc8c0}
+
+/* Seamless Hunt: ash, bone and old gold. Keep competitive fighter colors distinct. */
+:root{--hunt-ash:#0d0f13;--hunt-panel:#14171c;--hunt-inset:#181b21;--hunt-edge:#2d323a;--hunt-gold:#d9b878;--hunt-silver:#c9a86a;--hunt-bone:#f0e2c2;--hunt-text:#e2d6b9;--hunt-serif:"Garamond",Georgia,serif;background:var(--hunt-ash);color:var(--hunt-text)}
+:root[data-hunt-font=true]{--hunt-serif:"Hunt Garamond","Garamond",Georgia,serif}
+body{background:radial-gradient(ellipse at 50% 0,#262a31 0,transparent 48rem)}
+main{padding-top:16px}
+.hunt-header{position:relative;isolation:isolate;padding-bottom:.15rem}
+.hunt-header::before{position:absolute;inset:2rem 0 0;z-index:-1;content:"";pointer-events:none}
+[data-skyline-ready=true] .hunt-header::before{background:linear-gradient(transparent,#0d0f13 99%),url("/art/skyline-near.webp") center bottom/cover no-repeat;opacity:.24}
+.hunt-nav{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;padding:.65rem 0;border-bottom:1px solid var(--hunt-edge);font:1.13rem var(--hunt-serif);text-align:left}
+.hunt-nav a,.hunt-nav span{color:var(--hunt-bone)}.hunt-nav a:hover{color:var(--hunt-gold)}.hunt-nav span{color:var(--hunt-gold)}
+.hunt-kicker{margin-top:1.3rem;color:var(--hunt-gold)}
+h1{font:400 clamp(40px,7vw,82px)/1.03 var(--hunt-serif);color:var(--hunt-bone);letter-spacing:-.035em}
+.arena-badge{border-color:#c9a86a66;background:var(--hunt-panel)}.arena-badge #arena-title{color:var(--hunt-gold)}
+.hunt-divider{height:14px;width:min(70%,280px);margin:.1rem auto;background:linear-gradient(90deg,transparent,var(--hunt-silver),transparent) center/100% 1px no-repeat}
+[data-divider-ready=true] .hunt-divider{background:url("/art/divider.webp") center/contain no-repeat}
+.hunt-panel,details,#status,#readable-score{background:var(--hunt-panel);border:1px solid var(--hunt-edge)}
+.hunt-panel{padding:.7rem;margin-top:12px}
+details summary{color:var(--hunt-gold);font-family:var(--hunt-serif);font-size:1.14rem}
+button,select,input:not([type=range]):not([type=checkbox]){background:var(--hunt-inset);border-color:#776649;color:var(--hunt-bone)}
+button:hover:not(:disabled){background:#282b31;border-color:var(--hunt-gold)}
+button.hunt-primary{background:var(--hunt-gold);border-color:var(--hunt-gold);color:#15120c;font-weight:650}
+button.hunt-primary:hover:not(:disabled){background:#f0cf91;color:#15120c}
+:where(a,button,select,input,summary):focus-visible{outline:2px solid var(--hunt-gold);outline-offset:3px}
+#arena{border-color:#c9a86a80}#status{color:var(--hunt-text);margin:.6rem 0}

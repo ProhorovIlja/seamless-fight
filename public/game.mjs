@@ -11,6 +11,8 @@ import {logInput,describe,eventLabel} from './analysis.mjs';
 import {dyes,sigils,outfit,pair,paintOutfit} from './wardrobe.mjs';
 import {footwork} from './footwork.mjs';
 const remoteMotion=footwork();
+import {applySiteTheme} from './site-theme.mjs';
+const siteHelm=applySiteTheme();
 const helm=new Image();helm.src=new URL('./art/visored-helm.svg',import.meta.url).href;
 import {drawHUD,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
@@ -469,7 +471,7 @@ function render(now){
  }
  const localSlot=mode==='review'?forkSlot:mode==='lab'&&labKind==='record'?1:slot;
  const timer=Math.ceil(s.clock/HZ);
- drawHUD(g,s,mode&&!watching?localSlot:-1,timer,prefs.contrast,helm);
+ drawHUD(g,s,mode&&!watching?localSlot:-1,timer,prefs.contrast,siteHelm?.naturalWidth?siteHelm:helm);
  g.textAlign='center';g.fillStyle='#eee1c8';
  if(now>=nextScoreboard){
    nextScoreboard=now+125;

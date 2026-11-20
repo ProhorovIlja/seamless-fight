@@ -20,3 +20,7 @@ Use a root-owned release directory readable by the dynamic service user, and poi
 Rollback the game independently: remove its Caddy route using the existing site's change process, stop/disable only the game service, and point the release symlink back if needed. Open matches are in memory and do not survive process restarts.
 
 The Chromium smoke check injects ordered application-message delays (guest uplink 55–78 ms, downlink 26–49 ms). This checks room join and authoritative movement with deterministic jitter, not loss, TCP retransmits, or combat reaction fairness. The VPS requires neither this test harness nor a browser.
+
+### Share the website’s presentation assets
+
+The standalone build uses the Seamless Hunt palette, locally bundled fallback icons, and a system serif. For a same-origin `/fight/` deployment, set `SITE_ART=1` in `/etc/seamless-fight.env` after checking that the host serves `/art/icon-blades.webp`, `/art/icon-lantern.webp`, `/art/icon-tricorn.webp`, `/art/divider.webp`, and `/art/skyline-near.webp`. The duel also tries the current site export’s Latin EB Garamond WOFF2 under `/_next/static/media/`; after a site rebuild, check the hashed path in `public/site-theme.mjs`. Do not proxy `/art/` or `/_next/` to the duel server. Unavailable assets fall back individually; the duel never contacts Drive or a third-party CDN. This does not require any changes to the main site's files.

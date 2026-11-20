@@ -212,6 +212,27 @@ try{
  await until(async()=>/Veil: Pistol fired/.test(await phone.locator('#cue-caption').textContent()),'authoritative shot caption without audio');
  assert.match(await phone.locator('#fighter-score-0').textContent(),/2 shots/);
  await phone.screenshot({path:'artifacts/duel-mobile-reduced-motion.png'});
+ // Exercise the optional host-site art path without redistributing the private export.
+ const themed=await browser.newPage();
+ const art='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="#d9b878"/></svg>';
+ const requested=new Set();
+ await themed.route(url,async route=>{
+   const response=await route.fetch();
+   await route.fulfill({response,body:(await response.text()).replace('data-site-art="off"','data-site-art="on"')});
+ });
+ await themed.route(origin+'/art/**',async route=>{
+   requested.add(new URL(route.request().url()).pathname);
+   if(route.request().url().endsWith('icon-lantern.webp'))return route.fulfill({status:404,body:''});
+   await route.fulfill({contentType:'image/svg+xml',body:art});
+ });
+ await themed.route(origin+'/_next/static/media/**',route=>route.fulfill({status:404,body:''}));
+ await themed.goto(url);
+ await until(async()=>/\/art\/icon-blades.webp$/.test(await themed.locator('.duel-crest').getAttribute('src')),'site crest decoded');
+ await until(async()=>await themed.locator('html').getAttribute('data-divider-ready')==='true','site divider decoded');
+ assert(requested.has('/art/skyline-near.webp'));
+ assert.match(await themed.locator('.arena-badge img').getAttribute('src'),/\.\/art\/lantern\.svg$/);
+ assert.equal(await host.locator('html').getAttribute('data-site-art'),'off');
+ await themed.screenshot({path:'artifacts/duel-seamless-hunt-theme.png'});
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
 }finally{try{await browser?.close();}finally{server.kill();}}

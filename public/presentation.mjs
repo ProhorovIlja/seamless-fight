@@ -30,8 +30,8 @@ export function drawHUD(g,s,local,timer,contrast,helm){
  g.save();
  for(let i=0;i<2;i++){
    const p=s.p[i],x=i?620:24,c=i?(contrast?'#ffc36b':'#e39774'):(contrast?'#a1fff1':'#8fc8c0');
-   g.fillStyle='#110e18ec';g.beginPath();g.moveTo(x,9);g.lineTo(x+298,9);g.lineTo(x+316,23);g.lineTo(x+316,69);g.lineTo(x+16,69);g.lineTo(x,56);g.closePath();g.fill();
-   g.strokeStyle='#aa84596f';g.lineWidth=1;g.stroke();
+   g.fillStyle='#14171cef';g.beginPath();g.moveTo(x,9);g.lineTo(x+298,9);g.lineTo(x+316,23);g.lineTo(x+316,69);g.lineTo(x+16,69);g.lineTo(x,56);g.closePath();g.fill();
+   g.strokeStyle='#c9a86a86';g.lineWidth=1;g.stroke();
    g.fillStyle='#302631';g.fillRect(x+15,15,19,17);
    if(helm?.complete&&helm.naturalWidth)g.drawImage(helm,x+16,15,17,17);
    g.textAlign='left';g.fillStyle=c;g.font='bold 15px system-ui';g.fillText((i?'CINDER':'VEIL')+(i===local?'  /  YOU':''),x+42,30);
@@ -45,8 +45,8 @@ export function drawHUD(g,s,local,timer,contrast,helm){
    for(let n=0;n<3;n++){g.fillStyle=n<p.ammo?'#e8ba70':'#443447';g.fillRect(x+272+n*10,51,6,7);}
    for(let n=0;n<2;n++){g.fillStyle=n<s.score[i]?c:'#423342';g.beginPath();g.arc(x+278+n*13,24,4,0,TAU);g.fill();}
  }
- g.textAlign='center';g.fillStyle='#130f19';g.beginPath();g.moveTo(417,8);g.lineTo(543,8);g.lineTo(532,48);g.lineTo(428,48);g.closePath();g.fill();
- g.strokeStyle='#ae8958';g.stroke();g.fillStyle=timer<=10?'#ffb190':'#f4dfb6';g.font='bold 28px Georgia';g.fillText(String(timer),480,38);
+ g.textAlign='center';g.fillStyle='#0d0f13';g.beginPath();g.moveTo(417,8);g.lineTo(543,8);g.lineTo(532,48);g.lineTo(428,48);g.closePath();g.fill();
+ g.strokeStyle='#ae8958';g.stroke();g.fillStyle=timer<=10?'#ffb190':'#f0e2c2';g.font='28px Georgia';g.fillText(String(timer),480,38);
  g.restore();
 }
 
