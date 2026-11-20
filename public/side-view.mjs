@@ -41,6 +41,7 @@ let audioOn=false,queued='',priorPad=null,padQueued='',padMove={x:0,y:0,guard:fa
 let inspectorAt=0;const renderIntervals=[];
 let onlineSlot=-1,onlineCode='',onlineLooks=null,onlineTick=-1;
 const sideFootwork=footwork();let onlinePending=[],onlineAck=0;
+let onlineRtt=null,nextOnlinePingAt=0;const rttSamples=[];
 const held=new Set(),touchHeld=new Set();
 const sound=createAudio();
 function setStatus(message){$('fight-status').textContent=message;}
@@ -264,6 +265,7 @@ $('takeover').onclick=()=>{
 
 function resetOnlineButtons(){
  onlineSlot=-1;onlineCode='';onlineLooks=null;onlineTick=-1;sideFootwork.clear();onlinePending=[];onlineAck=0;
+ onlineRtt=null;rttSamples.length=0;nextOnlinePingAt=0;
  $('side-copy').hidden=true;$('side-rematch').hidden=true;$('side-server-replay').hidden=true;
  $('side-network').textContent='Offline';
 }
@@ -289,13 +291,20 @@ const sideTransport=createSideTransport({
   onlineAck=Number.isSafeInteger(m.ack)?m.ack:onlineAck;
   onlinePending=onlinePending.filter(i=>i.seq>onlineAck).slice(-SIDE_PREDICTION_LIMIT);
   effectsFrom(Array.isArray(m.events)?m.events:[]);
-  $('side-network').textContent='Server tick '+s.tick+' · input receipt ACK '+m.ack+' · room '+onlineCode;
+  $('side-network').textContent='Server tick '+s.tick+' · input receipt ACK '+m.ack+' · RTT median '+(onlineRtt===null?'collecting':onlineRtt.toFixed(0)+' ms')+' · room '+onlineCode;
   if(s.over){$('side-rematch').hidden=false;$('side-server-replay').hidden=false;
    setStatus('Online side-view bout finished. Request a replay or a rematch.');}
  },
  replay(m){
   try{loadReview(m);setReplayStatus('Server-applied replay loaded locally for frame review and takeover.');}
   catch(err){setReplayStatus('Replay rejected: '+err.message);}
+ },
+ pong(m){
+  const value=performance.now()-m.id;
+  if(value>=0&&value<=10000){rttSamples.push(value);if(rttSamples.length>40)rttSamples.shift();
+   const ranked=rttSamples.slice().sort((a,b)=>a-b);
+   onlineRtt=ranked[Math.floor((ranked.length-1)/2)];
+  }
  },
  notice(m){setStatus(String(m.message||'Server notice').slice(0,180));},
  error(){setStatus('Side-view server connection failed.');},
@@ -409,6 +418,9 @@ function paint(now,elapsed){
 }
 function animate(now){
  const elapsed=Math.max(0,Math.min(100,now-priorFrame));priorFrame=now;
+ if(mode==='online'&&now>=nextOnlinePingAt&&sideTransport.connected()){
+  nextOnlinePingAt=now+2000;sideTransport.ping(now);
+ }
  usePad();
  if(!document.hidden){
   if(mode==='live'||mode==='online'||mode==='takeover'||mode==='review'&&reviewPlaying){
