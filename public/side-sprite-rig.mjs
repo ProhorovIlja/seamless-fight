@@ -88,10 +88,10 @@ export function paintSideSprite(g,p,atlas,rig,now=0){
  g.restore();
  return true;
 }
-export async function decodeSideSpriteRig(manifest,fetcher=globalThis.fetch,ImageClass=globalThis.Image){
+export async function decodeSideSpriteRig(manifest,ImageClass=globalThis.Image,overrideSrc=null){
  if(validateSideSpriteManifest(manifest).length)throw TypeError('Invalid authored sprite manifest');
  if(typeof ImageClass!=='function')return null;
- const img=new ImageClass();img.src=manifest.texture;img.decoding='async';
+ const img=new ImageClass();img.src=overrideSrc??manifest.texture;img.decoding='async';
  try{
   if(typeof img.decode==='function')await img.decode();
   else await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=reject;});
