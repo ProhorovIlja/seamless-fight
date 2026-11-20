@@ -2,6 +2,7 @@
 // sampled by combat; every stage uses the same engine floor and attack boxes.
 import {SIDE_HZ,SIDE_FLOOR,SIDE_MOVES,sideAttackbox,sideHurtbox,sidePhase} from './side-engine.mjs';
 import {dyes,outfit} from './wardrobe.mjs';
+import {sideVisualPose} from './side-pose.mjs';
 const TAU=Math.PI*2;
 const palettes={
  lantern:{sky:'#191923',upper:'#38303c',haze:'#745767',stone:'#262630',trim:'#8e7665',light:'#d9b878'},
@@ -136,15 +137,15 @@ function swordAngle(p){
 }
 export function paintSideFighter(g,p,look={},now=0,reduced=false,contrast=false){
  const spec=outfit(look),[,cloth,trim]=dyes[spec.dye],phase=sidePhase(p);
- const moving=Math.min(1,Math.abs(p.vx)/3.7),swing=(!reduced&&phase==='neutral')?Math.sin(now/85+p.x*.005)*moving:0;
+ const anim=sideVisualPose(p,now,reduced),swing=anim.stride;
  const crouch=p.crouch?27:0,leap=SIDE_FLOOR-p.y,step=p.act==='step';
  const blade=p.act==='cut'||p.act==='hew',active=blade&&phase==='active';
  const stun=p.act==='stun'||p.act==='guardBreak',guard=p.guardAge>0;
- const coatLift=reduced?0:Math.min(13,Math.abs(p.vx)*1.25);
+ const coatLift=anim.coatTrail;
  g.save();
  // Dynamic shadow at true feet, even when the hunter is airborne.
  g.fillStyle='#05070d8a';g.beginPath();g.ellipse(p.x,SIDE_FLOOR+3,29+leap*.1,6+leap*.035,0,0,TAU);g.fill();
- g.translate(p.x,p.y);g.scale(p.dir,1);
+ g.translate(p.x,p.y+anim.footBob);g.scale(p.dir,1);
  if(step&&!reduced)for(let n=3;n>=1;n--){
   g.globalAlpha=.045+n*.03;g.fillStyle=trim;g.beginPath();g.ellipse(-n*19,-64,21,54,0,0,TAU);g.fill();
  }
@@ -164,12 +165,22 @@ export function paintSideFighter(g,p,look={},now=0,reduced=false,contrast=false)
  g.fill();
  g.fillStyle=trim+'8a';
  polygon(g,[[10,-88+crouch],[20,-70+crouch],[23+coatLift,-13],[14+coatLift,-15],[7,-63+crouch]]);g.fill();
+ // A separate trailing coat tail and layered lining suggest fabric depth;
+ // the foot pivot and authoritative hurtbox stay unchanged.
+ g.fillStyle='#171b26a8';
+ polygon(g,[[-18,-76+crouch],[-23,-47+crouch],[-24-coatLift*.65,-11+anim.flutter],[-10,-17],[-8,-67+crouch]]);g.fill();
+ g.strokeStyle=trim+'7d';g.lineWidth=1.4;g.beginPath();
+ g.moveTo(-15,-72+crouch);g.quadraticCurveTo(-23-coatLift*.6,-45+crouch,-21-coatLift*.55,-12+anim.flutter);g.stroke();
  // Chest armor in brass/silver. Ridges stay below hand/weapon rendering.
  const plate=g.createLinearGradient(-17,0,18,0);
  plate.addColorStop(0,'#252932');plate.addColorStop(.52,'#565260');plate.addColorStop(1,'#24242e');
  g.fillStyle=plate;polygon(g,[[-13,-102+crouch],[10,-104+crouch],[22,-80+crouch],[13,-60+crouch],[-14,-68+crouch]]);
  g.fill();
  g.strokeStyle=contrast?'#f2e0ad':trim;g.lineWidth=2;g.stroke();
+ // A thin moving silver/gold bevel adds volume without a full 3D normal map.
+ g.strokeStyle=trim+'75';g.lineWidth=1.2;g.beginPath();
+ g.moveTo(-13,-94+crouch+anim.breathing);g.lineTo(-6,-99+crouch+anim.breathing);
+ g.lineTo(12,-97+crouch+anim.breathing);g.stroke();
  segment(g,-9,-89+crouch,13,-83+crouch,3,'#b1a394');
  segment(g,-6,-67+crouch,16,-70+crouch,3,'#9b7757');
  g.fillStyle='#080c12';g.fillRect(-12,-61+crouch,31,9);
@@ -183,14 +194,16 @@ export function paintSideFighter(g,p,look={},now=0,reduced=false,contrast=false)
  g.fillStyle='#161b23';polygon(g,[[-12,-106+crouch],[-10,-123+crouch],[2,-132+crouch],[18,-115+crouch],[10,-102+crouch]]);g.fill();
  g.fillStyle='#afa498';g.beginPath();g.ellipse(4,-123+crouch,11,14,0,0,TAU);g.fill();
  g.fillStyle='#37313a';polygon(g,[[8,-130+crouch],[15,-126+crouch],[17,-120+crouch],[11,-114+crouch],[6,-115+crouch]]);g.fill();
- g.fillStyle=stun?'#ffe3a0':'#b7e6df';g.fillRect(9,-123+crouch,3,2);
+ g.fillStyle=stun?'#ffe3a0':'#b7e6df';
+ if(!anim.blink)g.fillRect(9,-123+crouch+anim.breathing,3,2);
+ else{g.strokeStyle='#b9a69b';g.lineWidth=1;g.beginPath();g.moveTo(9,-122+crouch);g.lineTo(12,-122+crouch);g.stroke();}
  // Hunter's broad side-on hat with taper, layered band and nose-brim.
  g.fillStyle='#090d14';polygon(g,[[-17,-135+crouch],[-8,-153+crouch],[4,-158+crouch],[16,-143+crouch],[26,-135+crouch],[20,-133+crouch],[-17,-131+crouch]]);g.fill();
  g.strokeStyle=trim;g.lineWidth=2;g.beginPath();g.moveTo(-8,-144+crouch);g.lineTo(16,-141+crouch);g.stroke();
  polygon(g,[[-23,-133+crouch],[26,-136+crouch],[31,-131+crouch],[-15,-129+crouch]]);g.fillStyle='#181b22';g.fill();
  g.strokeStyle=contrast?'#f4dca5':trim+'a5';g.lineWidth=1.5;g.stroke();
  // Forearm stays readable as it drives the blade or pistol.
- const armY=-90+crouch,ang=swordAngle(p),raise=blade?(active?12:16):guard?-2:0;
+ const armY=-90+crouch+anim.shoulder+anim.recoil,ang=swordAngle(p),raise=blade?(active?12:16):guard?-2:0;
  segment(g,12,armY,25,armY+14-raise,12,'#12151d');
  segment(g,12,armY,25,armY+14-raise,5,trim);
  if(p.act==='shot'){
