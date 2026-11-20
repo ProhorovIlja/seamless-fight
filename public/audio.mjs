@@ -57,11 +57,11 @@ export function createAudio(Context=globalThis.AudioContext){
    ctx=new Context({latencyHint:'interactive'});
    master=ctx.createGain();effects=ctx.createGain();ambience=ctx.createGain();
    music=ctx.createGain();voice=ctx.createGain();pulseGain=ctx.createGain();
-   musicDuck=ctx.createGain();pulseGain.connect(music);music.connect(musicDuck);musicDuck.connect(master);voice.connect(effects);
+   musicDuck=ctx.createGain();pulseGain.connect(music);music.connect(musicDuck);musicDuck.connect(master);
    music.gain.value=.22;voice.gain.value=.35;pulseGain.gain.value=intensity;
    const compressor=ctx.createDynamicsCompressor();
    compressor.threshold.value=-16;compressor.ratio.value=5;
-   effects.connect(compressor);ambience.connect(compressor);compressor.connect(master);master.connect(ctx.destination);
+   effects.connect(compressor);voice.connect(compressor);ambience.connect(compressor);compressor.connect(master);master.connect(ctx.destination);
    master.gain.value=0;effects.gain.value=.65;ambience.gain.value=.15;
    for(const name of Object.keys(recipes)){
      const data=synth(name,ctx.sampleRate), buffer=ctx.createBuffer(1,data.length,ctx.sampleRate);
