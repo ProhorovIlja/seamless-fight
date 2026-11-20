@@ -19,6 +19,9 @@ try{
  await page.goto(base+'/fight/side/');
  assert.match(await page.title(),/Side-View Combat Lab/);
  assert(await page.locator('.duel-crest').evaluate(img=>img.complete&&img.naturalWidth>0),'local site-crest fallback renders');
+ await page.locator('#look-dye').selectOption('ivory');
+ await page.locator('#look-sigil').selectOption('crown');
+ assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.side.settings.v1')).look),{dye:'ivory',sigil:'crown'});
  assert.equal(await page.locator('#frame-table tbody tr').count(),3);
  assert.equal(await page.locator('#stage-select').inputValue(),'reliquary');
  assert.match(await page.locator('#stage-title').textContent(),/ASHEN RELIQUARY/);
@@ -75,6 +78,8 @@ try{
  assert.match(await page.locator('#bindings [data-bind=guard]').textContent(),/Guard · P/);
  await page.reload();
  assert.match(await page.locator('#bindings [data-bind=guard]').textContent(),/Guard · P/);
+ assert.equal(await page.locator('#look-dye').inputValue(),'ivory');
+ assert.equal(await page.locator('#look-sigil').inputValue(),'crown');
  const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});
  phone.on('pageerror',e=>errors.push('phone: '+e.message));
  await phone.goto(base+'/fight/side/');
