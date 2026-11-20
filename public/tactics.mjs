@@ -34,7 +34,7 @@ export function createSparring(style='duelist'){
  const ring=new Array(rules.delay+1);
  let round=-1, previous=-1, seenTick=-1;
  return function spar(s){
-   if(style==='dummy')return blank();
+   if(style==='dummy'||style==='lesson')return blank();
    if(s.round!==round||s.tick!==previous+1||s.ready||s.end||s.over){ring.fill(undefined);seenTick=-1;}
    previous=s.tick;round=s.round;
    if(s.ready||s.end||s.over)return blank();
@@ -61,4 +61,18 @@ export function createSparring(style='duelist'){
    if(q.st<24||style==='sentinel'&&d<89)return {x:-axis(dx),y:-axis(dy),act:''};
    return d>rules.range?{x:axis(dx),y:axis(dy),act:''}:circle;
  };
+}
+
+export const LESSONS=Object.freeze([
+ ['move','Move across the court','Use the movement keys, stick, D-pad, or touch stick.'],
+ ['cut','Make a light cut','Cuts start faster than heavy swings but reach less far.'],
+ ['step','Quickstep','Hold a direction to step that way. Without a direction, you step back.'],
+ ['shot','Fire the pistol','The shot has a short wind-up and spends one round of ammunition.'],
+ ['feint','Feint a heavy swing','Start a heavy, then feint during its early wind-up. Try again after recovery if you miss the window.']
+].map(Object.freeze));
+export function lessonStep(stage,observation){
+ const want=LESSONS[stage]?.[0];
+ if(!want||!observation.live)return stage;
+ if(want==='move')return stage+(observation.distance>=28?1:0);
+ return stage+(observation.cues.some(c=>c.actor===0&&c.name===want)?1:0);
 }

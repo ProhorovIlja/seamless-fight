@@ -55,3 +55,5 @@ Controls and presentation saves independent combat mappings for keyboard and sta
 Mouse buttons can be assigned independently to combat actions. They are unbound by default and only fire on the arena during active play. Mouse movement does not aim or move the hunter; the server input format remains the same.
 
 Practice offers balanced, pressure, and range-keeping opponents alongside the evasion and still-target drills. Bots act on delayed simulated positions and moves, not player input. Capture a local practice session with the same review, export, and takeover tools used for online matches. Takeover keeps the other side's recorded inputs; the bot does not replan inside a replay.
+
+**Learn the basics** uses a still target and advances when the simulation observes movement, a cut, a quickstep, a pistol discharge, and a successful heavy feint. It uses existing remapped inputs and does not add any player assist in online matches.

@@ -68,3 +68,5 @@ details summary{letter-spacing:.035em}
 .hunt-input{min-inline-size:0;margin:.65rem 0;border:1px solid #2b3038;padding:.55rem .75rem;background:linear-gradient(#191c22,#12151a)}.hunt-input legend{color:var(--hunt-gold);font:1.13rem var(--hunt-serif)}.hunt-input select{max-width:100%}.hunt-input .lab-controls{margin:.35rem 0;flex-wrap:wrap}
 
 .practice-note{color:#aea590;font:1rem var(--hunt-serif);line-height:1.45}
+
+#lesson{margin:.5rem 0;padding:.55rem .85rem;border-left:2px solid var(--hunt-gold);background:var(--hunt-panel)}#lesson p{margin:.15rem 0}#lesson-title{color:var(--hunt-gold);font:1.17rem var(--hunt-serif)}#lesson-tip{color:var(--hunt-text);font-size:.88rem}

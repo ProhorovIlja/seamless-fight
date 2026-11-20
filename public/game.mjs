@@ -1,6 +1,6 @@
 import {W,H,HZ,match,step,blank,moves} from './engine.mjs';
 import {HISTORY_LIMIT,playable,reconcile} from './prediction.mjs';
-import {createSparring} from './tactics.mjs';
+import {createSparring,LESSONS,lessonStep} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges,rangeBand} from './audio.mjs';
 import {RULESET,MAX_TICKS,createReview,packTick} from './replay.mjs';
@@ -216,7 +216,7 @@ addEventListener('keydown',ev=>{
 },true);
 addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
-let spar=createSparring(), practiceTape=[];
+let spar=createSparring(), practiceTape=[], lesson=-1;
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
 let histories=[[],[]], nextInspect=0, reviewPulse=0, exchanges=[], selectedEvent=null;
@@ -233,8 +233,8 @@ function inspect(now){
    $('inputs-'+i).textContent=enabled?histories[i].slice().reverse().map(({from,to,label})=>from+(from===to?'':'–'+to)+'  '+label).join('\n'):'';
  }
 }
-function leave(){practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
-function practice(){leave();showArena($('arena-select').value);mode='practice';spar=createSparring($('drill').value);$('capture').disabled=false;status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
+function leave(){lesson=-1;$('lesson').hidden=true;practiceTape=[];lastRange=null;lastRangeAt=-Infinity;healthDisplay.clear();cueText='';cueUntil=0;audio.tension(0);looks=pair();exchanges=[];histories=[[],[]];nextInspect=0;const c=ws;ws=null;c?.close();flush();s=match();remoteMotion.clear();review=null;replayPlaying=false;forkSlot=-1;$('capture').disabled=true;$('review-controls').hidden=true;watching=false;ping=0;metrics=createMetrics();nextDiagnostic=0;$('diagnostic-values').textContent='Collecting samples…';$('gallery').hidden=true;setGallery(null);seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);muzzle.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+function practice(){leave();showArena($('arena-select').value);mode='practice';spar=createSparring($('drill').value);if($('drill').value==='lesson'){lesson=0;showLesson();}$('capture').disabled=false;status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
  leave();showArena($('arena-select').value);mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
  $('lab-meter').hidden=false;
@@ -365,11 +365,23 @@ function spacingAudio(state){
  lastRange=band;lastRangeAt=now;
  audio.play(band==='cut'?'rangeCut':band==='shot'?'rangeShot':'rangeExit',480);
 }
+function showLesson(){
+ const panel=$('lesson');panel.hidden=lesson<0;
+ if(lesson<0)return;
+ const item=LESSONS[lesson], keys=prefs.keys;
+ $('lesson-title').textContent=item?(lesson+1)+' / '+LESSONS.length+' · '+item[1]:'Basics complete';
+ const hint=item?.[0]==='feint'?' Keyboard: '+name(keys.hew)+' then '+name(keys.feint)+'.':item?.[0]&&keys[item[0]]?' Keyboard: '+name(keys[item[0]])+'.':'';
+ $('lesson-tip').textContent=item?item[2]+hint:'Switch to a sparring opponent, or capture this session to review your timing.';
+}
 function feedback(state,confirmed){
  spacingAudio(state);
  audio.tension(!state.ready&&!state.end&&!state.over&&state.p.some(p=>p.hp<=35)?1:0);
  const inferred=soundChanges(lastSound,state,true);
  const cues=confirmed?[...inferred.filter(c=>c.index===undefined&&c.muzzle===undefined),...confirmed]:inferred;
+ if(lesson>=0&&mode==='practice'){
+   const p=state.p[0], next=lessonStep(lesson,{live:!state.ready&&!state.end&&!state.over,distance:Math.hypot(p.x-272,p.y-270),cues});
+   if(next!==lesson){lesson=next;showLesson();}
+ }
  if(prefs.captions&&cues.length){
    cueText=cues.map(cue=>{
      const names={bell:'Round bell',cut:'Blade swing',hew:'Heavy swing',cock:'Pistol readied',shot:'Pistol fired',step:'Quickstep',feint:'Heavy feinted',hit:'Took a hit',interrupt:'Interrupted by pistol'};

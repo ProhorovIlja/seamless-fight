@@ -213,7 +213,17 @@ try{
  await host.locator('#practice').click();
  await host.locator('#arena-select').selectOption('lantern');
  await until(async()=>/Lantern Court/.test(await host.locator('#arena-title').textContent()),'Lantern Court selected');
+ await host.locator('#drill').selectOption('lesson');
+ assert.match(await host.locator('#lesson-title').textContent(),/Move across/);
+ await until(async()=>/74 seconds/.test(await host.locator('#round-score').textContent()),'lesson round running');
+ await host.bringToFront();
+ await host.keyboard.down('d');
+ try{await until(async()=>/Make a light cut/.test(await host.locator('#lesson-title').textContent()),'lesson credits simulated movement');}
+ finally{await host.keyboard.up('d');}
+ await host.keyboard.press('j');
+ await until(async()=>/Quickstep/.test(await host.locator('#lesson-title').textContent()),'lesson credits accepted cut');
  await host.locator('#drill').selectOption('pressure');
+ assert.equal(await host.locator('#lesson').isVisible(),false);
  await until(async()=>/Pressure fighter/.test(await host.locator('#status').textContent()),'pressure sparring selected');
  await until(async()=>/74 seconds/.test(await host.locator('#round-score').textContent()),'practice round running');
  await host.locator('#capture').click();
