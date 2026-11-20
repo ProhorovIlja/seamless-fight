@@ -1,7 +1,7 @@
 import {W,H,HZ,match,step,blank,moves} from './engine.mjs';
 import {HISTORY_LIMIT,playable,reconcile} from './prediction.mjs';
 import {trainingInput} from './tactics.mjs';
-import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset} from './lab.mjs';
+import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges} from './audio.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 const bg=document.createElement('canvas');bg.width=W;bg.height=H;
@@ -37,22 +37,41 @@ addEventListener('blur',flush);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)flush();});
 addEventListener('keydown',e=>{if(e.target.matches?.('input,button,select')||!mode)return;if(moveKeys.includes(e.code)||keys[e.code])e.preventDefault();if(!e.repeat&&keys[e.code])action=keys[e.code];pressed.add(e.code);});
 addEventListener('keyup',e=>pressed.delete(e.code));
-let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[];
-function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);labKind='';trace=[];$('lab-meter').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
+let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
+function leave(){const c=ws;ws=null;c?.close();flush();s=match();prev=null;seq=0;pending=[];predicted=null;correction={x:0,y:0};slot=0;vote=false;lastSound=null;flashes.fill(0);labKind='';trace=[];$('lab-meter').hidden=$('takeover-controls').hidden=true;$('copy').hidden=$('invite').hidden=$('rematch').hidden=true;}
 function practice(){leave();mode='practice';status('Practice · '+$('drill').selectedOptions[0].textContent+' · first to two round wins.');document.activeElement?.blur();}
 function startLab(kind, recording=[]){
- leave();mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;s=makeLab($('spacing').value);
+ leave();mode='lab';labKind=kind;labTick=0;labHold=false;labNote='';tape=recording;attempt=[];spacing=$('spacing').value;s=makeLab(spacing);
  $('lab-meter').hidden=false;
+ $('takeover-controls').hidden=kind==='record';syncScrub();
  status(kind==='record'?'Recording Cinder. Press R or Stop to save (6 seconds max).':'Respond to Cinder. Press T or Replay to reset the same setup.');
  document.activeElement?.blur();
 }
+function syncScrub(){
+ const seek=$('seek');seek.max=attempt.length;seek.value=labTick;
+ $('seek-label').textContent='Tick '+labTick+' / '+attempt.length;
+ $('takeover').disabled=!labHold||s.end>0||s.over;
+}
+function seekLab(){
+ if(mode!=='lab'||labKind!=='play')return;
+ labHold=true;flush();
+ const frame=restoreDrill(spacing,tape,attempt,Number($('seek').value));
+ s=frame.state;trace=frame.trace;labTick=frame.tick;labNote='';lastSound=null;flashes.fill(0);
+ syncScrub();status('Paused at tick '+labTick+'. Take over to try a different response.');
+}
+$('seek').oninput=seekLab;
+$('takeover').onclick=()=>{
+ if(mode!=='lab'||labKind!=='play'||!labHold||s.end||s.over)return;
+ attempt.length=labTick;labHold=false;flush();syncScrub();document.activeElement?.blur();
+ status('Takeover · playing as Veil against the same Cinder inputs.');
+};
 function stopLab(){
  if(mode!=='lab'||labHold)return;
  labHold=true;
  if(labKind==='record'){
    if(tape.length){saved=tape.slice();$('script').value='custom';$('custom').disabled=false;status('Recording saved. Press T or Replay to practice it.');}
    else status('No ticks recorded. Press Record to try again.');
- }else status('Drill complete. Press T or Replay to repeat the setup.');
+ }else{syncScrub();status('Drill paused. Scrub and take over, or replay from the start.');}
 }
 function replayLab(){
  const choice=$('script').value, sequence=choice==='custom'?saved:preset(choice);
@@ -62,11 +81,13 @@ function labStep(){
  if(labHold)return;
  const input=read(), recording=labKind==='record';
  const keep=recording?writeTape(tape,input):true;
+ if(!recording)attempt[labTick]=input;
  const before=s.p.map(p=>p.hp);
  practiceTick(s,recording?[blank(),input]:[input,tapeInput(tape,labTick)]);
  if(s.p.some((p,i)=>p.hp<before[i]))labNote=s.p.map((p,i)=>before[i]-p.hp).map((hp,i)=>hp?(i?'Cinder':'Veil')+' −'+hp+' HP':'').filter(Boolean).join(' · ');
  trace.push(s.p.map(phase));if(trace.length>TIMELINE)trace.shift();
  labTick++;
+ if(!recording)syncScrub();
  if(!keep||s.end||s.over||(!recording&&labTick>=tape.length+60))stopLab();
 }
 $('record').onclick=()=>startLab('record');$('stop').onclick=stopLab;$('replay').onclick=replayLab;
