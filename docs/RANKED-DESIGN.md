@@ -16,3 +16,5 @@ The [Glicko-2 paper](https://glicko.net/glicko/glicko2.pdf) is the algorithmic b
 The current deployment remains a single-instance, in-memory casual matchmaking server running on Debian 13 staging configuration. Ranked requires persistent storage, identities and operational controls before anyone can legitimately earn or lose points.
 
 A drawn six-round match with equal round scores must be treated as a **no-rating-change outcome until the ranked policy decides whether a completed match draw should count as 0.5 for both fighters**. The rating calculator supports draws; the current live server remains unranked and stores no match results. Any tournament or ranked application must specify whether a six-round cap winner (with fewer than two round wins) is valid, before implementing rating persistence.
+
+A separate [durable ledger candidate](RANKED-LEDGER.md) now provides an offline-only, SQLite-backed, transaction-tested exactly-once set-result store. It is not connected to public matchmaking or player account authentication.
