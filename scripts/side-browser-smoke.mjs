@@ -25,6 +25,7 @@ try{
  assert.equal(await page.locator('#frame-table tbody tr').count(),3);
  assert.equal(await page.locator('#stage-select').inputValue(),'reliquary');
  assert.equal(await page.locator('#depth-quality').inputValue(),'balanced');
+ await page.locator('#impact-camera').uncheck();
  await page.locator('#depth-quality').selectOption('cinematic');
  assert.equal(await page.locator('#depth-quality').inputValue(),'cinematic');
  assert.match(await page.locator('#stage-title').textContent(),/ASHEN RELIQUARY/);
@@ -82,6 +83,7 @@ try{
  assert.match(await page.locator('#bindings [data-bind=guard]').textContent(),/Guard · P/);
  await page.reload();
  assert.equal(await page.locator('#depth-quality').inputValue(),'performance');
+ assert.equal(await page.locator('#impact-camera').isChecked(),false);
  assert.match(await page.locator('#bindings [data-bind=guard]').textContent(),/Guard · P/);
  assert.equal(await page.locator('#look-dye').inputValue(),'ivory');
  assert.equal(await page.locator('#look-sigil').inputValue(),'crown');
