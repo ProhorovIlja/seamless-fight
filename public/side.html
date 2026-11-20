@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0d0f13">
+<title>Side-View Combat Lab | Seamless Fight</title>
+<meta name="description" content="Playable original gothic side-view dueling prototype. Offline practice, deterministic replays, parries and customizable controls.">
+<link rel="stylesheet" href="../side.css"><script type="module" src="../side-view.mjs"></script></head>
+<body>
+<a class="skip" href="#stage">Skip to fight</a>
+<header class="nav"><a class="site" href="/fight/">SEAMLESS HUNT <span>/ SEAMLESS FIGHT</span></a><span class="nav-chip">SIDE-VIEW LAB · ALPHA</span><a href="/fight/" class="return">Back to online prototype</a></header>
+<main>
+<section class="intro"><p class="eyebrow">ORIGINAL 2D DUEL · THE ASHEN SERIES</p><h1>Where blades meet the dark.</h1><p class="lede">A separate side-view combat foundation with original animated hunters, horizontal spacing, aerial and crouching hurtboxes, feints, deflects, dodges, and three atmospheric arenas.</p><p class="scope">Currently local practice and replay takeover. Existing online rooms still run the legacy overhead ruleset; this combat engine has not yet been migrated to the server or ranked play.</p></section>
+<section class="stage-shell" id="stage" aria-label="Side-view duel">
+ <div class="stage-ribbon"><span id="stage-title">ASHEN RELIQUARY</span><span id="stage-mode">LOCAL PRACTICE · 60 HZ</span></div>
+ <canvas id="fight-canvas" width="960" height="540" aria-label="Two side-view hunters dueling on a horizontal platform. Use the controls beneath the canvas.">Your browser must support HTML Canvas.</canvas>
+ <div class="stage-status"><span id="fight-status" role="status">Choose an arena, then begin sparring.</span><span id="fight-caption" aria-live="polite"></span></div>
+</section>
+<section class="playbar" aria-label="Combat actions">
+ <button class="primary" id="begin">Begin sparring</button><button id="restart">Restart</button><button id="pause">Pause</button><button id="audio" aria-pressed="false">Enable sound</button><button id="record-save" disabled>Save replay</button>
+</section>
+<section class="panels">
+ <section class="panel"><h2>Hunter's practice</h2>
+  <label>Arena <select id="stage-select"><option value="reliquary">Ashen Reliquary</option><option value="lantern">Lantern Court</option><option value="cistern">Drowned Cloister</option></select></label>
+  <label>Opponent <select id="opponent"><option value="normal">Duelist · Normal</option><option value="easy">Initiate · Easy</option><option value="hard">Executioner · Hard</option><option value="dummy">Still target</option></select></label>
+  <label class="check"><input type="checkbox" id="show-boxes"> Show exact hurtboxes / active hitboxes</label>
+  <label class="check"><input type="checkbox" id="reduce-motion"> Reduced effects</label>
+  <label class="check"><input type="checkbox" id="high-contrast"> High-contrast fighter outlines</label>
+  <p class="muted">Display-only settings never change attack geometry, stamina or replay parity. This test duel is not ranked.</p>
+ </section>
+ <section class="panel"><h2>Replay & takeover</h2>
+  <div class="row"><button id="review" disabled>Review last bout</button><button id="takeover" disabled>Take over Veil</button><button id="resume" disabled>Play replay</button></div>
+  <label>Replay frame <input type="range" id="replay-seek" min="0" max="0" step="1" value="0" disabled></label><output id="replay-frame">0 / 0</output>
+  <div class="row"><button id="frame-back" disabled>− 1 frame</button><button id="frame-next" disabled>+ 1 frame</button></div>
+  <label class="file">Import compatible replay <input id="import-replay" type="file" accept=".json,application/json"></label>
+  <p id="replay-status" role="status">Recordings stay on this device unless explicitly saved as a file. Takeover replaces only Veil's future inputs.</p>
+ </section>
+ <section class="panel"><h2>Combat field guide</h2>
+  <p class="muted">Startup, active and recovery are authoritative simulation frames at 60 Hz. All attacks must overlap the defender's physical hurtbox.</p>
+  <table id="frame-table"><thead><tr><th>Action</th><th>Start</th><th>Active</th><th>Recovery</th><th>Range</th><th>Damage</th></tr></thead><tbody></tbody></table>
+  <p class="muted">Perfect guard: first four guarded frames, if facing the attacker. Crouching passes under high pistol fire. Jump once per upward key press. Quickstep evades within its bounded startup window.</p>
+ </section>
+ <section class="panel"><h2>Remappable inputs</h2>
+  <p class="muted">Your existing Seamless Fight keyboard/gamepad profile is used. Click a binding below to set a new combat key or movement key. The guard key is specific to the side-view lab.</p>
+  <div id="bindings" class="bindings"></div><button id="bindings-reset">Restore side-view defaults</button>
+  <p id="bind-message" role="status"></p>
+  <p id="pad-guide">Standard gamepad: left stick / D-pad move; Up jumps; Down crouches. A / Cross quicksteps; X / Square cuts; Y / Triangle heavy; right bumper fires; left bumper feints; left trigger holds guard.</p>
+ </section>
+</section>
+<footer class="footer"><span>SEAMLESS FIGHT · SIDE-VIEW LAB</span><span>Original procedural visuals and score. No Bloodborne assets, website binaries or proprietary music are redistributed.</span></footer>
+</main>
+<section id="touch" class="touch" aria-label="Touch movement and combat" hidden>
+ <div class="touch-group"><button data-held="left">←</button><button data-held="right">→</button><button data-held="jump">Jump</button><button data-held="crouch">Duck</button></div>
+ <div class="touch-group"><button data-act="cut">Cut</button><button data-act="hew">Heavy</button><button data-act="shot">Gun</button><button data-act="step">Step</button><button data-act="feint">Feint</button><button data-held="guard">Guard</button></div>
+</section>
+</body></html>
