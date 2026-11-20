@@ -241,6 +241,7 @@ try{
  await until(async()=>/Lantern Court/.test(await host.locator('#arena-title').textContent()),'Lantern Court selected');
  await host.locator('#ghost-exhibition').check();
  await status(host,/Exhibition · Normal AI vs trained ghost/);
+ assert(await host.locator('#rematch').isHidden());
  await until(async()=>/74 seconds/.test(await host.locator('#round-score').textContent()),'ghost and bot exhibition round');
  await host.locator('#capture').click();
  const exhibitDownload=host.waitForEvent('download');

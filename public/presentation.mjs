@@ -131,3 +131,15 @@ export function backingSize(cssWidth,dpr,w,h){
  const width=Math.max(320,Math.min(2*w,Math.round(logical*ratio)));
  return {width,height:Math.round(width*h/w)};
 }
+
+export function duelMessage(s,mode,slot,watching=false,exhibition=false,hz=60){
+ if(mode==='connecting')return 'Waiting for challenger';
+ if(mode==='spectate'&&s.tick===0)return 'Waiting for fighters';
+ if(!mode||mode==='lab'||mode==='review')return '';
+ const neutral=watching||exhibition;
+ const winner=s.winner===0?'Veil':'Cinder';
+ if(s.over)return s.winner<0?'Draw':neutral?winner+' wins':s.winner===slot?'Victory':'Defeat';
+ if(s.end)return s.winner<0?'Draw':neutral?winner+' takes the round':s.winner===slot?'Round won':'Round lost';
+ if(s.ready)return 'Round '+s.round+'  /  '+Math.ceil(s.ready/hz);
+ return '';
+}

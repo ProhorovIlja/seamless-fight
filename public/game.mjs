@@ -16,7 +16,7 @@ const remoteMotion=footwork();
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 const siteTheme=applySiteTheme(), siteHelm=siteTheme?.helm;
 const helm=new Image();helm.src=new URL('./art/visored-helm.svg',import.meta.url).href;
-import {drawHUD,damageTrail,backingSize,drawRoundPlate,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
+import {drawHUD,damageTrail,backingSize,duelMessage,drawRoundPlate,drawImpact,drawMail,paintAtmosphere,bladeAngle,drawBladeWake,textureFloor} from './presentation.mjs';
 const healthDisplay=damageTrail();
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
@@ -164,7 +164,7 @@ function releaseTouch(){
  const id=touchId;touchId=null;touchVector={x:0,y:0};knob.style.transform='';
  if(id!==null&&stick.hasPointerCapture(id))stick.releasePointerCapture(id);
 }
-function touchLive(){return mode==='online'||mode==='practice'||mode==='lab'&&!labHold||mode==='review'&&forkSlot>=0&&replayPlaying;}
+function touchLive(){return mode==='online'||mode==='practice'&&!sparHost||mode==='lab'&&!labHold||mode==='review'&&forkSlot>=0&&replayPlaying;}
 const mouseLive=()=>touchLive()&&!binding&&!s.ready&&!s.end&&!s.over;
 const mouseBound=ev=>!ev.ctrlKey&&!ev.altKey&&!ev.metaKey&&!ev.shiftKey&&mouseLive()&&mouseAction(prefs.mouse,ev.button);
 canvas.addEventListener('pointerdown',ev=>{
@@ -683,7 +683,7 @@ function render(now){
  const timer=Math.ceil(s.clock/HZ);
  const huntFont=document.documentElement.dataset.huntFont==='true';
  const trail=healthDisplay.update(s,elapsed,reduced());
- drawHUD(g,s,mode&&!watching?localSlot:-1,timer,prefs.contrast,siteHelm?.naturalWidth?siteHelm:helm,huntFont,trail,siteTheme);
+ drawHUD(g,s,mode&&!watching&&!sparHost?localSlot:-1,timer,prefs.contrast,siteHelm?.naturalWidth?siteHelm:helm,huntFont,trail,siteTheme);
  g.textAlign='center';g.fillStyle='#eee1c8';
  if(now>=nextScoreboard){
    nextScoreboard=now+125;
@@ -700,14 +700,11 @@ function render(now){
    for(let j=0;j<trace.length;j++)for(let i=0;i<2;i++){g.fillStyle=palette[trace[j][i]];g.fillRect(287+(TIMELINE-trace.length+j)*4,498+i*10,3,7);}
    g.font='13px system-ui';g.fillStyle='#f3dfbc';g.fillText((labKind==='record'?'REC ':'DRILL ')+labTick+(labKind==='record'?'/'+MAX_TAPE:'')+(labNote?'  ·  '+labNote:''),480,478);
  }
- if(mode==='spectate'){g.font='13px system-ui';g.fillText('SPECTATING',480,59);}
+ if(mode==='spectate'||sparHost){g.font='13px system-ui';g.fillText(sparHost?'AI / GHOST EXHIBITION':'SPECTATING',480,59);}
  if(mode==='online'){g.font='13px system-ui';g.fillText(ping?ping+' ms RTT':'ONLINE',480,59);}
- let msg='';
- if(mode==='connecting')msg='Waiting for challenger';
- else if(mode==='spectate'&&s.tick===0)msg='Waiting for fighters';
- else if(mode&&mode!=='lab'&&mode!=='review'){if(s.over)msg=watching?(s.winner===0?'Veil wins':'Cinder wins'):s.winner===slot?'Victory':'Defeat';else if(s.end)msg=s.winner<0?'Draw':watching?(s.winner===0?'Veil takes the round':'Cinder takes the round'):s.winner===slot?'Round won':'Round lost';else if(s.ready)msg='Round '+s.round+'  /  '+Math.ceil(s.ready/HZ);}
+ const msg=duelMessage(s,mode,slot,watching,Boolean(sparHost),HZ);
  if(msg)drawRoundPlate(g,msg,s.end||s.over?'result':'ready',siteTheme,huntFont);
- $('rematch').hidden=watching||mode==='review'||!s.over;
+ $('rematch').hidden=mode!=='online'||watching||!s.over;
  requestAnimationFrame(render);
 }
 requestAnimationFrame(render);
