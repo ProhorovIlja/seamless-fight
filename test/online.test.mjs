@@ -30,7 +30,7 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  for(const path of ['impactMetal_light_000.ogg','impactMetal_heavy_000.ogg','footstep_concrete_000.ogg']){
    const reply=await fetch(origin+'/fight/audio/'+path);
    assert.equal(reply.status,200);
-   assert.match(reply.headers.get('content-type'),/audio\\/ogg/);
+   assert.equal(reply.headers.get('content-type'),'audio/ogg');
    const body=Buffer.from(await reply.arrayBuffer());
    assert.equal(body.subarray(0,4).toString(),'OggS');
    assert(body.length<128000);
