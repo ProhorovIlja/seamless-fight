@@ -383,7 +383,7 @@ function animate(now){
  const elapsed=Math.max(0,Math.min(100,now-priorFrame));priorFrame=now;
  usePad();
  if(!document.hidden){
-  if(mode==='live'||mode==='takeover'||mode==='review'&&reviewPlaying){
+  if(mode==='live'||mode==='online'||mode==='takeover'||mode==='review'&&reviewPlaying){
    acc+=elapsed;let budget=5;
    while(acc>=1000/SIDE_HZ&&budget-->0){acc-=1000/SIDE_HZ;runTick();}
    if(acc>100)acc=0;
