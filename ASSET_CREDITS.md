@@ -9,3 +9,7 @@ Shipped art: procedural Canvas render code for original Lantern Court and the tw
 Art direction: dusk courtyard, warm lanterns and cold stone, distinct silhouettes, uncluttered active hit frames. Candidate next arenas are a flooded cloister and an iron bellhouse; retain one symmetric hit-testable arena until combat measurements pass. No asset enters the game without an explicit license and source entry.
 
 - [Client-side prediction and reconciliation](https://www.gabrielgambetta.com/client-side-prediction-server-reconciliation.html) — reference for input sequencing and replay; no code copied.
+
+## Lantern Court audio
+
+The shipped combat cues, round bell and arena bed are original synthesis. No samples, recordings, voices or music tracks are bundled. [Kenney Impact Sounds](https://kenney.nl/assets/impact-sounds) is a verified CC0 foley candidate for listening comparisons, not an imported dependency. [MDN AudioContext](https://developer.mozilla.org/en-US/docs/Web/API/AudioContext) informed use of a shared context and interactive latency hint; latency is not guaranteed. The separate combat and ambience controls preserve combat cues when the atmospheric layer is turned down. Online cues follow server snapshots, not local input prediction; the sound layer does not modify simulation timing.
