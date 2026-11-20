@@ -110,6 +110,7 @@ try{
  await guest.locator('#diagnostics summary').click();
  await until(async()=>/RTT median [0-9.]+ ms/.test(await guest.locator('#diagnostic-values').textContent()),'guest RTT measured');
  await until(async()=>/Input acknowledgment p95 [0-9.]+ ms/.test(await guest.locator('#diagnostic-values').textContent()),'guest input acknowledgment measured');
+ await until(async()=>/Remote footwork buffer target [0-9.]+ ms/.test(await guest.locator('#diagnostic-values').textContent()),'neutral footwork buffer is populated');
  const report=await guest.locator('#diagnostic-values').textContent();
  assert(Number(report.match(/RTT median ([0-9.]+)/)[1])>=65,report);
  assert.match(report,/Remote footwork buffer target [0-9.]+ ms/);
