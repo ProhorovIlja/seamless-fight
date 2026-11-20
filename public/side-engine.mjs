@@ -93,7 +93,7 @@ function strike(p,q){
  return Boolean(a.left<h.right&&a.right>h.left&&a.top<h.bottom&&a.bottom>h.top);
 }
 function hit(s,attacker,target,event,events){
- const a=s.p[attacker],b=s.p[target],m=SIDE_MOVES[a.act];
+ const a=s.p[attacker],b=s.p[target],m=SIDE_MOVES[event];
  a.spent=true;
  const guarding=b.guardAge>0&&b.dir===-a.dir&&b.y===SIDE_FLOOR;
  const parry=guarding&&b.guardAge<=4&&b.st>=10;
