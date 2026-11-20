@@ -1,6 +1,6 @@
 # Seamless Fight
 
-Lantern Court is the first playable slice of a standalone, original gothic 2D browser dueling game for Seamless Hunt. It does not use Bloodborne assets, executable files, or accounts.
+Seamless Fight is a playable, in-development standalone original gothic 2D browser dueling game for Seamless Hunt. It does not use Bloodborne assets, executable files, or accounts.
 
 ## Run
 Use Node.js 22+. Run `npm install`, `npm test`, then `npm start`. Open `http://127.0.0.1:8080/fight/`. Choose Practice or create an online room and open its invite in a second tab or browser. Local development accepts the matching HTTP origin; for HTTPS set PUBLIC_ORIGIN to the exact browser origin.
@@ -14,19 +14,19 @@ Debian 13 (Trixie) is the deployment target. The game uses a separate Node 22+ b
 
 See [deployment](docs/DEPLOY.md) and [references and asset credits](ASSET_CREDITS.md). The prototype visuals are procedural original art, not final sprite animation.
 
-The **Duel lab** lets you practice a committed heavy, feint into cut, or pistol interrupt. Pick a starting distance or record up to six seconds as Cinder, then replay as Veil. Replay resets spacing and resources; the frame strip shows both fighters' simulated phases. This is local training, not online replay storage.
+The **Duel lab** lets you practice a committed heavy, feint into cut, pistol interrupt, or an unseen mix-up randomly choosing between those three recorded patterns. Pick a starting distance or record up to six seconds as Cinder, then replay as Veil. Replay resets spacing and resources; the frame strip shows both fighters' simulated phases. This is local training, not online replay storage.
 
 The room host can open a **spectator gallery** for up to six viewers. Share the watch link rather than the player invite; viewers cannot move fighters or vote on rematches. Closing the gallery disconnects viewers and invalidates the link. Opening it again issues a different link. Watch links grant live access to anyone who receives them; there is no public directory or broadcast delay.
 
 Online Match Review captures the server's applied inputs for both fighters (up to 32,000 simulation ticks per match, from the start). Players can export JSON or review the capture locally, seek, step, and take over either side. Takeover doesn't edit the original or send inputs to a live room. The replay does not include connection timing, spectator data, or account information. It is not an authenticated result or a ranked record. The active recording resets on rematch; download it before leaving the room if you want to retain it.
 
-Controls and presentation settings support action and movement-key remapping, independent standard-gamepad button layout and left/right stick choice, optional mouse bindings, adjustable stick dead zone, reduced effects and high-contrast outlines. Preferences and volume levels persist locally; sound still requires a user gesture. Gamepads submit the same discrete inputs as keyboards, without changing combat or replay rules.
+Controls and presentation settings support action and movement-key remapping, independent standard-gamepad button layout and left/right stick choice, optional mouse bindings, adjustable stick dead zone with input-edge hysteresis, saved menu/panel text scaling (100/115/130/150%), reduced effects and high-contrast outlines. Preferences and volume levels persist locally; sound still requires a user gesture. Gamepads submit the same discrete inputs as keyboards, without changing combat or replay rules.
 
 Performance and connection diagnostics run locally and report rolling frame intervals, RTT, snapshot gaps, input receipt acknowledgments and footwork correction size. Acknowledgment means the server processed an input sequence, not that an attack started or connected. The Chromium test applies ordered asymmetric message delay and exercises both fighters’ pistol inputs; this is not a WAN loss or reaction-time test.
 
-Choose Lantern Court or The Drowned Cistern for a new duel, practice or the lab. The host's choice is fixed for the room and shared with guests and gallery viewers. Captures retain the arena; old captures default to Lantern Court. Arena visuals and ambient audio are original; both stages have identical geometry and combat rules.
+Choose Lantern Court, The Drowned Cistern, or Ashen Reliquary for a new duel, practice or the lab. The host's choice is fixed for the room and shared with guests and gallery viewers. Captures retain the arena; old captures default to Lantern Court. Arena visuals and ambient audio are original; all three stages have identical geometry and combat rules.
 
-Open Combat inspector in practice, Duel Lab or match review to see both fighters’ input history and current combat phases, including the usable heavy-feint window. Seeking reconstructs recent inputs; takeover replaces only the controlled side going forward. The inspector does not show opponent input during live play.
+Open Combat inspector in practice, Duel Lab or match review to see both fighters’ input history and current combat phases, including the usable heavy-feint window. The optional exact combat-geometry overlay marks true collision centers, phase-labeled attack cones and active quickstep invulnerability; this does not reveal live opponent inputs or modify hit detection. Seeking reconstructs recent inputs; takeover replaces only the controlled side going forward. The inspector does not show opponent input during live play.
 
 Match review also supports stepping backward and ½× or ¼× playback. Taking over a fighter always runs at normal speed.
 
@@ -60,7 +60,7 @@ Practice offers balanced, pressure, and range-keeping opponents alongside the ev
 
 **Learn the basics** uses a still target and advances when the simulation observes movement, a cut, a quickstep, a pistol discharge, and a successful heavy feint. It uses existing remapped inputs and does not add any player assist in online matches.
 
-**Find casual duel** is an unranked first-in-first-out queue on a single server. It keeps the current Practice or Duel Lab session running until another fighter connects, then starts a fresh online duel. Search can be cancelled or expires after two minutes; leaving training for a different mode cancels search. The first queued player's arena is used. Private invite rooms remain separate; no ranks, accounts, region/ping filters or public room listing.
+**Find casual duel** is an unranked first-in-first-out queue on a single server. It keeps the current Practice or Duel Lab session running until another fighter connects, then starts a fresh online duel. Search can be cancelled or expires after two minutes; leaving training for a different mode cancels search. The first queued player's arena is used. Private invite rooms remain separate; no ranks, accounts, region selection or public room listing. Connection-quality filtering is supported separately, as described below.
 
 The arena and opponent selectors are locked during a search so the settings on screen match the request already sent to the server. Cancel to change them; local combat inputs keep working while queued.
 
@@ -103,3 +103,7 @@ Match Review now displays a local comparative combat report for loaded replays: 
 An optional set of three tiny CC0 Kenney recordings now layers quietly with the existing original synthesized hit/interrupt and quickstep foley. Sound stays disabled until the user enables it; audio downloads start only after that action, preserve the separate effects volume setting and fall back to synthesis if samples fail to load. Nothing is streamed from Kenney at runtime; the vetted Ogg assets ship under `/fight/audio/` on the same origin.
 
 The Sound Mix panel also offers an explicit recorded-foley toggle (on by default). Disabling it retains all original procedural sounds, prevents fresh recorded sample downloads when audio has not been enabled, and stores the choice locally. Users can switch layers without restarting a match.
+
+### Current development: gameplay clarity and site consistency
+
+The third original arena, **Ashen Reliquary**, uses a prerendered deterministic gothic composition, low-contrast combat floor, ash/bone/brass details, and a distinct synthesized ambient bed. The stage does not use or redistribute any private Bloodborne or website artwork. The optional same-origin website assets still load independently and retain fallback behavior. The game's underlying 960×540 combat plane and replay rules are unchanged. Controller dead-zone hysteresis reduces rapid movement direction toggles near the activation threshold but does not make the browser latency-free. The training collision overlay is deliberately offline-only, because competitive matches must not expose hidden inputs or extra privileged diagnostics.
