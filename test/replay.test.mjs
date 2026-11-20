@@ -56,3 +56,25 @@ test('old lantern-court/1 inputs remain replayable after the draw-limit rule cha
  assert.equal(view.complete,false);
  assert.deepEqual(view.at(view.total),s);
 });
+
+test('combat report uses confirmed engine damage rather than treating commands as hits',async()=>{
+ const {replayReport}=await import('../public/analysis.mjs');
+ const commands=[];
+ for(let t=0;t<245;t++){
+   const a={x:t>=120&&t<180?1:0,y:0,act:t===185?'cut':''};
+   const b={x:t>=120&&t<180?-1:0,y:0,act:''};
+   commands.push(packTick([a,b]));
+ }
+ const view=createReview({rules:RULESET,tape:commands.join('')});
+ const report=replayReport(view);
+ assert.equal(report.ticks,245);
+ assert.equal(report.fighters[0].inputs.cut,1);
+ assert.equal(report.fighters[1].inputs.cut,0);
+ assert(report.fighters[0].movementTicks>0);
+ assert(report.fighters[0].damage>0,'actual engine collision registered');
+ assert(report.fighters[0].hits>=1);
+ assert.equal(report.fighters[1].hits,0);
+ assert.equal(report.complete,false);
+ const idle=createReview({rules:RULESET,tape:Array.from({length:240},()=>packTick([blank(),blank()])).join('')});
+ assert.equal(replayReport(idle).fighters[0].damage,0);
+});

@@ -9,7 +9,7 @@ import {RULESET,MAX_TICKS,createReview,packTick} from './replay.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,PAD_LABELS,MOUSE_BUTTONS,mouseAction,swapBinding,STORAGE_KEY,allowed,settings,samplePad,touchDirection} from './controls.mjs';
 import {createMetrics} from './metrics.mjs';
 import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
-import {logInput,describe,eventLabel} from './analysis.mjs';
+import {logInput,describe,eventLabel,replayReport} from './analysis.mjs';
 import {dyes,sigils,outfit,pair,paintOutfit} from './wardrobe.mjs';
 import {footwork} from './footwork.mjs';
 const remoteMotion=footwork();
@@ -521,6 +521,19 @@ function feedback(state,confirmed){
  }
  lastSound={tick:state.tick,round:state.round,ready:state.ready,p:state.p.map(({hp,act,age,x})=>({hp,act,age,x}))};
 }
+function showCombatReport(view){
+ const report=replayReport(view);
+ $('review-report').hidden=false;
+ $('review-report-summary').textContent=report.seconds.toFixed(1)+' seconds · '+report.rounds+' rounds · '+report.score.join(' – ')+' round wins · '+(report.complete?(report.winner===-1?'Draw':report.winner===0?'Veil wins':'Cinder wins'):'In progress');
+ for(let side=0;side<2;side++){
+   const s=report.fighters[side],a=s.inputs;
+   $('review-report-'+side).textContent=
+     s.damage+' damage · '+s.hits+' confirmed hits · '+s.misses+' misses\n'+
+     s.punishes+' punishes · '+s.interrupts+' interrupts\n'+
+     'Recorded action inputs: '+a.cut+' cuts · '+a.hew+' heavies · '+a.shot+' shots · '+a.step+' steps · '+a.feint+' feints\n'+
+     s.movementTicks+' movement ticks';
+ }
+}
 function loadCapture(data){
  const clip={rules:data.rules,tape:data.tape,arena:arenaId(data.arena),outfits:pair(data.outfits)};
  const archivedGame=Number.isSafeInteger(data.setGame)?data.setGame:data.game;
@@ -528,7 +541,7 @@ function loadCapture(data){
  if(setGame)clip.setGame=setGame;
  const view=createReview(clip);
  view.arena=clip.arena;view.outfits=clip.outfits;
- capture=view;$('ghost-learn').disabled=false;
+ capture=view;$('ghost-learn').disabled=false;showCombatReport(view);
  if(saveUrl)URL.revokeObjectURL(saveUrl);
  saveUrl=URL.createObjectURL(new Blob([JSON.stringify(clip)],{type:'application/json'}));
  $('review-save').href=saveUrl;$('review-save').download=setGame?'seamless-fight-set-game-'+setGame+'.json':'seamless-fight-replay.json';$('review-save').hidden=false;$('review-open').disabled=false;

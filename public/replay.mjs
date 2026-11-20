@@ -24,7 +24,7 @@ export function createReview(data){
    const {ready,end}=scan;
    combat.length=0;step(scan,inputs(t),combat,undefined,legacy);
    if(ready===1)events.push({tick:t+1,label:'Round '+scan.round+' starts'});
-   for(const event of combat)events.push({tick:event.tick,label:eventLabel(event),kind:event.kind});
+   for(const event of combat)events.push({tick:event.tick,label:eventLabel(event),kind:event.kind,actor:event.actor,move:event.move,damage:event.damage??0});
    if((!end&&scan.end)||scan.over)events.push({tick:t+1,label:scan.winner===-1?(scan.over?'Match drawn':'Round drawn'):(scan.winner?'Cinder':'Veil')+(scan.over?' wins match':' wins round')});
    if((t+1)%stride===0)checkpoints.push(structuredClone(scan));
  }

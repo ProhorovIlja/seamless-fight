@@ -28,3 +28,29 @@ export function eventLabel(event){
  const target=event.target?'Cinder':'Veil';
  return actor+' '+move+' · '+event.kind+' · '+target+' −'+event.damage+' HP';
 }
+
+const replayActions=['cut','hew','shot','step','feint'];
+export function replayReport(view){
+ if(!view||!Number.isSafeInteger(view.total)||view.total<0||typeof view.inputs!=='function'||!Array.isArray(view.events)||typeof view.at!=='function')throw TypeError('Invalid review.');
+ const fighters=Array.from({length:2},()=>({inputs:Object.fromEntries(replayActions.map(name=>[name,0])),movementTicks:0,hits:0,misses:0,damage:0,punishes:0,interrupts:0}));
+ for(let t=0;t<view.total;t++){
+   const inputs=view.inputs(t);
+   for(let i=0;i<2;i++){
+     const cmd=inputs[i],stat=fighters[i];
+     if(cmd.x||cmd.y)stat.movementTicks++;
+     if(Object.hasOwn(stat.inputs,cmd.act))stat.inputs[cmd.act]++;
+   }
+ }
+ for(const event of view.events){
+   if(!event.kind||![0,1].includes(event.actor))continue;
+   const stat=fighters[event.actor];
+   if(event.kind==='miss')stat.misses++;
+   else{
+     stat.hits++;stat.damage+=event.damage||0;
+     if(event.kind==='interrupt')stat.interrupts++;
+     if(event.kind==='whiff punish'||event.kind==='recovery punish')stat.punishes++;
+   }
+ }
+ const s=view.at(view.total);
+ return {ticks:view.total,seconds:view.total/60,complete:Boolean(s.over),winner:s.over?s.winner:null,rounds:s.round,score:s.score.slice(),fighters};
+}

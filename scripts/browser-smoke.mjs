@@ -183,6 +183,9 @@ try{
  await host.locator('#match-review summary').click();
  await host.locator('#capture').click();
  await until(async()=>await host.locator('#review-open').isEnabled(),'authoritative replay captured');
+ assert(await host.locator('#review-report').isVisible());
+ assert.match(await host.locator('#review-report-summary').textContent(),/seconds/);
+ assert.match(await host.locator('#review-report-0').textContent(),/Recorded action inputs:/);
  const downloadEvent=host.waitForEvent('download');
  await host.locator('#review-save').click();
  const download=await downloadEvent;

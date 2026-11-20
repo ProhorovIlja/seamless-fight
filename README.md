@@ -97,3 +97,5 @@ Private and casual rematch votes are explicitly unlimited and are never permitte
 After an unrated competitive BO3 set ends, a **Find next competitive set** control exits the finished room and resumes practice-while-queued matchmaking without making players manually return to the main menu. Ranked points remain disabled, and completed match replay exports should be downloaded before leaving the old room.
 
 Directional hit cues and combat captions now consistently attribute a landed hit to the *attacking* fighter while keeping the impact flash, pain voice and positional effects on the *target*. The authoritative simulation and replays are unchanged.
+
+Match Review now displays a local comparative combat report for loaded replays: confirmed damage and hits, misses, punishes, interrupts, movement duration and separately labeled attempted action inputs. These figures come from deterministic simulation and do not award ranked points or upload match data.
