@@ -11,9 +11,10 @@ export function outfit(value){
  return {dye:clean(dyes,value?.dye,'ash'),sigil:clean(sigils,value?.sigil,'none')};
 }
 export const pair=value=>[outfit(value?.[0]),outfit(value?.[1])];
+function coatPath(g){g.beginPath();g.moveTo(9,-13);g.lineTo(-7,-18);g.lineTo(-23,-15);g.lineTo(-19,15);g.lineTo(-7,18);g.lineTo(9,12);g.closePath();}
 export function paintOutfit(g,value){
  const [,cloth,trim]=dyes[value.dye];
- g.fillStyle=cloth;g.beginPath();g.moveTo(9,-13);g.lineTo(-7,-18);g.lineTo(-23,-15);g.lineTo(-19,15);g.lineTo(-7,18);g.lineTo(9,12);g.closePath();g.fill();
+ g.fillStyle=cloth;coatPath(g);g.fill();
  g.save();g.strokeStyle=trim;g.fillStyle=trim;g.lineWidth=1.5;
  g.beginPath();g.moveTo(-17,-11);g.lineTo(-14,10);g.stroke();
  if(value.sigil==='thorn'){
@@ -23,4 +24,5 @@ export function paintOutfit(g,value){
    g.beginPath();g.arc(-9,0,5,0,Math.PI*2);g.arc(-7,-1,4,0,Math.PI*2);g.fill('evenodd');
  }
  g.restore();
+ coatPath(g); // Canvas save/restore does not restore the current path.
 }
