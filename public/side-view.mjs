@@ -1,4 +1,4 @@
-import {SIDE_HZ,SIDE_RULESET,SIDE_MOVES,sideInput,sideMatch,sideStep,SIDE_FLOOR} from './side-engine.mjs';
+import {SIDE_HZ,SIDE_RULESET,SIDE_MOVES,sideFighter,sideInput,sideMatch,sideStep,SIDE_FLOOR} from './side-engine.mjs';
 import {createSideBot} from './side-ai.mjs';
 import {createSideReview,packSideTick,SIDE_TAPE_LIMIT} from './side-replay.mjs';
 import {sideReadout} from './side-inspector.mjs';
@@ -9,7 +9,7 @@ import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTra
 import {createAudio} from './audio.mjs';
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
-import {outfit} from './wardrobe.mjs';
+import {outfit,dyes,sigils} from './wardrobe.mjs';
 
 const $=id=>document.getElementById(id);
 const canvas=$('fight-canvas'),g=canvas.getContext('2d');
@@ -20,7 +20,7 @@ let stored={};try{stored=JSON.parse(localStorage.getItem(STORAGE))||{};}catch{}
 let sidePrefs={stage:Object.hasOwn(SIDE_STAGES,stored.stage)?stored.stage:'reliquary',
  level:['easy','normal','hard','dummy'].includes(stored.level)?stored.level:'normal',
  boxes:stored.boxes===true,reduce:stored.reduce===true,contrast:stored.contrast===true,
- keys:{...original.keys},move:{...original.move},guard:'KeyO'};
+ keys:{...original.keys},move:{...original.move},guard:'KeyO',look:outfit(stored.look||original.outfit)};
 function validateBindings(candidate){
  const keys={...sidePrefs.keys,...candidate?.keys},move={...sidePrefs.move,...candidate?.move},guard=candidate?.guard??sidePrefs.guard;
  const codes=[...Object.values(keys),...Object.values(move),guard];
@@ -36,7 +36,7 @@ $('high-contrast').checked=sidePrefs.contrast;
 const reduced=()=>sidePrefs.reduce||matchMedia('(prefers-reduced-motion: reduce)').matches;
 let scene=sidePrefs.stage,stageCanvas=null,sceneMap=new Map(),mode='idle',priorFrame=performance.now(),acc=0;
 let s=sideMatch(),bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.level);
-let tape=[],capture=null,review=null,cursor=0,reviewPlaying=false;
+let tape=[],capture=null,review=null,replayLooks=null,cursor=0,reviewPlaying=false;
 const effects=[],MAX_EFFECTS=10;
 let audioOn=false,queued='',priorPad=null,padQueued='',padMove={x:0,y:0,guard:false};
 let inspectorAt=0;const renderIntervals=[];
@@ -328,7 +328,7 @@ function connectSide(code=null){
  review=null;capture=null;tape=[];cursor=0;effects.length=0;s=sideMatch();
  mode='connecting';setStatus('Connecting to side-view duel server…');
  $('side-network').textContent='Opening private room…';updateButtons();
- try{sideTransport.connect(code,scene,outfit(original.outfit));}
+ try{sideTransport.connect(code,scene,sidePrefs.look);}
  catch(err){mode='idle';setStatus('Could not open side-view room.');$('side-network').textContent=err.message;updateButtons();}
 }
 $('side-host').onclick=()=>connectSide();
@@ -399,7 +399,7 @@ function paint(now,elapsed){
  canvas.dataset.mode=mode;
  g.drawImage(stageCanvas,0,0);
  paintSideWeather(g,now,scene,reduced());
- const appearance=mode==='online'&&Array.isArray(onlineLooks)&&onlineLooks.length===2?onlineLooks:[outfit({dye:'ash',sigil:'lantern'}),outfit({dye:'oxblood',sigil:'thorn'})];
+ const appearance=mode==='online'&&Array.isArray(onlineLooks)&&onlineLooks.length===2?onlineLooks:(mode==='review'||mode==='takeover')&&replayLooks?replayLooks:[sidePrefs.look,outfit({dye:'oxblood',sigil:'thorn'})];
  const neutralFoot=mode==='online'?sideFootwork.sample(now):null;
  const ownPrediction=mode==='online'&&onlineSlot>=0?reconcileSide(s,onlineSlot,onlinePending,onlineAck):null;
  for(let i=0;i<2;i++){
