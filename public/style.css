@@ -64,3 +64,5 @@ details summary{letter-spacing:.035em}
 .hunt-audio{margin:.8rem 0 .2rem;padding:.55rem .75rem;border:1px solid #2b3038;display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem}.hunt-audio legend{color:var(--hunt-gold);font-family:var(--hunt-serif)}.hunt-audio label{display:inline-flex;align-items:center;gap:.45rem}.hunt-audio p{flex-basis:100%;color:#aea590;margin:.2rem 0}
 
 #arena{aspect-ratio:960/540}
+
+.hunt-input{min-inline-size:0;margin:.65rem 0;border:1px solid #2b3038;padding:.55rem .75rem;background:linear-gradient(#191c22,#12151a)}.hunt-input legend{color:var(--hunt-gold);font:1.13rem var(--hunt-serif)}.hunt-input select{max-width:100%}.hunt-input .lab-controls{margin:.35rem 0;flex-wrap:wrap}

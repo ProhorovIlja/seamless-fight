@@ -34,3 +34,5 @@ Evaluation: can a player recognize the heavy, deliberately bait a quickstep, the
 - Street Fighter 6’s separate battle audio and accessibility cues are a reference for optional visual cue captions; those captions use observed simulation events, not client input. No third-party audio imported in this pass.
 
 - [Street Fighter 6 detailed sound settings](https://www.pcgamingwiki.com/wiki/Street_Fighter_6#Audio) document distance-to-opponent cues and independent sound controls. Seamless Fight's three original spacing tones are opt-in and limited to training. No audio was copied.
+
+- [Street Fighter 6 battle controls](https://game.capcom.com/manual/SF6/en/ps5/page/2/3) and [MDN Gamepad API](https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API): independent battle bindings and standard browser button indices; no third-party input code imported.

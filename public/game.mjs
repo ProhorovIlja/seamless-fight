@@ -4,7 +4,7 @@ import {trainingInput} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges,rangeBand} from './audio.mjs';
 import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
-import {DEFAULT_KEYS,STORAGE_KEY,allowed,settings,samplePad,touchDirection} from './controls.mjs';
+import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,PAD_LABELS,swapBinding,STORAGE_KEY,allowed,settings,samplePad,touchDirection} from './controls.mjs';
 import {createMetrics} from './metrics.mjs';
 import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
 import {logInput,describe,eventLabel} from './analysis.mjs';
@@ -87,23 +87,41 @@ for(const [id,table] of [['dye',dyes],['sigil',sigils]]){
 }
 $('classic').checked=prefs.classic;$('classic').onchange=()=>{prefs.classic=$('classic').checked;persist();};
 previewOutfit();
-const pressed=new Set(), moveKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'];
+const pressed=new Set(), arrows={up:'ArrowUp',left:'ArrowLeft',down:'ArrowDown',right:'ArrowRight'};
+const isMove=code=>Object.values(arrows).includes(code)||Object.values(prefs.move).includes(code);
 const labels={cut:'Cut',hew:'Heavy',shot:'Pistol',feint:'Feint',step:'Quickstep'};
 let binding='', prior=null, padFrame={x:0,y:0}, armed=false;
 const name=code=>code.replace(/^Key|^Digit/,'');
 function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(prefs));}catch{}}
 function refresh(){
  const bindings=Object.keys(labels).map(act=>{const key=name(prefs.keys[act]);$('bind-'+act).textContent=labels[act]+': '+key;return key+' '+labels[act];});
- $('key-guide').textContent='WASD / ARROWS Move · '+bindings.join(' · ');
+ for(const d of Object.keys(DEFAULT_MOVE))$('move-'+d).textContent=d[0].toUpperCase()+d.slice(1)+': '+name(prefs.move[d]);
+ for(const a of Object.keys(DEFAULT_PAD))$('pad-'+a).value=prefs.pad[a];
+ $('pad-stick').value=prefs.stick;
+ $('key-guide').textContent=Object.values(prefs.move).map(name).join(' / ')+' or arrows: move · '+bindings.join(' · ');
 }
 for(const [act,label] of Object.entries(labels)){
  const button=document.createElement('button');button.id='bind-'+act;button.type='button';
  button.onclick=()=>{flush();binding=act;$('bind-status').textContent='Press a key for '+label+' or Esc to cancel.';};
  $('binds').append(button);
 }
+for(const d of Object.keys(DEFAULT_MOVE)){
+ const button=document.createElement('button');button.type='button';button.id='move-'+d;
+ button.onclick=()=>{flush();binding='move:'+d;$('bind-status').textContent='Press an unused letter for '+d+' or Esc to cancel.';};
+ $('move-binds').append(button);
+}
+for(const [act,label] of Object.entries(labels)){
+ const field=document.createElement('label'), select=document.createElement('select');select.id='pad-'+act;
+ field.append(label+' ',select);
+ PAD_LABELS.forEach((title,i)=>{const option=document.createElement('option');option.value=i;option.textContent=title;select.append(option);});
+ select.onchange=()=>{flush();swapBinding(prefs.pad,act,Number(select.value));persist();refresh();};
+ $('pad-binds').append(field);
+}
+$('pad-stick').onchange=()=>{flush();prefs.stick=$('pad-stick').value;persist();refresh();};
+$('reset-pad').onclick=()=>{flush();prefs.pad={...DEFAULT_PAD};prefs.stick='left';persist();refresh();};
 function cancelBinding(){if(binding){binding='';$('bind-status').textContent='Binding cancelled.';}}
 $('input-settings').addEventListener('toggle',()=>{if(!$('input-settings').open)cancelBinding();});
-$('reset-keys').onclick=()=>{cancelBinding();prefs.keys={...DEFAULT_KEYS};persist();refresh();$('bind-status').textContent='Default keys restored.';};
+$('reset-keys').onclick=()=>{cancelBinding();flush();prefs.keys={...DEFAULT_KEYS};prefs.move={...DEFAULT_MOVE};persist();refresh();$('bind-status').textContent='Default keys restored.';};
 for(const id of ['reduce','contrast','captions']){$(id).checked=prefs[id];$(id).onchange=()=>{prefs[id]=$(id).checked;persist();};}
 $('sfx').value=prefs.sfx;$('ambience').value=prefs.ambience;$('music').value=prefs.music;$('voice').value=prefs.voice;$('deadzone').value=prefs.deadzone;
 $('deadzone-value').textContent=prefs.deadzone+'%';
@@ -112,7 +130,7 @@ refresh();
 function pollPad(){
  if(!mode||watching||binding||document.hidden||!document.hasFocus())return;
  let pad;try{pad=Array.from(navigator.getGamepads?.()||[]).find(p=>p?.connected&&p.mapping==='standard');}catch{}
- const v=samplePad(pad,prior,prefs.deadzone/100);
+ const v=samplePad(pad,prior,prefs.deadzone/100,prefs.pad,prefs.stick);
  if(prior?.index!==v.next?.index)armed=false;
  prior=v.next;
  if(!armed){
@@ -146,8 +164,8 @@ for(const btn of $('touch-actions').querySelectorAll('button')){
  btn.addEventListener('click',ev=>{if(ev.detail===0&&touchLive())action=btn.dataset.action;});
 }
 function read(){
- const on=(a,b)=>Number(pressed.has(a)||pressed.has(b));
- const x=on('KeyD','ArrowRight')-on('KeyA','ArrowLeft'),y=on('KeyS','ArrowDown')-on('KeyW','ArrowUp');
+ const on=d=>Number(pressed.has(prefs.move[d])||pressed.has(arrows[d]));
+ const x=on('right')-on('left'),y=on('down')-on('up');
  const move=touchId!==null?touchVector:x||y?{x,y}:padFrame;
  const i={x:move.x,y:move.y,act:action};action='';return i;
 }
@@ -159,16 +177,16 @@ addEventListener('keydown',ev=>{
    ev.preventDefault();ev.stopImmediatePropagation();
    if(ev.repeat)return;
    if(ev.code==='Escape'){cancelBinding();return;}
-   if(!allowed(ev.code)||ev.altKey||ev.ctrlKey||ev.metaKey){$('bind-status').textContent='Choose an unreserved letter, digit, Space, Enter or Shift.';return;}
-   const other=Object.keys(prefs.keys).find(act=>prefs.keys[act]===ev.code);
-   if(other&&other!==binding)prefs.keys[other]=prefs.keys[binding];
-   prefs.keys[binding]=ev.code;binding='';persist();refresh();$('bind-status').textContent='Binding saved.';return;
+   const movement=binding.startsWith('move:');
+   const valid=movement?/^Key[A-Z]$/.test(ev.code)&&!['KeyR','KeyT'].includes(ev.code)&&!Object.values(prefs.keys).includes(ev.code):allowed(ev.code)&&!isMove(ev.code);
+   if(!valid||ev.altKey||ev.ctrlKey||ev.metaKey){$('bind-status').textContent=movement?'Choose a letter not assigned to combat or a lab shortcut.':'Choose an unused action key (letter, digit, Space, Enter or Shift).';return;}
+   swapBinding(movement?prefs.move:prefs.keys,movement?binding.slice(5):binding,ev.code);binding='';persist();refresh();$('bind-status').textContent='Binding saved.';return;
  }
  if(ev.target.matches?.('input,button,select,textarea,[contenteditable]')||!mode||watching||ev.altKey||ev.ctrlKey||ev.metaKey)return;
  const act=Object.keys(prefs.keys).find(a=>prefs.keys[a]===ev.code);
- if(moveKeys.includes(ev.code)||act)ev.preventDefault();
+ if(isMove(ev.code)||act)ev.preventDefault();
  if(!ev.repeat&&act)action=act;
- if(moveKeys.includes(ev.code))pressed.add(ev.code);
+ if(isMove(ev.code))pressed.add(ev.code);
 },true);
 addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';

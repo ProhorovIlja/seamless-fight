@@ -37,7 +37,15 @@ try{
  await host.reload();
  assert.match(await host.locator('#key-guide').textContent(),/K Cut/);
  await host.locator('#input-settings summary').click();
+ await host.locator('#move-up').click();
+ await host.keyboard.press('U');
+ assert.match(await host.locator('#move-up').textContent(),/Up: U/);
  await host.locator('#reset-keys').click();
+ await host.locator('#pad-shot').selectOption('2');
+ assert.equal(await host.locator('#pad-cut').inputValue(),'5');
+ await host.locator('#pad-stick').selectOption('right');
+ assert.deepEqual(await host.evaluate(()=>{const a=JSON.parse(localStorage.getItem('seamless-fight.settings.v1'));return [a.pad.shot,a.pad.cut,a.stick];}),[2,5,'right']);
+ await host.locator('#pad-stick').selectOption('left');
  assert.match(await host.locator('#key-guide').textContent(),/J Cut/);
  assert(await host.locator('#gallery').isHidden());
  await host.locator('summary').filter({hasText:'Sound mix'}).click();
@@ -143,13 +151,13 @@ try{
  await host.evaluate(()=>{window.testPad.axes[1]=-.9;});
  try{await until(()=>snapshot?.p[0].y<padY-12,'authoritative gamepad movement');}
  finally{await host.evaluate(()=>{window.testPad.axes[1]=0;});}
- await host.evaluate(()=>{window.testPad.buttons[5].pressed=true;});
+ await host.evaluate(()=>{window.testPad.buttons[2].pressed=true;});
  try{
    await until(()=>snapshot?.p[0].ammo===2,'controller pistol edge');
    const first=snapshot.tick;
    await until(()=>snapshot?.tick>first+38,'held controller action does not repeat');
    assert.equal(snapshot.p[0].ammo,2);
- }finally{await host.evaluate(()=>{window.testPad.buttons[5].pressed=false;});}
+ }finally{await host.evaluate(()=>{window.testPad.buttons[2].pressed=false;});}
  assert(impairment.up>1&&impairment.down>1);
  await host.locator('#gallery-toggle').click();
  await until(async()=>Boolean(await host.locator('#watch-link').inputValue()),'watch link issued');
