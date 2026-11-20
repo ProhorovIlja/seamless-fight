@@ -23,6 +23,10 @@ try{
  let snapshot;
  host.on('websocket',ws=>ws.on('framereceived',frame=>{const m=JSON.parse(frame.payload);if(m.t==='state')snapshot=m.s;}));
  await host.goto(url);
+ await host.locator('#sound').click();
+ await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='true','user-enabled Web Audio');
+ await host.locator('#sound').click();
+ await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='false','muted Web Audio');
  await host.locator('summary').filter({hasText:'Duel lab'}).click();
  await host.locator('#record').click();
  await host.keyboard.down('ArrowLeft');
