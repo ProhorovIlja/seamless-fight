@@ -28,6 +28,7 @@ try{
    Object.defineProperty(navigator,'getGamepads',{value:()=>[pad]});
  });
  await host.goto(url);
+ assert(await host.locator('.duel-crest').evaluate(img=>img.complete&&img.naturalWidth>0));
  await host.locator('#input-settings summary').click();
  await host.locator('#bind-cut').click();
  await host.keyboard.press('k');

@@ -28,7 +28,9 @@ const assets = new Map([
   ['wardrobe.mjs',['wardrobe.mjs','text/javascript']],
   ['footwork.mjs',['footwork.mjs','text/javascript']],
   ['score.mjs',['score.mjs','text/javascript']],
-  ['presentation.mjs',['presentation.mjs','text/javascript']]
+  ['presentation.mjs',['presentation.mjs','text/javascript']],
+  ['art/crossed-swords.svg',['art/crossed-swords.svg','image/svg+xml']],
+  ['art/lantern.svg',['art/lantern.svg','image/svg+xml']]
 ].map(([path,[file,type]])=>['/fight/'+path,[readFileSync(new URL('./public/'+file,import.meta.url)),type]]));
 const rooms=new Map(), galleries=new Map();
 const MAX_VIEWERS=6;

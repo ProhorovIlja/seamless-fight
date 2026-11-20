@@ -404,7 +404,6 @@ function drawFighter(p,i,x,y,time){
  }
  g.restore();
 }
-function bar(x,y,w,v,color){g.fillStyle='#171420';g.fillRect(x,y,w,8);g.fillStyle=color;g.fillRect(x,y,w*Math.max(0,v)/100,8);}
 function render(now){
  if(!document.hidden&&now>=prevFrame){if(!skipFrameSample)metrics.frame(now-prevFrame);skipFrameSample=false;}
  if(now>=nextDiagnostic&&$('diagnostics').open){
