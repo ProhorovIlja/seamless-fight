@@ -20,3 +20,5 @@ Select **Competitive BO3 · unrated preview** under the casual queue's Match for
 The default **Casual** queue and private invite rooms still use unlimited mutual rematches. This is a rules and interface preview—not an authenticated ranked ladder. The server does not store points, allow rank filtering, or calculate a leaderboard.
 
 The browser smoke test establishes a real two-browser competitive queue, confirms both see the initial 0–0 score, and checks the rematch control is hidden. Unit tests drive actual deterministic duel outcomes through the set policy and confirm that individual round and game outcomes do not settle a BO3 set.
+
+The isolated `server/rated-set-projection.mjs` calculates a hypothetical pair of Glicko-2 results **only after** the set-policy determines an outright 2-game winner. It uses both players' pre-set ratings and cannot produce a result for one game, a 1–1 tie or a draw-limited no-contest. This has no network API, identity trust, storage or point-award side effects.
