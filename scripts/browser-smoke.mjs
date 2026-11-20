@@ -33,6 +33,7 @@ try{
  await host.locator('#practice').click();
  await sleep(180);
  await host.screenshot({path:'artifacts/duel-reliquary-stage.png'});
+ await host.locator('#arena').screenshot({path:'artifacts/duel-reliquary-canvas.png'});
  await host.locator('#arena-select').selectOption('lantern');
  assert(await host.locator('.duel-crest').evaluate(img=>img.complete&&img.naturalWidth>0));
  await host.locator('#input-settings summary').click();
