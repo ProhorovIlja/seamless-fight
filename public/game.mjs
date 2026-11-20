@@ -305,7 +305,7 @@ function stopLab(){
  }else{syncScrub();status('Drill paused. Scrub and take over, or replay from the start.');}
 }
 function replayLab(){
- const choice=$('script').value, sequence=choice==='custom'?saved:preset(choice);
+ const choice=$('script').value, sequence=choice==='custom'?saved:preset(choice,choice==='mixup'?Math.floor(Math.random()*3):0);
  if(sequence.length)startLab('play',sequence);
 }
 function labStep(){
