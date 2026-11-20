@@ -164,7 +164,7 @@ export function paintSideDepthBack(g,stage='reliquary',now=0,state=null,quality=
  }
  if(limit.rays)rays(g,shift.focus, reduced?0:now,c,limit.rays);
  for(let i=0;i<limit.chains;i++){
-  const at=limit.chains===2?[100,860][i]:[96,285,480,674,865][i];
+  const at=limit.chains===2?[100,860][i]:limit.chains===3?[96,480,865][i]:[96,285,480,674,865][i];
   g.save();
   const drift=shift.mid;
   g.translate(drift,0);
@@ -219,8 +219,11 @@ export function paintSideDepthFront(g,stage='reliquary',now=0,state=null,quality
  g.fillStyle='#0b1019d9';
  for(const x of [-14,944]){
   const offset=camera.near;
-  g.fillRect(x+offset,195,29,269);
-  g.fillStyle=c.trim+'36';g.fillRect(x+offset+4,198,3,262);
+  // Clamp near columns to the non-playable screen margins; even at the
+  // strongest parallax shift they cannot cover a legal fighter position.
+  const pillarX=x<480?Math.min(0,x+offset):Math.max(931,x+offset);
+  g.fillRect(pillarX,195,29,269);
+  g.fillStyle=c.trim+'36';g.fillRect(pillarX+4,198,3,262);
   g.fillStyle='#0b1019d9';
  }
  // Stage-specific wet floor and foreground detail below feet only.
