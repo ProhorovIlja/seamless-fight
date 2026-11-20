@@ -40,6 +40,7 @@ try{
  assert.match(await page.locator('#live-phase-0').textContent(),/ready|active|recovery|startup|airborne|crouch/i);
  assert.match(await page.locator('#live-performance').textContent(),/frame interval p95/);
  await page.screenshot({path:'artifacts/side-reliquary-characters-and-hitboxes.png'});
+ await page.locator('#fight-canvas').screenshot({path:'artifacts/side-reliquary-hitboxes-canvas.png'});
  await page.locator('#show-boxes').uncheck();
  const start=Number(await page.locator('#fight-canvas').getAttribute('data-veil-x'));
  assert(start>200,'current fighter world X is valid');
@@ -49,6 +50,7 @@ try{
  await page.keyboard.press('j');await sleep(250);
  assert(Number(await page.locator('#fight-canvas').getAttribute('data-cinder-hp'))<100,'real side-view hitbox attack damages opponent');
  await page.screenshot({path:'artifacts/side-reliquary-duel.png'});
+ await page.locator('#fight-canvas').screenshot({path:'artifacts/side-reliquary-canvas.png'});
  assert(await page.locator('#record-save').isEnabled());
  await page.locator('#review').click();
  assert.match(await page.locator('#fight-status').textContent(),/Replay loaded/);
