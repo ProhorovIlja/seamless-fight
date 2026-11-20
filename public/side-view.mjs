@@ -9,6 +9,7 @@ import {SIDE_STAGES,paintSideStage,paintSideWeather,paintSideFighter,drawSideTra
 import {SIDE_DEPTH_QUALITY,paintSideDepthStatic,paintSideDepthBack,paintSideDepthFront} from './side-depth.mjs';
 import {sideCameraImpact,sideScoreTension,sideIsFootstep,sideWorldLens} from './side-cinema.mjs';
 import {drawPaintedStage,loadPaintedStage,paintIllustratedAir} from './side-painted.mjs';
+import {validateSideSpriteManifest,decodeSideSpriteRig,paintSideSprite} from './side-sprite-rig.mjs';
 import {createAudio} from './audio.mjs';
 import {applySiteTheme,bakeSiteSky} from './site-theme.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
@@ -45,6 +46,7 @@ $('impact-camera').checked=sidePrefs.impactCamera;
 $('depth-quality').onchange=()=>{sidePrefs.depthQuality=SIDE_DEPTH_QUALITY.includes($('depth-quality').value)?$('depth-quality').value:'balanced';persist();};
 // Customization is an appearance-only, bounded local setting.
 const preview=$('look-preview'),previewG=preview.getContext('2d');
+let previewRig=null;
 for(const [id,table,current]of [['look-dye',dyes,sidePrefs.look.dye],['look-sigil',sigils,sidePrefs.look.sigil]]){
  const select=$(id);
  for(const [key,value]of Object.entries(table)){const option=document.createElement('option');option.value=key;option.textContent=Array.isArray(value)?value[0]:value;select.append(option);}
@@ -57,7 +59,8 @@ function paintLookPreview(){
  previewG.fillStyle=background;previewG.fillRect(0,0,230,225);
  previewG.fillStyle='#bd9b6e67';previewG.fillRect(15,202,200,2);
  const p=sideFighter(0);p.x=113;p.y=202;p.dir=1;
- paintSideFighter(previewG,p,sidePrefs.look,0,true,sidePrefs.contrast);
+ if(!previewRig||!paintSideSprite(previewG,p,previewRig.img,previewRig.manifest,0))
+  paintSideFighter(previewG,p,sidePrefs.look,0,true,sidePrefs.contrast);
 }
 for(const id of ['look-dye','look-sigil'])$(id).onchange=()=>{
  sidePrefs.look=outfit({dye:$('look-dye').value,sigil:$('look-sigil').value});
@@ -65,6 +68,36 @@ for(const id of ['look-dye','look-sigil'])$(id).onchange=()=>{
  $('look-note').textContent='Appearance saved locally. Competitive stats and hitboxes unchanged.';
 };
 paintLookPreview();
+$('rig-apply').onclick=async()=>{
+ const manifestFile=$('rig-manifest').files?.[0],imageFile=$('rig-image').files?.[0];
+ const status=$('rig-status');
+ if(!manifestFile||!imageFile||manifestFile.size>65536||imageFile.size>8000000||
+    !/\\.json$/i.test(manifestFile.name)||!/\\.webp$/i.test(imageFile.name)||
+    imageFile.type!=='image/webp'){
+  status.textContent='Choose a JSON manifest (≤64 KiB) and a WebP atlas (≤8 MB).';return;
+ }
+ $('rig-apply').disabled=true;
+ let src=null;
+ try{
+  const manifest=JSON.parse(await manifestFile.text());
+  const issues=validateSideSpriteManifest(manifest);
+  if(issues.length){status.textContent='Atlas rejected: '+issues.slice(0,3).join('; ');return;}
+  src=URL.createObjectURL(imageFile);
+  const loaded=await decodeSideSpriteRig(manifest,Image,src);
+  if(!loaded){status.textContent='Atlas decode failed or dimensions do not match the manifest.';return;}
+  previewRig=loaded;paintLookPreview();
+  status.textContent='Local authored atlas active: '+manifest.character+' · '+Object.keys(manifest.clips).length+' animation clips. Not uploaded.';
+ }catch{
+  status.textContent='Invalid character manifest or unreadable atlas file.';
+ }finally{
+  if(src)URL.revokeObjectURL(src);
+  $('rig-apply').disabled=false;
+ }
+};
+$('rig-reset').onclick=()=>{
+ previewRig=null;paintLookPreview();
+ $('rig-status').textContent='Local preview reset. Prototype fighter fallback is active.';
+};
 const reduced=()=>sidePrefs.reduce||matchMedia('(prefers-reduced-motion: reduce)').matches;
 let scene=sidePrefs.stage,stageCanvas=null,sceneMap=new Map(),mode='idle',priorFrame=performance.now(),acc=0;
 let s=sideMatch(),bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.level);
@@ -486,7 +519,8 @@ function paint(now,elapsed){
   const localPose=i===onlineSlot&&ownPrediction?.predicted?ownPrediction.p:null;
   const pose=localPose?{...p,x:localPose.x,y:localPose.y,vx:localPose.vx,vy:localPose.vy,crouch:localPose.crouch}:
    mode==='online'&&i!==onlineSlot&&smooth?{...p,x:smooth.x,y:smooth.y}:p;
-  paintSideFighter(g,pose,appearance[i],now,reduced(),sidePrefs.contrast);
+  if(!previewRig||!paintSideSprite(g,pose,previewRig.img,previewRig.manifest,now))
+   paintSideFighter(g,pose,appearance[i],now,reduced(),sidePrefs.contrast);
  }
  if(!illustrated)paintSideDepthFront(g,scene,now,s,sidePrefs.depthQuality,reduced());
  if(sidePrefs.boxes&&mode!=='online'&&mode!=='connecting')drawSideTraining(g,s);
