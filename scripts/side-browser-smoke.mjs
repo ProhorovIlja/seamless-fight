@@ -77,9 +77,10 @@ try{
  const phone=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,hasTouch:true,isMobile:true});
  phone.on('pageerror',e=>errors.push('phone: '+e.message));
  await phone.goto(base+'/fight/side/');
- assert(await phone.locator('#touch').isVisible());
+ assert(await phone.locator('#touch').isHidden(),'mobile controls cannot block menus when no match is active');
  await phone.locator('#reduce-motion').check();
  await phone.locator('#begin').click();
+ assert(await phone.locator('#touch').isVisible(),'movement controls appear only for live fighters');
  await phone.locator('#touch [data-held=right]').tap();
  await phone.screenshot({path:'artifacts/side-mobile-reduced-motion.png'});
  // New 1v1 side-view socket is separate from legacy overhead matchmaking.
