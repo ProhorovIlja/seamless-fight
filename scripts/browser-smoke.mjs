@@ -39,6 +39,11 @@ try{
  await host.locator('#arena').screenshot({path:'artifacts/duel-reliquary-canvas.png'});
  await host.locator('#arena-select').selectOption('lantern');
  assert(await host.locator('.duel-crest').evaluate(img=>img.complete&&img.naturalWidth>0));
+ await host.locator('#wardrobe summary').click();
+ await host.locator('#dye').selectOption('ivory');
+ await host.locator('#sigil').selectOption('lantern');
+ assert.deepEqual(await host.evaluate(()=>JSON.parse(localStorage.getItem('seamless-fight.settings.v1')).outfit),{dye:'ivory',sigil:'lantern'});
+ await host.locator('#wardrobe summary').click();
  await host.locator('#input-settings summary').click();
  await host.locator('#bind-cut').click();
  await host.keyboard.press('k');
