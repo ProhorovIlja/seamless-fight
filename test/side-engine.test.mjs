@@ -112,3 +112,16 @@ test('boxes are horizontal forward ranges and no camera, stage or art changes th
  assert(reversed.left<p.x&&reversed.right<p.x);
  assert.equal(sideAttackbox({...p,act:''}),null);
 });
+
+test('authored move phases emit one action cue and one pistol fire without spoofed input FX',()=>{
+ const s=live(120),events=[];
+ sideStep(s,[input('shot'),sideInput()],events);
+ assert.equal(events.filter(e=>e.kind==='action'&&e.move==='shot').length,1);
+ assert.equal(events.some(e=>e.kind==='fire'),false);
+ for(let i=0;i<40;i++)sideStep(s,[sideInput(),sideInput()],events);
+ assert.equal(events.filter(e=>e.kind==='action'&&e.move==='shot').length,1);
+ assert.equal(events.filter(e=>e.kind==='fire'&&e.move==='shot').length,1);
+ const reject=live(90),none=[];reject.p[0].st=0;
+ sideStep(reject,[input('shot'),sideInput()],none);
+ assert.equal(none.filter(e=>['action','fire'].includes(e.kind)).length,0);
+});
