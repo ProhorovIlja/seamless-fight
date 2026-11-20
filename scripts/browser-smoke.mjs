@@ -23,6 +23,16 @@ try{
  let snapshot;
  host.on('websocket',ws=>ws.on('framereceived',frame=>{const m=JSON.parse(frame.payload);if(m.t==='state')snapshot=m.s;}));
  await host.goto(url);
+ await host.locator('#input-settings summary').click();
+ await host.locator('#bind-cut').click();
+ await host.keyboard.press('k');
+ assert.match(await host.locator('#bind-cut').textContent(),/Cut: K/);
+ assert.match(await host.locator('#bind-hew').textContent(),/Heavy: J/);
+ await host.reload();
+ assert.match(await host.locator('#key-guide').textContent(),/K Cut/);
+ await host.locator('#input-settings summary').click();
+ await host.locator('#reset-keys').click();
+ assert.match(await host.locator('#key-guide').textContent(),/J Cut/);
  assert(await host.locator('#gallery').isHidden());
  await host.locator('#sound').click();
  await until(async()=>await host.locator('#sound').getAttribute('aria-pressed')==='true','user-enabled Web Audio');

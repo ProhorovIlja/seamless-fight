@@ -4,6 +4,7 @@ import {trainingInput} from './tactics.mjs';
 import {MAX_TAPE,TIMELINE,phase,makeLab,practiceTick,writeTape,tapeInput,preset,restoreDrill} from './lab.mjs';
 import {createAudio,soundChanges} from './audio.mjs';
 import {RULESET,MAX_TICKS,createReview} from './replay.mjs';
+import {DEFAULT_KEYS,STORAGE_KEY,allowed,settings,samplePad} from './controls.mjs';
 const $=id=>document.getElementById(id), canvas=$('arena'), g=canvas.getContext('2d');
 function resizeCanvas(){
  const scale=Math.max(1,Math.min(2,window.devicePixelRatio||1));
@@ -13,7 +14,7 @@ function resizeCanvas(){
 }
 resizeCanvas();addEventListener('resize',resizeCanvas);
 const bg=document.createElement('canvas');bg.width=W;bg.height=H;
-const b=bg.getContext('2d'), reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const b=bg.getContext('2d'), motionQuery=matchMedia('(prefers-reduced-motion: reduce)');
 let seed=42731;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
 const sky=b.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#221923');sky.addColorStop(.42,'#352c3b');sky.addColorStop(1,'#12161c');b.fillStyle=sky;b.fillRect(0,0,W,H);
 b.fillStyle='#a69183';b.beginPath();b.arc(714,59,33,0,Math.PI*2);b.fill();
@@ -43,14 +44,69 @@ function sendInput(input){
    ({p:predicted}=reconcile(s,slot,pending,0));
  }
 }
-const pressed=new Set(), keys={KeyJ:'cut',KeyK:'hew',KeyL:'shot',KeyI:'feint',Space:'step'};
-const moveKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'];
-function read(){const on=(a,b)=>Number(pressed.has(a)||pressed.has(b));const i={x:on('KeyD','ArrowRight')-on('KeyA','ArrowLeft'),y:on('KeyS','ArrowDown')-on('KeyW','ArrowUp'),act:action};action='';return i;}
-function flush(){pressed.clear();action='';sendInput(blank());}
-addEventListener('blur',flush);
+let rawPrefs;
+try{rawPrefs=JSON.parse(localStorage.getItem(STORAGE_KEY));}catch{}
+const prefs=settings(rawPrefs), reduced=()=>prefs.reduce||motionQuery.matches;
+const pressed=new Set(), moveKeys=['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowLeft','ArrowDown','ArrowRight'];
+const labels={cut:'Cut',hew:'Heavy',shot:'Pistol',feint:'Feint',step:'Quickstep'};
+let binding='', prior=null, padFrame={x:0,y:0}, armed=false;
+const name=code=>code.replace(/^Key|^Digit/,'');
+function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(prefs));}catch{}}
+function refresh(){
+ const bindings=Object.keys(labels).map(act=>{const key=name(prefs.keys[act]);$('bind-'+act).textContent=labels[act]+': '+key;return key+' '+labels[act];});
+ $('key-guide').textContent='WASD / ARROWS Move · '+bindings.join(' · ');
+}
+for(const [act,label] of Object.entries(labels)){
+ const button=document.createElement('button');button.id='bind-'+act;button.type='button';
+ button.onclick=()=>{flush();binding=act;$('bind-status').textContent='Press a key for '+label+' or Esc to cancel.';};
+ $('binds').append(button);
+}
+function cancelBinding(){if(binding){binding='';$('bind-status').textContent='Binding cancelled.';}}
+$('input-settings').addEventListener('toggle',()=>{if(!$('input-settings').open)cancelBinding();});
+$('reset-keys').onclick=()=>{cancelBinding();prefs.keys={...DEFAULT_KEYS};persist();refresh();$('bind-status').textContent='Default keys restored.';};
+for(const id of ['reduce','contrast']){$(id).checked=prefs[id];$(id).onchange=()=>{prefs[id]=$(id).checked;persist();};}
+$('sfx').value=prefs.sfx;$('ambience').value=prefs.ambience;$('deadzone').value=prefs.deadzone;
+$('deadzone-value').textContent=prefs.deadzone+'%';
+$('deadzone').oninput=()=>{prefs.deadzone=Number($('deadzone').value);$('deadzone-value').textContent=prefs.deadzone+'%';persist();};
+refresh();
+function pollPad(){
+ if(!mode||watching||binding||document.hidden||!document.hasFocus())return;
+ let pad;try{pad=Array.from(navigator.getGamepads?.()||[]).find(p=>p?.connected&&p.mapping==='standard');}catch{}
+ const v=samplePad(pad,prior,prefs.deadzone/100);
+ if(prior?.index!==v.next?.index)armed=false;
+ prior=v.next;
+ if(!armed){
+   padFrame={x:0,y:0};
+   if(!v.x&&!v.y&&!v.next?.mask)armed=true;
+   return;
+ }
+ padFrame=v;if(v.act&&!action)action=v.act;
+}
+function read(){
+ const on=(a,b)=>Number(pressed.has(a)||pressed.has(b));
+ const x=on('KeyD','ArrowRight')-on('KeyA','ArrowLeft'),y=on('KeyS','ArrowDown')-on('KeyW','ArrowUp');
+ const i={x:x||y?x:padFrame.x,y:x||y?y:padFrame.y,act:action};action='';return i;
+}
+function flush(){pressed.clear();action='';prior=null;armed=false;padFrame={x:0,y:0};sendInput(blank());}
+addEventListener('blur',()=>{flush();cancelBinding();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)flush();});
-addEventListener('keydown',e=>{if(e.target.matches?.('input,button,select')||!mode||watching)return;if(moveKeys.includes(e.code)||keys[e.code])e.preventDefault();if(!e.repeat&&keys[e.code])action=keys[e.code];pressed.add(e.code);});
-addEventListener('keyup',e=>pressed.delete(e.code));
+addEventListener('keydown',ev=>{
+ if(binding){
+   ev.preventDefault();ev.stopImmediatePropagation();
+   if(ev.repeat)return;
+   if(ev.code==='Escape'){cancelBinding();return;}
+   if(!allowed(ev.code)||ev.altKey||ev.ctrlKey||ev.metaKey){$('bind-status').textContent='Choose an unreserved letter, digit, Space, Enter or Shift.';return;}
+   const other=Object.keys(prefs.keys).find(act=>prefs.keys[act]===ev.code);
+   if(other&&other!==binding)prefs.keys[other]=prefs.keys[binding];
+   prefs.keys[binding]=ev.code;binding='';persist();refresh();$('bind-status').textContent='Binding saved.';return;
+ }
+ if(ev.target.matches?.('input,button,select,textarea,[contenteditable]')||!mode||watching||ev.altKey||ev.ctrlKey||ev.metaKey)return;
+ const act=Object.keys(prefs.keys).find(a=>prefs.keys[a]===ev.code);
+ if(moveKeys.includes(ev.code)||act)ev.preventDefault();
+ if(!ev.repeat&&act)action=act;
+ if(moveKeys.includes(ev.code))pressed.add(ev.code);
+},true);
+addEventListener('keyup',ev=>pressed.delete(ev.code));
 let labKind='',labTick=0,labHold=false,labNote='',tape=[],saved=[],trace=[],attempt=[],spacing='edge';
 let capture=null, review=null, reviewTick=0, replayPlaying=false, forkSlot=-1, saveUrl='';
 const reviewInfo=msg=>{$('review-info').textContent=msg;};
@@ -157,7 +213,7 @@ $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('invite').
 $('rematch').onclick=()=>{document.activeElement?.blur();if(mode==='practice')practice();else if(ws?.readyState===1&&!vote){vote=true;$('rematch').textContent='Waiting for opponent';ws.send('{"t":"rematch"}');}};
 let soundOn=false,soundBusy=false;
 function mix(){audio.mix(Number($('sfx').value)/100,Number($('ambience').value)/100);}
-$('sfx').oninput=mix;$('ambience').oninput=mix;
+$('sfx').oninput=$('ambience').oninput=()=>{prefs.sfx=Number($('sfx').value);prefs.ambience=Number($('ambience').value);mix();persist();};
 $('sound').onclick=async()=>{
  if(soundBusy)return;
  const btn=$('sound');
@@ -247,7 +303,7 @@ for(const [label,id] of [['Cut','cut'],['Hew','hew'],['Pistol','shot'],['Quickst
 $('frames').lastElementChild.lastElementChild.textContent='8 extra';
 let prevFrame=performance.now(),acc=0;
 function drawFighter(p,i,x,y,time){
- const color=i?'#e39774':'#8fc8c0', f=Math.atan2(p.fy,p.fx), m=moves[p.act], active=m&&p.age>=m[0]&&p.age<m[0]+m[1];
+ const color=prefs.contrast?(i?'#ffc36b':'#a1fff1'):(i?'#e39774':'#8fc8c0'), f=Math.atan2(p.fy,p.fx), m=moves[p.act], active=m&&p.age>=m[0]&&p.age<m[0]+m[1];
  g.save();g.translate(x,y);
  g.fillStyle='#09090dcc';g.beginPath();g.ellipse(0,8,26,12,0,0,Math.PI*2);g.fill();
  g.rotate(f);
@@ -255,10 +311,10 @@ function drawFighter(p,i,x,y,time){
  if(m&&m[5]&&p.age<m[0]+m[1]){
    g.beginPath();g.moveTo(0,0);const arc=Math.acos(p.act==='shot'?.88:.45);g.arc(0,0,m[4],-arc,arc);g.closePath();g.fillStyle=active?color+'6b':color+'15';g.fill();g.strokeStyle=active?color:color+'68';g.lineWidth=active?2:1;g.stroke();
  }
- const stride=reduced?0:Math.sin(time/55)*Math.min(4,Math.hypot(p.vx,p.vy));
+ const stride=reduced()?0:Math.sin(time/55)*Math.min(4,Math.hypot(p.vx,p.vy));
  g.fillStyle='#12131a';g.fillRect(-12+stride,-12,15,8);g.fillRect(-12-stride,5,15,8);
  g.fillStyle='#312d3a';g.beginPath();g.moveTo(9,-13);g.lineTo(-7,-18);g.lineTo(-23,-15);g.lineTo(-19,15);g.lineTo(-7,18);g.lineTo(9,12);g.closePath();g.fill();
- g.strokeStyle=color;g.lineWidth=2;g.stroke();
+ g.strokeStyle=color;g.lineWidth=prefs.contrast?3.5:2;g.stroke();
  g.fillStyle='#12141b';g.beginPath();g.ellipse(3,0,11,10,0,0,Math.PI*2);g.fill();
  g.fillStyle=color;g.fillRect(8,-5,3,10);
  const melee=p.act==='cut'||p.act==='hew';
@@ -277,20 +333,21 @@ function drawFighter(p,i,x,y,time){
 function bar(x,y,w,v,color){g.fillStyle='#171420';g.fillRect(x,y,w,8);g.fillStyle=color;g.fillRect(x,y,w*Math.max(0,v)/100,8);}
 function render(now){
  const elapsed=Math.min(100,now-prevFrame);prevFrame=now;acc+=elapsed;
+ pollPad();
  let budget=5;
  while(acc>=1000/HZ&&budget-->0){acc-=1000/HZ;if(mode==='practice'){step(s,[read(),trainingInput(s,$('drill').value)]);feedback(s);}else if(mode==='review')reviewStep();else if(mode==='lab'){labStep();if(lastSound?.tick!==s.tick)feedback(s);}else if(mode==='online'&&ws?.readyState===1&&ws.bufferedAmount<2048)sendInput(read());}
  if(acc>100)acc=0;
  for(let i=0;i<2;i++)flashes[i]=Math.max(0,flashes[i]-elapsed/220);
  g.drawImage(bg,0,0);
- if(!reduced){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=i%3?'#e3d6dc1d':'#e7a16082';g.fillRect(x,y,2,2);}}
+ if(!reduced()){for(let i=0;i<27;i++){const x=(i*157+now*.013)%W,y=153+(i*71)%335;g.fillStyle=i%3?'#e3d6dc1d':'#e7a16082';g.fillRect(x,y,2,2);}}
  const blend=(mode==='online'||mode==='spectate')&&prev?Math.min(1,(now-at)/50):1;
  const decay=Math.exp(-elapsed/43);correction.x*=decay;correction.y*=decay;
  const poses=s.p.map((p,i)=>({p,i,x:prev?prev.p[i].x+(p.x-prev.p[i].x)*blend:p.x,y:prev?prev.p[i].y+(p.y-prev.p[i].y)*blend:p.y})).map(o=>mode==='online'&&o.i===slot&&predicted?{...o,x:predicted.x+correction.x,y:predicted.y+correction.y}:o).sort((a,b)=>a.y-b.y);
  for(const {p,i,x,y} of poses){
    drawFighter(p,i,x,y,now);
    if(flashes[i]>0){
-     g.save();g.globalAlpha=reduced?.6:flashes[i]*.85;g.strokeStyle='#ffd5a0';g.lineWidth=2;
-     g.beginPath();g.ellipse(x,y+5,28+(reduced?0:(1-flashes[i])*17),17,0,0,Math.PI*2);g.stroke();g.restore();
+     g.save();g.globalAlpha=reduced()?.6:flashes[i]*.85;g.strokeStyle='#ffd5a0';g.lineWidth=2;
+     g.beginPath();g.ellipse(x,y+5,28+(reduced()?0:(1-flashes[i])*17),17,0,0,Math.PI*2);g.stroke();g.restore();
    }
  }
  for(let i=0;i<2;i++){const p=s.p[i],x=i?674:36,c=i?'#e39774':'#8fc8c0';g.fillStyle=c;g.font='15px system-ui';g.textAlign='left';g.fillText((i?'CINDER':'VEIL')+' · '+s.score[i]+'   /   '+p.ammo+' SHOTS'+(i===(mode==='review'?forkSlot:mode==='lab'&&labKind==='record'?1:slot)&&mode?'   /   YOU':''),x,27);bar(x,35,250,p.hp,c);bar(x,47,250,p.st,'#d1aa60');}
