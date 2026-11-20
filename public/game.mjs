@@ -8,7 +8,7 @@ import {createAudio,soundChanges,rangeBand} from './audio.mjs';
 import {RULESET,MAX_TICKS,createReview,packTick} from './replay.mjs';
 import {DEFAULT_KEYS,DEFAULT_MOVE,DEFAULT_PAD,PAD_LABELS,MOUSE_BUTTONS,mouseAction,swapBinding,STORAGE_KEY,allowed,settings,samplePad,touchDirection} from './controls.mjs';
 import {createMetrics} from './metrics.mjs';
-import {ARENAS,arenaId,paintCistern} from './arenas.mjs';
+import {ARENAS,arenaId,paintCistern,paintReliquary} from './arenas.mjs';
 import {logInput,describe,eventLabel,replayReport} from './analysis.mjs';
 import {dyes,sigils,outfit,pair,paintOutfit} from './wardrobe.mjs';
 import {footwork} from './footwork.mjs';
@@ -54,7 +54,7 @@ const backdrops=new Map([['lantern',bg]]);
 let arena='lantern', backdrop=bg;
 function showArena(value){
  arena=arenaId(value);$('arena-title').textContent=ARENAS[arena];canvas.setAttribute('aria-label',ARENAS[arena]+' duel arena');
- if(!backdrops.has(arena)){const layer=document.createElement('canvas');layer.width=W;layer.height=H;const ctx=layer.getContext('2d');paintCistern(ctx,W,H);textureFloor(ctx,arena,W,H);backdrops.set(arena,layer);}
+ if(!backdrops.has(arena)){const layer=document.createElement('canvas');layer.width=W;layer.height=H;const ctx=layer.getContext('2d');if(arena==='cistern')paintCistern(ctx,W,H);else paintReliquary(ctx,W,H);textureFloor(ctx,arena,W,H);backdrops.set(arena,layer);}
  backdrop=backdrops.get(arena);audio.setArena(arena);
 }
 $('arena-select').onchange=()=>{if(mode==='practice'&&!searchSocket)practice();else if(!mode)showArena($('arena-select').value);};
