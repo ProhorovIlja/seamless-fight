@@ -27,5 +27,9 @@ test('health, origin rejection, private invite, authoritative snapshots and disc
  const confirmed=await b.get(m=>m.t==='state'&&m.ack===1);assert(confirmed.s.p[1].x<state.s.p[1].x);
  b.send({t:'input',x:1,y:0,act:'shot',seq:1});
  const stale=await b.get(m=>m.t==='state'&&m.s.tick>confirmed.s.tick+12);assert.equal(stale.s.p[1].ammo,3);assert.equal(stale.ack,1);
+ b.send({t:'input',x:0,y:0,act:'hew',seq:2});
+ await b.get(m=>m.t==='state'&&m.s.p[1].act==='hew'&&m.s.p[1].age>=5&&m.s.p[1].age<12);
+ b.send({t:'input',x:0,y:0,act:'feint',seq:3});
+ const feinted=await b.get(m=>m.t==='state'&&m.ack===3&&m.s.p[1].act==='feint');assert.equal(feinted.s.p[1].st,62);
  b.c.close();assert.match((await a.get(m=>m.t==='error')).message,/disconnected/);
 });

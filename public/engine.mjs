@@ -1,16 +1,20 @@
 const engine = function engine(){
  const W=960,H=540,HZ=60, LIMIT=75*HZ;
- const moves={cut:[10,5,16,18,86,19],hew:[22,7,24,30,114,33],shot:[8,1,25,24,190,8],step:[0,10,12,22,0,0],stun:[0,0,31,0,0,0]};
+ const FEINT={from:5,until:15,cost:8};
+ const moves={cut:[10,5,16,18,86,19],hew:[22,7,24,30,114,33],shot:[8,1,25,24,190,8],step:[0,10,12,22,0,0],stun:[0,0,31,0,0,0],feint:[0,0,13,0,0,0]};
  const clamp=(x,a,b)=>Math.min(b,Math.max(x,a));
  const blank=()=>({x:0,y:0,act:''});
  const fighter=(i)=>({x:i?688:272,y:270,vx:0,vy:0,fx:i?-1:1,fy:0,hp:100,st:100,act:'',age:0,spent:false,regen:0,ammo:3});
  const match=()=>({p:[fighter(0),fighter(1)],tick:0,clock:LIMIT,ready:120,score:[0,0],winner:null,round:1,end:0,over:false});
+ const canFeint=p=>p.act==='hew'&&p.age>=FEINT.from&&p.age<FEINT.until&&p.st>=FEINT.cost;
+ const canAct=p=>!p.act||p.age>=moves[p.act][0]+moves[p.act][1]+moves[p.act][2];
  function motion(p,input,q){
-   if(p.act && p.age>=moves[p.act][0]+moves[p.act][1]+moves[p.act][2])p.act='';
+   if(canAct(p))p.act='';
+   if(input.act==='feint'&&canFeint(p)){p.act='feint';p.age=0;p.st-=FEINT.cost;p.regen=34;}
    let {x,y,act}=input;const n=Math.max(1,Math.hypot(x,y));x/=n;y/=n;
    if(!p.act){
      const d=Math.hypot(q.x-p.x,q.y-p.y)||1;p.fx=(q.x-p.x)/d;p.fy=(q.y-p.y)/d;
-     if(Object.hasOwn(moves,act)&&act!=='stun'&&p.st>=moves[act][3]&&(act!=='shot'||p.ammo)){
+     if(Object.hasOwn(moves,act)&&act!=='stun'&&act!=='feint'&&p.st>=moves[act][3]&&(act!=='shot'||p.ammo)){
        p.act=act;p.age=0;p.spent=false;p.st-=moves[act][3];p.regen=34;
        if(act==='shot')p.ammo--;
        if(act==='step'){const d=Math.hypot(x,y);p.vx=(d?x/d:-p.fx)*8.2;p.vy=(d?y/d:-p.fy)*8.2;}
@@ -47,6 +51,6 @@ const engine = function engine(){
    for(const p of s.p)if(p.act)p.age++;
    if(--s.clock<=0||!a.hp||!b.hp){s.winner=a.hp===b.hp?-1:a.hp>b.hp?0:1;if(s.winner>=0)s.score[s.winner]++;s.over=s.score.includes(2);s.end=s.over?0:150;}
  }
- return {W,H,HZ,blank,match,step,moves,predictMotion};
+ return {W,H,HZ,blank,match,step,moves,predictMotion,FEINT,canFeint,canAct};
 };
-export const {W,H,HZ,blank,match,step,moves,predictMotion}=engine();
+export const {W,H,HZ,blank,match,step,moves,predictMotion,FEINT,canFeint,canAct}=engine();

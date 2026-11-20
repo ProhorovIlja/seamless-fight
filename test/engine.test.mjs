@@ -11,3 +11,20 @@ test('quickstep invulnerability is bounded',()=>{const s=close();tick(s,7,act('c
 test('movement accelerates, normalizes diagonal and brakes',()=>{const s=close();tick(s,1,{x:1,y:1,act:''});const initial=Math.hypot(s.p[0].vx,s.p[0].vy);assert(initial>0&&initial<3.1);tick(s,30,{x:0,y:1,act:''});assert(Math.hypot(s.p[0].vx,s.p[0].vy)<=3.1);tick(s,20);assert(Math.abs(s.p[0].vy)<.01);});
 test('round timeout awards a round; two wins finish the match',()=>{const s=close();s.p[1].hp=80;s.clock=1;tick(s,1);assert.deepEqual(s.score,[1,0]);tick(s,150);assert.equal(s.round,2);s.ready=0;s.p[1].hp=80;s.clock=1;tick(s,1);assert.equal(s.over,true);assert.equal(s.winner,0);});
 test('simultaneous knockout is a draw',()=>{const s=close();s.p.forEach(p=>p.hp=19);tick(s,11,act('cut'),act('cut'));assert.equal(s.winner,-1);assert.deepEqual(s.score,[0,0]);});
+
+test('heavy feint costs stamina, cannot attack during recovery and never lands',()=>{
+ const s=close();tick(s,1,act('hew'));tick(s,5);tick(s,1,act('feint'));
+ assert.equal(s.p[0].act,'feint');assert.equal(s.p[0].st,62);
+ tick(s,12,act('cut'));assert.equal(s.p[0].act,'feint');
+ tick(s,1,act('cut'));assert.equal(s.p[0].act,'cut');assert.equal(s.p[1].hp,100);
+});
+test('idle, early and late feints cannot cancel or damage',()=>{
+ const s=close();tick(s,1,act('feint'));assert.equal(s.p[0].act,'');
+ tick(s,1,act('hew'));tick(s,1,act('feint'));assert.equal(s.p[0].act,'hew');
+ tick(s,15);tick(s,1,act('feint'));assert.equal(s.p[0].act,'hew');
+ tick(s,10);assert.equal(s.p[1].hp,67);
+});
+test('feint fails without the additional stamina',()=>{
+ const s=close();s.p[0].st=35;tick(s,1,act('hew'));tick(s,5);tick(s,1,act('feint'));
+ assert.equal(s.p[0].act,'hew');assert.equal(s.p[0].st,5);
+});

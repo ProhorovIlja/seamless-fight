@@ -3,14 +3,15 @@ import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { WebSocketServer } from 'ws';
-import { HZ, blank, match, step } from './public/engine.mjs';
+import { HZ, blank, match, step, canFeint, canAct } from './public/engine.mjs';
 
 const assets = new Map([
   ['', ['index.html','text/html; charset=utf-8']],
   ['style.css',['style.css','text/css']],
   ['game.mjs',['game.mjs','text/javascript']],
   ['engine.mjs',['engine.mjs','text/javascript']],
-  ['prediction.mjs',['prediction.mjs','text/javascript']]
+  ['prediction.mjs',['prediction.mjs','text/javascript']],
+  ['tactics.mjs',['tactics.mjs','text/javascript']]
 ].map(([path,[file,type]])=>['/fight/'+path,[readFileSync(new URL('./public/'+file,import.meta.url)),type]]));
 const rooms=new Map();
 const origin=process.env.PUBLIC_ORIGIN;
@@ -33,10 +34,10 @@ http.on('upgrade',(req,socket,head)=>{
   ws.handleUpgrade(req,socket,head,c=>ws.emit('connection',c));
 });
 function send(c,o){if(c.readyState===1){if(c.bufferedAmount>65536)c.terminate();else c.send(JSON.stringify(o));}}
-function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.votes.clear();for(const c of r.peers){c.input=blank();c.actions=[];c.ack=c.seq;}}
+function reset(r){const tick=r.s.tick;r.s=match();r.s.tick=tick;r.votes.clear();for(const c of r.peers){c.input=blank();c.actions=[];c.cancel=false;c.ack=c.seq;}}
 ws.on('connection',c=>{
   let room, slot, quota=0, quotaAt=performance.now();
-  c.alive=true;c.input=blank();c.actions=[];c.at=0;c.seq=0;c.ack=0;
+  c.alive=true;c.input=blank();c.actions=[];c.cancel=false;c.at=0;c.seq=0;c.ack=0;
   c.on('error',()=>c.terminate());c.on('pong',()=>c.alive=true);
   const deadline=setTimeout(()=>c.close(1008,'join timeout'),10000);
   c.on('message',(data,binary)=>{
@@ -65,6 +66,7 @@ ws.on('connection',c=>{
     if(m.t!=='input'||![-1,0,1].includes(m.x)||![-1,0,1].includes(m.y)||!Number.isSafeInteger(m.seq)||m.seq<=c.seq)return;
     c.seq=m.seq;
     c.input={x:m.x,y:m.y,act:''};c.at=now;
+    if(m.act==='feint')c.cancel=true;
     if(['cut','hew','shot','step'].includes(m.act)&&c.actions.length<3)c.actions.push({act:m.act,until:now+110});
   });
   c.on('close',()=>{
@@ -85,8 +87,10 @@ setInterval(()=>{
         const inputs=r.peers.map((c,i)=>{
           while(c.actions.length&&c.actions[0].until<now)c.actions.shift();
           c.ack=c.seq;
-          const p=r.s.p[i], idle=!p.act;
-          const act=idle&&!r.s.ready&&!r.s.end?c.actions.shift()?.act||'':'';
+          const p=r.s.p[i], live=!r.s.ready&&!r.s.end;
+          const cancel=c.cancel;c.cancel=false;
+          const act=live?(cancel&&canFeint(p)?'feint':canAct(p)?c.actions.shift()?.act||'':''):'';
+          if(!live)c.actions.length=0;
           return {...(now-c.at<260?c.input:blank()),act};
         });
         step(r.s,inputs);
