@@ -47,7 +47,7 @@ test('prediction cap pauses rather than silently committing uncorrectable combat
  assert.equal(rb.getStats().tick,3);
  assert.equal(rb.confirm(0,neutral()).rolledBack,false);
  rb.advance(neutral());
- assert.throws(()=>rb.confirm(0,{...neutral(),x:1}),/Conflicting/);
+ assert.throws(()=>rb.confirm(0,{...neutral(),x:1}),/outside rollback window/);
  assert.throws(()=>rb.confirm(1,{...neutral(),act:'stun'}),/Invalid/);
 });
 test('defensive copies and strict input validation protect deterministic snapshots',()=>{
