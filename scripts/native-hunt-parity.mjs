@@ -378,12 +378,67 @@ try{
   neutralFaceTicks+=inputs.length;
  }
  assert.equal(neutralFaceScenarios,2);
+ // Both fighters commit an R2 from the SAME start-of-tick snapshot,
+ // even when the other hunter's earlier-processed walk would cross the
+ // attacker's original x before drive() of the second slot.
+ let simultaneousFacingScenarios=0,simultaneousFacingTicks=0;
+ for(const attacker of [0,1])for(const heavyLeft of [false,true]){
+  const source=huntMatch();source.ready=0;
+  source.p[attacker].x=heavyLeft?479.5:480.5;
+  source.p[1-attacker].x=heavyLeft?480.5:479.5;
+  source.p[0].vx=0;source.p[1].vx=0;
+  const expected=heavyLeft?1:-1;
+  const inputs=Array.from({length:24},(_,t)=>{
+   if(t>0)return [huntInput(),huntInput()];
+   const pair=[huntInput(),huntInput()];
+   pair[attacker]={...huntInput(),act:'heavy'};
+   pair[1-attacker]={...huntInput(),x:-expected};
+   return pair;
+  });
+  const mode='--attack-facing-p'+attacker+'-'+(heavyLeft?'left':'right');
+  const packet='0 0\n'+inputs.map(pair=>pair.flatMap(
+   p=>[p.x,p.y,REQUEST[p.act],Number(p.guard)]).join(' ')).join('\n')+'\n';
+  const run=spawnSync(exe,[mode],{input:packet,encoding:'utf8',
+   timeout:90000,maxBuffer:4*1024*1024});
+  assert.equal(run.status,0,'Native simultaneous facing fixture: '+run.stderr);
+  const lines=run.stdout.trim().split('\n');
+  assert.equal(lines.length,inputs.length);
+  for(let t=0;t<inputs.length;t++){
+   huntStep(source,inputs[t]);
+   if(t===0){
+    assert.equal(source.p[attacker].act,'foldedHeavy');
+    assert.equal(source.p[attacker].dir,expected,
+     'Heavy R2 may not inherit post-drive intermediate opponent position');
+    const a=source.p[0],b=source.p[1];
+    assert.equal(Math.abs(a.x-b.x),38,
+     'Both bodies must remain solid even after in-frame collision');
+   }
+   const values=lines[t].trim().split(/\s+/).map(Number);
+   assert.equal(values.length,totalFields);
+   let k=0;
+   const compare=(field,value)=>{
+    const actual=values[k++],expectedValue=number(field,value);
+    if(!Number.isFinite(actual)||!Number.isFinite(expectedValue)||
+      Math.abs(expectedValue-actual)>1e-8)
+     throw Error('Native simultaneous facing mismatch '+mode+' t='+t+
+      ' field='+field+' JS='+expectedValue+' CPP='+actual);
+    checks++;maxError=Math.max(maxError,Math.abs(expectedValue-actual));
+   };
+   for(const field of GLOBAL)compare(field,source[field]);
+   compare('score0',source.score[0]);compare('score1',source.score[1]);
+   for(const fighter of source.p)for(const field of FIELDS)compare(field,fighter[field]);
+  }
+  simultaneousFacingScenarios++;
+  simultaneousFacingTicks+=inputs.length;
+ }
+ assert.equal(simultaneousFacingScenarios,4);
  assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0&&eventsSeen.visceral>0,
   'Trace missed core Hunt gameplay situations');
  console.log(JSON.stringify({result:'HUNT_V3_NATIVE_CPP_JS_PARITY_PASS',
-  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks,
+  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks+simultaneousFacingTicks,
   directedTradeScenarios,directedTradeTicks,limbScenarios,limbTicks,
   neutralFaceScenarios,neutralFaceTicks,
+  simultaneousFacingScenarios,simultaneousFacingTicks,
   directedVisceral:true,directedTicks:trace.length,cornerCrossings:verifiedCornerCrossings,
   weaponPairs:PAIRS.length,fieldsPerTick:totalFields,fieldComparisons:checks,
   maxAbsoluteDifference:maxError,nativeRollbackChecks:rewinds,
