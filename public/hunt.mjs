@@ -3,7 +3,7 @@
 // Display FPS is independent of deterministic input, physics and replay ticks.
 import {HUNT_HZ,HUNT_RULESET,HUNT_W,HUNT_FLOOR,huntInput}
  from './side-hunt-lab.mjs';
-import {huntPracticeSession} from './hunt-practice-suite.mjs';
+import {huntPracticeSession,HUNT_PRACTICE_DRILLS} from './hunt-practice-suite.mjs';
 import {huntPublicHud,huntActionName} from './hunt-identity.mjs';
 import {huntDeviceProfile,createHuntInputAdapter,HUNT_DEVICE_LAYOUTS}
  from './hunt-input-device.mjs';
@@ -13,6 +13,7 @@ import {drawHuntArena} from './hunt-render.mjs';
 
 const $=id=>document.getElementById(id);
 const TICK_MS=1000/HUNT_HZ,MAX_TICKS_PER_RENDER=8,REPLAY_MAX_BYTES=3*1024*1024;
+const MAX_DUMMY_LIBRARY_BYTES=512*1024;
 const browserLayouts=new Set(['keyboard-mouse','gamepad','fightstick','leverless','fightpad']);
 const canvas=$('arena'),ctx=canvas.getContext('2d');
 if(!ctx)throw Error('Hunt v3 practice requires a canvas-rendering browser.');
@@ -52,7 +53,12 @@ function sampleInput(){
 function reset(keepWeapons=true){
  const first=keepWeapons?$('my-weapon').value:'mournweave';
  const second=keepWeapons?$('dummy-weapon').value:'mournweave';
- practice=huntPracticeSession({weapons:[first,second]});
+ practice=huntPracticeSession({weapons:[first,second],drill:$('drill').value});
+ $('dummy-mode').value=practice.stats().mode;
+ const selected=HUNT_PRACTICE_DRILLS.find(x=>x.id===practice.stats().drill);
+ $('drill-help').textContent=selected.id==='free'?
+  'Free Practice starts at neutral spacing. Record the dummy or select a source-based counter drill.':
+  selected.label+' · '+selected.spacing+'-unit starting distance · source-played action at tick '+(selected.startAt+1)+'. Respond with actual input; no scripted win or auto-parry.';
  before=practice.inspect();after=practice.inspect();
  clearInput();lastEventTick=-1;acc=0;
  updateHud();
@@ -243,8 +249,8 @@ $('rewind').addEventListener('click',()=>{
  updateHud();
 });
 $('restart').addEventListener('click',()=>{reset();status('Hunt v3 practice restarted with two original 1v1 weapons.');});
-for(const id of ['my-weapon','dummy-weapon'])$(id).addEventListener('change',()=>{
- reset();status('Weapon selection applied. Previous local timeline cleared.');
+for(const id of ['my-weapon','dummy-weapon','drill'])$(id).addEventListener('change',()=>{
+ reset();status('Hunt v3 training scenario and original weapons applied. Previous local timeline cleared.');
 });
 $('toggle-boxes').addEventListener('click',()=>{
  boxes=!boxes;$('toggle-boxes').setAttribute('aria-pressed',String(boxes));
@@ -284,6 +290,28 @@ $('export').addEventListener('click',()=>{
   URL.revokeObjectURL(url);
   status('Exported offline Hunt v3 input replay. This is not a certified ranked result.');
  }catch(err){status('Replay export failed: '+err.message);}
+});
+$('export-dummy').addEventListener('click',()=>{
+ try{
+  const library=practice.saveDummyLibrary();
+  const blob=new Blob([JSON.stringify(library)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;link.download='seamless-fight-hunt-dummy-8-slots.json';
+  document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
+  status('Eight English Hunt v3 dummy input slots exported. No online opponent or ranked result stored.');
+ }catch(err){status('Dummy export failed: '+String(err.message).slice(0,110));}
+});
+$('import-dummy').addEventListener('change',async event=>{
+ const file=event.target.files?.[0];if(!file)return;
+ try{
+  if(file.size>MAX_DUMMY_LIBRARY_BYTES)throw RangeError('Dummy library exceeds 512 KiB');
+  const library=JSON.parse(await file.text());
+  practice.loadDummyLibrary(library);
+  $('dummy-mode').value='passive';updateHud();
+  status('Eight dummy slots imported with exact Hunt v3 actions validated. Select a recording to play.');
+ }catch(err){status('Dummy library rejected: '+String(err.message).slice(0,110));}
+ finally{event.target.value='';}
 });
 $('import').addEventListener('change',async event=>{
  const file=event.target.files?.[0];if(!file)return;
