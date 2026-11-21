@@ -100,3 +100,17 @@ func reset_local_practice() -> bool:
 
 func end_local_practice() -> void:
 	$Practice.stop_training()
+
+
+func connect_private_1v1(endpoint: String, origin: String, code: String="", arena: String="reliquary") -> bool:
+	# Native fixed 2.5D renderer can display actual authoritative 1v1 matches.
+	# Never enable rated matchmaking or network rollback in this prototype.
+	if $Practice.active:
+		return false
+	return $Online.open_room(endpoint,origin,code,arena)
+
+func disconnect_private_1v1() -> void:
+	$Online.close_room()
+
+func current_invitation_code() -> String:
+	return $Online.transport.room_code
