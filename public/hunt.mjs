@@ -24,7 +24,7 @@ let layout='keyboard-mouse',boxes=false,last=0,acc=0,lastDraw=0,lastHud=0;
 let drawCount=0,drawWindow=0,lastFrame=huntInput(),lastEventTick=-1;
 let message='Practice is running. No online opponents or rankings.';
 let calloutUntil=0,calloutText='',controllerLock=null,lastPadLabel='';
-let controllerSignature='',nextPadRefresh=0;
+let controllerSignature=null,nextPadRefresh=0;
 const frameSamples=[];
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -291,11 +291,11 @@ $('controller-select').addEventListener('change',()=>{
   'Controller #'+controllerLock+' locked for the local fighter. Disconnect does not hand input to another pad.');
 });
 window.addEventListener('gamepaddisconnected',()=>{
- adapter.reset();lastPadLabel='';controllerSignature='';
+ adapter.reset();lastPadLabel='';controllerSignature=null;
  refreshControllerPicker();if(layout!=='keyboard-mouse')choosePad();
 });
 window.addEventListener('gamepadconnected',()=>{
- controllerSignature='';refreshControllerPicker();if(layout!=='keyboard-mouse')choosePad();
+ controllerSignature=null;refreshControllerPicker();if(layout!=='keyboard-mouse')choosePad();
 });
 $('pause').addEventListener('click',()=>{
  if(practice.stats().paused){practice.resume();acc=0;last=0;status('Offline Hunt v3 practice resumed.');}
