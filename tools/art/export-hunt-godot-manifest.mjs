@@ -7,7 +7,7 @@ import {HUNT_RULESET,HUNT_HZ,HUNT_WEAPONS,huntFrameTable} from '../../public/sid
 
 export const HUNT_GODOT_MANIFEST_SCHEMA='sf-hunt-godot-clips/1';
 export const HUNT_SHARED_SHOTS=Object.freeze([
- 'idle','walk','run','jump','land','crouch',
+ 'idle','walk','run','jump','land','retreat',
  'intro','outro','victory','defeat','taunt','hitFront','hitBack','hitAir',
  'parryRecoil','rallyReclaim','transformHold','breathing'
 ]);
