@@ -58,3 +58,27 @@ jobs:
           path: artifacts/native-windows/
           if-no-files-found: warn
           retention-days: 14
+
+  windows-exe-launch:
+    name: Windows Server 2022 / native exe launch
+    needs: native-windows
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: seamless-fight-godot-forwardplus-native-windows-x64
+          path: extracted/native-windows
+      - name: Execute the real exported PE with its resource pack
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $pwd 'extracted/native-windows/SeamlessFight-NativeRenderer.exe'
+          $pck = Join-Path $pwd 'extracted/native-windows/SeamlessFight-NativeRenderer.pck'
+          if (-not (Test-Path $exe) -or -not (Test-Path $pck)) {
+            throw 'Missing the signed-origin Windows renderer evaluation package'
+          }
+          $p = Start-Process -FilePath $exe -ArgumentList @('--headless','--quit-after','100') -NoNewWindow -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw ('Native Windows executable exited with code ' + $p.ExitCode) }
+          'GODOT_NATIVE_WINDOWS_HEADLESS_LAUNCH=PASSED' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          'No physical GPU, gamepad, native display or WAN benchmarks are established by this test.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
