@@ -1,6 +1,8 @@
 // Deterministic export of combat-authored timings into an art production brief.
 // This generates metadata only. It does NOT generate or approve rigged characters,
 // animation clips, commercial licenses, server state, or hitboxes.
+import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {
   TRICK_RULESET,TRICK_HZ,TRICK_WEAPONS,trickFrameTable
 } from '../../public/side-trick-lab.mjs';
@@ -74,6 +76,6 @@ export function buildTrickAnimationBrief(){
     weapons
   };
 }
-if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   process.stdout.write(JSON.stringify(buildTrickAnimationBrief(),null,2)+'\n');
 }
