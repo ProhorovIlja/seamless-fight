@@ -58,12 +58,24 @@ func _verify() -> void:
 	if dual.is_empty() or dual["actions"]["sf_cut"].filter(func(e): return str(e["kind"])=="pad_button").size()!=1:
 		_fail("Keyboard rebinding erased gamepad attack mapping")
 		return
+	var hardware: Dictionary=c.controller_diagnostics()
+	var devices: Array=hardware["devices"]
+	if int(hardware["connected"])!=devices.size() or not str(hardware["mappingEngine"]).contains("SDL"):
+		_fail("Native control adapter invented device availability")
+		return
+	if str(hardware["deviceLocking"])=="implemented":
+		_fail("Input wrongly advertises unavailable device-to-player locking")
+		return
+	for item in devices:
+		if not item.has("id") or not item.has("name") or not item.has("guid") or not item.has("mapped"):
+			_fail("Detected SDL controller diagnostics incomplete")
+			return
 	var stage := Stage.instantiate()
 	root.add_child(stage)
 	await process_frame
 	var settings: CanvasLayer=stage.get_node("InputSettings")
 	settings.open_settings()
-	if not settings.visible or settings.buttons.size()<20:
+	if not settings.visible or settings.buttons.size()<20 or settings.device_info==null:
 		_fail("Native user-facing KBM/gamepad menu did not open")
 		return
 	settings.close_settings()
