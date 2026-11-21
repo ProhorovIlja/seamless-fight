@@ -25,7 +25,7 @@
   <p class="disclosure">OFFLINE RESEARCH BUILD — This interactive simulator runs the current <code>sf-hunt-lab/3</code> rules, not the online server or finished 3D Windows game. Visual figures are development silhouettes, not reviewed final character assets.</p>
  </div>
  <section class="arena-frame" aria-label="Offline Hunt v3 fight simulation">
-  <div class="top-ribbon"><span>THE RELIQUARY / PRACTICE COURT</span><span id="tick">TICK 000000</span><span id="render-fps">DISPLAY FPS —</span></div>
+  <div class="top-ribbon"><span>THE RELIQUARY / PRACTICE COURT</span><span id="tick">TICK 000000</span><span id="render-fps">DISPLAY FPS —</span><span id="frame-pace">FRAME TIME —</span></div>
   <div class="fight-hud">
    <article class="hunter-hud">
     <div class="hunter-top"><span id="p0-name">FIRST HUNTER</span><span id="p0-weapon">MOURNWEAVE · SEALED</span></div>
@@ -87,11 +87,12 @@
    <p class="eyebrow">INPUT AND DISPLAY</p><h2 id="control-title">Every input matters.</h2>
    <div class="field-grid">
     <label>Input family<select id="input-family"><option value="keyboard-mouse">Keyboard & Mouse</option><option value="gamepad">Gamepad</option><option value="fightstick">Arcade Stick</option><option value="leverless">Leverless</option><option value="fightpad">Fightpad</option></select></label>
+    <label>Active controller<select id="controller-select"><option value="auto">Automatic · first mapped controller</option></select></label>
     <label>Display frame cap<select id="display-cap"><option value="0">Uncapped (display-limited)</option><option value="60">60 FPS</option><option value="80">80 FPS</option><option value="90">90 FPS</option><option value="120">120 FPS</option><option value="144">144 FPS</option><option value="240">240 FPS</option></select></label>
    </div>
    <p id="input-device" class="device-status">Keyboard and mouse active.</p>
    <p id="input-guide" class="controls">A/D move · Space jump · S crouch · Left click light · Right click heavy · H charge · Q transform · E firearm · Shift dodge · F visceral · R heal · B blood rounds · T feint · G follow-up</p>
-   <p class="tiny-note">Input is sampled on every fixed 60 Hz gameplay tick. SOCD neutral resolves simultaneous opposite directions. Pad/arcade support uses the browser's detected standard Gamepad mapping; real USB hardware compatibility requires Windows testing. Browser rendering is interpolated and can run faster than simulation.</p>
+   <p class="tiny-note">Input is sampled on every fixed 60 Hz gameplay tick. SOCD neutral resolves simultaneous opposite directions. Pad/arcade support uses the browser's detected standard Gamepad mapping; real USB hardware compatibility requires Windows testing. Browser rendering is interpolated and can run faster than simulation. Selecting one controller locks the local fighter to that device; a disconnected pad will not switch control to another gamepad.</p>
    <h3 class="subhead">Current simulated input</h3><output id="input-readout">X 0 · Y 0 · Neutral</output>
    <h3 class="subhead">Recorded input history</h3><pre id="inputs" class="input-log">No inputs recorded.</pre>
   </section>
