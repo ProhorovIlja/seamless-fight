@@ -21,3 +21,14 @@ a{color:inherit;text-underline-offset:4px}button,input,select{font:inherit}butto
  font:.73rem/1.75 ui-monospace,Consolas,monospace;color:#e1d0b6;padding:12px;background:#0b1018;
  border:1px solid #78674c78}
 @media(max-width:550px){.binding-editor{padding:9px}}
+
+/* Training challenge telemetry is calculated only from confirmed 60 Hz
+ * source events. It has no ranked currency, leaderboard or demo score. */
+.objective{border:1px solid #7b67488e;background:linear-gradient(120deg,#1b2227,#12171f);padding:14px;margin:10px 0 4px}
+.objective .subhead{margin:0 0 8px;color:#e9d3a9}
+.objective #goal-description{line-height:1.6;color:#e1d8ca;margin:0 0 10px}
+.goal-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+#goal-category{font-size:.68rem;letter-spacing:.14em;color:#c2a473}
+#goal-progress{font:600 .81rem/1.3 ui-monospace,Consolas,monospace;color:#d4b88d}
+#goal-progress.completed{color:#a9d6b7}
+#goal-feedback{font-size:.76rem;color:#c4beb4;margin:5px 0 8px}
