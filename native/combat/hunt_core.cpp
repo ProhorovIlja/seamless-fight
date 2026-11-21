@@ -51,6 +51,20 @@ int main(int argc,char**argv){
    const Spec victim=spec(s.p[1].weapon,UNFURLED_HEAVY);
    s.p[1].age=victim.startup+victim.active;
    s.p[1].spent=previous_hit;
+  }else if(scenario.rfind("--visceral-lock-p0-",0)==0||
+           scenario.rfind("--visceral-lock-p1-",0)==0){
+   // A real opponent repeatedly mashes gun/step while being caught by
+   // an incoming visceral. Input must never remain buffered in the
+   // victim due to first/second slot update order.
+   s.ready=0;
+   const int attacker=scenario.rfind("--visceral-lock-p1-",0)==0?1:0;
+   if(scenario.find("-shot")==std::string::npos&&
+      scenario.find("-step")==std::string::npos)return 7;
+   s.p[attacker].x=500;s.p[attacker].vx=0;s.p[attacker].act=NONE;
+   s.p[1-attacker].x=426;s.p[1-attacker].vx=6;
+   s.p[1-attacker].act=STAGGER;s.p[1-attacker].age=20;
+   s.p[1-attacker].exposed=20;
+   s.p[1-attacker].queue=NOTHING;s.p[1-attacker].queueLife=0;
   }else if(scenario.rfind("--visceral-p0-",0)==0||
            scenario.rfind("--visceral-p1-",0)==0){
    // Parry opening and target range are read from a shared start-of-tick
