@@ -24,6 +24,17 @@ const assets = new Map([
   ['hub/',['hub.html','text/html; charset=utf-8']],
   ['hub.css',['hub.css','text/css; charset=utf-8']],
   ['hub.mjs',['hub.mjs','text/javascript; charset=utf-8']],
+  ['hunt/',['hunt.html','text/html; charset=utf-8']],
+  ['hunt.css',['hunt.css','text/css; charset=utf-8']],
+  ['hunt.mjs',['hunt.mjs','text/javascript; charset=utf-8']],
+  ['hunt-render.mjs',['hunt-render.mjs','text/javascript; charset=utf-8']],
+  ['hunt-browser-input.mjs',['hunt-browser-input.mjs','text/javascript; charset=utf-8']],
+  ['side-hunt-lab.mjs',['side-hunt-lab.mjs','text/javascript; charset=utf-8']],
+  ['side-hunt-replay.mjs',['side-hunt-replay.mjs','text/javascript; charset=utf-8']],
+  ['hunt-practice-suite.mjs',['hunt-practice-suite.mjs','text/javascript; charset=utf-8']],
+  ['hunt-match-analytics.mjs',['hunt-match-analytics.mjs','text/javascript; charset=utf-8']],
+  ['hunt-input-device.mjs',['hunt-input-device.mjs','text/javascript; charset=utf-8']],
+  ['hunt-identity.mjs',['hunt-identity.mjs','text/javascript; charset=utf-8']],
   ['side.css',['side.css','text/css']],
   ['side-view.mjs',['side-view.mjs','text/javascript']],
   ['side-engine.mjs',['side-engine.mjs','text/javascript']],
@@ -95,7 +106,7 @@ const http=createServer((req,res)=>{
   const path=req.url?.split('?')[0];
   if(shuttingDown){res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end('{"ok":false,"reason":"restarting"}');return;}
   if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405,{Allow:'GET, HEAD'}).end();return;}
-  if(path==='/fight'||path==='/fight/side'||path==='/fight/hub'){res.writeHead(308,{Location:path+'/' +(req.url.includes('?')?'?'+req.url.split('?').slice(1).join('?'):'')}).end();return;}
+  if(path==='/fight'||path==='/fight/side'||path==='/fight/hub'||path==='/fight/hunt'){res.writeHead(308,{Location:path+'/' +(req.url.includes('?')?'?'+req.url.split('?').slice(1).join('?'):'')}).end();return;}
   if(path==='/fight/health'){
     const fresh=performance.now()-lastSimulationTime<500;
     res.writeHead(fresh?200:503,{'Content-Type':'application/json','Cache-Control':'no-store'})
