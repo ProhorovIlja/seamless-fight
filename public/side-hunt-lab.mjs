@@ -5,7 +5,7 @@
 // the existing Node authority, the GGPO prototype or ranked matchmaking.
 // Pure and deterministic; no wall clock, rendering, sound or networking.
 export const HUNT_RULESET='sf-hunt-lab/3';
-// Exactly one jump; no airborne dodge, grab or conventional blocking.
+// Exactly one jump; no crouch, airborne dodge, grab or conventional blocking.
 export const HUNT_HZ=60, HUNT_FLOOR=436, HUNT_W=960;
 export const HUNT_WEAPON='mournweave';
 export const HUNT_WEAPONS=Object.freeze(['mournweave','thornwake']);
@@ -110,7 +110,6 @@ export function huntMatch({weapons=[HUNT_WEAPON,HUNT_WEAPON],...unsupported}={})
 }
 export const huntCanAct=p=>!p.act||p.age>=total(huntMoveSpec(p));
 export const huntPhase=p=>{
- if(p.crouch)return 'crouch';
  if(!p.act)return p.y<HUNT_FLOOR?'airborne':'neutral';
  const m=huntMoveSpec(p);
  return p.age<m.startup?'startup':p.age<m.startup+m.active?'active':'recovery';
@@ -130,7 +129,7 @@ const motion=(p,input)=>{
  return input;
 };
 export function huntHurtbox(p){
- return {left:p.x-18,right:p.x+18,top:p.y-(p.crouch?58:111),bottom:p.y-8};
+ return {left:p.x-18,right:p.x+18,top:p.y-111,bottom:p.y-8};
 }
 export function huntAttackbox(p){
  const m=huntMoveSpec(p);
@@ -234,7 +233,8 @@ function drive(p,q,input,events,tick,actor){
  if(huntCanAct(p)){p.act='';p.age=0;p.chain=0;p.hitConfirmed=false;}
  if(!p.act)p.dir=q.x>=p.x?1:-1;
  const jumping=input.y===-1;
- p.crouch=wasGround&&input.y===1&&!p.act;
+ // Reserved versioned checkpoint field, not a playable stance.
+ p.crouch=false;
  if(jumping&&!p.jumpHeld&&p.jumps<1&&!p.act&&p.st>=6){
   p.vy=-12.6;
   p.y-=.01;p.jumps++;p.st-=6;p.regen=15;p.crouch=false;
@@ -262,7 +262,7 @@ function drive(p,q,input,events,tick,actor){
   p.vx*=.74;
   if(m.damage&&p.age===m.startup-1)p.vx+=p.dir*(p.act.includes('Heavy')?4.0:2.4);
  }else{
-  const speed=p.crouch?1.15:wasGround?3.9:3.5;
+  const speed=wasGround?3.9:3.5;
   const accel=wasGround?.33:.14;
   p.vx+=(input.x*speed-p.vx)*accel;
  }
@@ -370,7 +370,11 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  const a=s.p[0],b=s.p[1];
  drive(a,b,commands[0],events,s.tick,0);
  drive(b,a,commands[1],events,s.tick,1);
- if(Math.abs(a.y-b.y)<55&&Math.abs(a.x-b.x)<38){
+ // During paid forward quickstep i-frames, pass the opponent's body to exit
+ // a wall trap. No teleport, wall jump, air dodge or free defensive guard.
+ // Collision resumes immediately when the dodge window closes.
+ const forwardStep=p=>p.act==='step'&&p.age>=1&&p.age<7&&p.vx*p.dir>0;
+ if(!forwardStep(a)&&!forwardStep(b)&&Math.abs(a.y-b.y)<55&&Math.abs(a.x-b.x)<38){
   const dir=a.x<=b.x?-1:1,d=(38-Math.abs(a.x-b.x))/2;
   a.x=clamp(a.x+dir*d,65,HUNT_W-65);b.x=clamp(b.x-dir*d,65,HUNT_W-65);
  }

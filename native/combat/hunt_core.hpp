@@ -174,7 +174,7 @@ inline void drive(Fighter&p,Fighter&q,const Input&i){
  if(can_act(p)){p.act=NONE;p.age=0;p.chain=0;p.hitConfirmed=false;}
  if(p.act==NONE)p.dir=q.x>=p.x?1:-1;
  const bool jump=i.y==-1;
- p.crouch=ground&&i.y==1&&p.act==NONE;
+ p.crouch=false; // Legacy snapshot slot only; no low stance or ducking.
  if(jump&&!p.jumpHeld&&p.jumps<1&&p.act==NONE&&p.st>=6){
   p.vy=-12.6;p.y-=.01;++p.jumps;p.st-=6;p.regen=15;p.crouch=false;
  }
@@ -192,7 +192,7 @@ inline void drive(Fighter&p,Fighter&q,const Input&i){
   p.vx*=.74;
   if(m.damage&&p.age==m.startup-1)p.vx+=p.dir*(heavy(p.act)?4.0:2.4);
  }else{
-  const double speed=p.crouch?1.15:ground?3.9:3.5;
+  const double speed=ground?3.9:3.5;
   const double acceleration=ground?.33:.14;
   p.vx+=(i.x*speed-p.vx)*acceleration;
  }
@@ -211,7 +211,7 @@ inline bool strike(const Fighter&p,const Fighter&q){
  if(q.act==STEP&&q.age>=1&&q.age<7)return false;
  const double left=p.dir>0?p.x+8:p.x-m.reach,right=p.dir>0?p.x+m.reach:p.x-8;
  const double top=p.y+m.top,bottom=p.y+m.bottom;
- const double hleft=q.x-18,hright=q.x+18,htop=q.y-(q.crouch?58:111),hbottom=q.y-8;
+ const double hleft=q.x-18,hright=q.x+18,htop=q.y-111,hbottom=q.y-8;
  return left<hright&&right>hleft&&top<hbottom&&bottom>htop;
 }
 inline bool parryable(const Fighter&p){
@@ -285,7 +285,12 @@ inline void step(State&s,const Input&aa,const Input&bb){
  if(s.ready){--s.ready;return;}
  Fighter&a=s.p[0],&b=s.p[1];
  drive(a,b,aa);drive(b,a,bb);
- if(std::abs(a.y-b.y)<55&&std::abs(a.x-b.x)<38){
+ // Only forward quickstep i-frames allow body crossing; recovery is solid.
+ const auto forward_step=[](const Fighter&p){
+  return p.act==STEP&&p.age>=1&&p.age<7&&p.vx*p.dir>0;
+ };
+ if(!forward_step(a)&&!forward_step(b)&&
+    std::abs(a.y-b.y)<55&&std::abs(a.x-b.x)<38){
   const int direction=a.x<=b.x?-1:1;
   const double d=(38-std::abs(a.x-b.x))/2;
   a.x=clamp(a.x+direction*d,65.0,double(WIDTH-65));
