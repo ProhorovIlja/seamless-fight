@@ -75,9 +75,19 @@ func _verify() -> void:
 	if rig.derived_clip({"act":"","vx":3.0})!="run":
 		_fail("Running pose does not follow canonical movement velocity")
 		return
+	# Avoid deleting a currently playing animation while a skinned skeleton
+	# is still registered with AnimationPlayer. Godot 4.7.2 can crash in its
+	# scene teardown after an otherwise passing headless test.
+	animator.stop()
 	library.remove_animation("hew")
 	if rig.validate_visual_rig(model).is_empty():
 		_fail("Rig missing a mandatory authored heavy attack clip was accepted")
 		return
+	# Dispose test-only fake rig and stage before quitting Godot; it must never
+	# appear as a shipped hunter or remain referenced by native renderers.
+	rig.queue_free()
+	stage.queue_free()
+	await process_frame
+	await process_frame
 	print("NATIVE_AUTHORING_RIG_CONTRACT_PASSED: 24-bone skinned gateway, twelve authored clips, exact server-age animation sampling and no fake fallback hunters")
 	quit(0)
