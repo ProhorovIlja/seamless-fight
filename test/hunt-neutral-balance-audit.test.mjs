@@ -26,6 +26,8 @@ test('all 4 weapon pairings, both walls and three stamina budgets are audited',(
    scenario.side,scenario.initialStamina].join(':'));
   assert(scenario.firstHitTick!==null,'Real committed heavy should be testable');
   assert(scenario.actualHits>=1);
+  assert(scenario.neutralAfterDamageFrames>=0);
+  assert(Number.isInteger(scenario.neutralAfterDamageFrames));
   assert(scenario.defenderHP>=0&&scenario.defenderHP<=100);
   assert(scenario.defenderStamina>=0&&scenario.defenderStamina<=100);
   assert(scenario.attackerStamina>=0&&scenario.attackerStamina<=100);
@@ -39,6 +41,8 @@ test('all 4 weapon pairings, both walls and three stamina budgets are audited',(
  console.log('HUNT_NEUTRAL_PRESSURE_AUDIT='+JSON.stringify({
   rules:result.rules,cornerScenarios:result.cornerMatrix.length,
   zeroStaminaRoundLosses:result.riskCases.length,
+  zeroStaminaNeutralOpportunityFrames:result.cornerMatrix.filter(x=>x.initialStamina===0)
+   .map(x=>x.neutralAfterDamageFrames),
   successfulPaidCrosses:result.cornerMatrix.filter(x=>x.firstCrossTick!==null).length,
   neutralPunishTick:result.footsies.actualPunish.contactTick,
   tooLateTick:result.footsies.tooLate.contactTick,

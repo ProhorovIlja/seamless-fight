@@ -519,3 +519,37 @@ test('late whiff response after enemy recovery is a hit but NOT a recovery punis
  assert.equal(hit.punishedRecovery,false);
  assert.equal(hit.remainingRecovery,0);
 });
+
+
+test('repeated heavy inputs respect actual recovery instead of universal heavy-to-heavy animation cancels',()=>{
+ for(const weapon of ['mournweave','thornwake']){
+  for(const wall of ['left','right']){
+   const state=huntMatch({weapons:['mournweave',weapon]});
+   state.ready=0;
+   state.p[0].x=wall==='left'?65:895;
+   state.p[1].x=wall==='left'?130:830;
+   state.p[0].st=0;
+   const events=[];
+   for(let tick=0;tick<115;tick++)
+    huntStep(state,[cmd('',wall==='left'?1:-1),cmd('heavy')],events);
+   const started=events.filter(e=>e.kind==='action'&&e.actor===1&&e.move==='foldedHeavy');
+   const hit=events.filter(e=>e.kind==='hit'&&e.actor===1&&e.target===0&&e.move==='foldedHeavy');
+   const minFrames=huntFrameTable(weapon).find(m=>m.name==='foldedHeavy').totalFrames;
+   assert(started.length>=2,weapon+' normal repeated heavy still works');
+   assert(started[1].tick-started[0].tick>=minFrames,
+    'next R2 must not start inside the previous R2 recovery');
+   assert(hit.length>=2);
+   assert(hit[1].tick-hit[0].tick>=minFrames,
+    'corner cannot bypass normal heavy recovery via generic hit-confirm');
+  }
+ }
+});
+test('a confirmed heavy may still convert to a light response, not a duplicate heavy',()=>{
+ const state=live(70,{weapons:['mournweave','mournweave']});
+ const ev=[];
+ for(let tick=0;tick<35;tick++){
+  huntStep(state,[cmd(tick===0?'heavy':tick===21?'light':''),huntInput()],ev);
+ }
+ assert(ev.some(e=>e.kind==='action'&&e.actor===0&&e.move==='foldedLight'),
+  'fast light conversion is still permitted after real contact');
+});

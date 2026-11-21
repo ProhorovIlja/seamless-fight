@@ -181,6 +181,11 @@ function starts(p,other,requested,input){
   // Form-cancel permitted on contact or whiff, but costs real stamina.
   chained=true;
  }else if(wasAttacking&&ORDINARY.has(requested)&&
+   // A committed R2/charged R2 cannot universally skip its own recovery
+   // into another R2 on hit. Repeated heavies remain available after
+   // actual recovery; light and authored trick transformations still chain.
+   !((p.act.endsWith('Heavy')||p.act.endsWith('Charged'))&&
+     (requested.endsWith('Heavy')||requested.endsWith('Charged')))&&
    p.hitConfirmed&&p.age>=old.startup+old.active-1&&
    p.age<total(old)-6&&p.chain<4){
   // Regular follow-up only after confirmed contact, not free whiff cancels.

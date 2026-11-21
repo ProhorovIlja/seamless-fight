@@ -142,7 +142,11 @@ inline bool start(Fighter&p,Fighter&q,Action r,const Input&i){
  }else if(transform(r)&&(ordinary(p.act)||p.act==STEP)&&
            p.age>=old.startup+1&&p.age<total(old)-6&&p.chain<4){
   chained=true;
- }else if(was_attack&&ordinary(r)&&p.hitConfirmed&&
+ }else if(was_attack&&ordinary(r)&&
+           // Prevent generic heavy-to-heavy hit-cancels. R2 can be repeated
+           // only after actual recovery; light/trick conversions remain.
+           !((heavy(p.act)||charged(p.act))&&(heavy(r)||charged(r)))&&
+           p.hitConfirmed&&
            p.age>=old.startup+old.active-1&&p.age<total(old)-6&&p.chain<4){
   chained=true;
  }else if(r==STEP&&was_attack&&p.hitConfirmed&&p.focus>=25&&p.chain<4&&

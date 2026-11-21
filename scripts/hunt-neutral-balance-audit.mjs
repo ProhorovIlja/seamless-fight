@@ -36,6 +36,7 @@ function corner(defWeapon,attackWeapon,side,initialStamina){
  state.p[0].st=initialStamina;
  const events=[];
  let firstHitTick=null,firstEscapeTick=null,firstCrossTick=null;
+ let neutralAfterDamageFrames=0;
  let completedTick=0;
  // Defender reacts to an ordinary melee hitstun window whenever it can.
  // Source commands are deliberately an OPTIMISTIC frame-perfect policy.
@@ -51,12 +52,14 @@ function corner(defWeapon,attackWeapon,side,initialStamina){
     firstEscapeTick=e.tick;
    if(firstCrossTick===null&&e.kind==='cornerEscape'&&e.actor===0)firstCrossTick=e.tick;
   }
+  if(firstHitTick!==null&&state.p[0].act===''&&state.p[0].hp>0)
+   neutralAfterDamageFrames++;
   completedTick=state.tick;
   if(state.end||state.over)break;
  }
  return Object.freeze({
   defenderWeapon:defWeapon,attackerWeapon:attackWeapon,side,initialStamina,
-  firstHitTick,firstEscapeTick,firstCrossTick,
+  firstHitTick,firstEscapeTick,firstCrossTick,neutralAfterDamageFrames,
   actualHits:events.filter(e=>e.kind==='hit'&&e.target===0).length,
   defenderHP:state.p[0].hp,defenderStamina:state.p[0].st,
   attackerStamina:state.p[1].st,roundFinished:Boolean(state.end||state.over),
