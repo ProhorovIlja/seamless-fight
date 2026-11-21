@@ -349,7 +349,9 @@ window.addEventListener('gamepadconnected',()=>{
 $('pause').addEventListener('click',()=>{
  if(practice.stats().paused){practice.resume();acc=0;last=0;status('Offline Hunt v3 practice resumed.');}
  else{practice.pause();status('Practice paused at an exact 60Hz simulation tick.');}
- updateButtons();
+ // Immediately flush the authoritative tick to the displayed frame meter:
+ // otherwise a 100ms-throttled HUD can show a stale tick at pause time.
+ updateHud();
 });
 $('step').addEventListener('click',()=>{
  practice.pause();
