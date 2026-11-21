@@ -167,6 +167,28 @@ func load_profile() -> Dictionary:
 	var loaded: Variant = JSON.parse_string(file.get_as_text())
 	return loaded if validate_profile(loaded).is_empty() else default_profile()
 
+## Hardware discovery is delegated to Godot's SDL controller backend.
+## A detected USB controller may expose an arcade lever, D-pad or leverless face
+## buttons under the same joypad API. Never invent an exact model/layout here.
+func connected_devices() -> Array[Dictionary]:
+	var detected: Array[Dictionary] = []
+	for device in Input.get_connected_joypads():
+		detected.append({
+			"id":int(device),
+			"name":Input.get_joy_name(device).left(100),
+			"guid":Input.get_joy_guid(device).left(128),
+			"mapped":Input.is_joy_known(device)
+		})
+	detected.sort_custom(func(a: Dictionary,b: Dictionary)->bool: return int(a["id"])<int(b["id"]))
+	return detected
+
+func controller_diagnostics() -> Dictionary:
+	var devices: Array[Dictionary]=connected_devices()
+	return {"connected":devices.size(),"devices":devices,
+		"mappingEngine":"Godot SDL-compatible joypad mapping",
+		"leverless":"Use D-pad/buttons; opposing directions neutralize in encoded input",
+		"deviceLocking":"not yet implemented; local multiplayer device arbitration required"}
+
 func encoded_input() -> Array[int]:
 	var x := int(Input.is_action_pressed("sf_right"))-int(Input.is_action_pressed("sf_left"))
 	var y := int(Input.is_action_pressed("sf_crouch"))-int(Input.is_action_pressed("sf_jump"))
