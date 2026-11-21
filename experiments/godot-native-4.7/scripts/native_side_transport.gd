@@ -7,6 +7,7 @@ signal match_started(snapshot: Dictionary)
 signal authoritative_state(snapshot: Dictionary, ack: int, events: Array)
 signal server_notice(message: String)
 signal connection_failed(message: String)
+signal room_disconnected()
 
 const RULESET := "seamless-side/1"
 const ENDPOINT := "/fight/side/socket"
@@ -91,7 +92,11 @@ func _process(_delta: float) -> void:
 		elif local_slot >= 0:
 			server_notice.emit("Side-view room disconnected")
 		socket = null
+		opened = false
+		room_code = ""
+		local_slot = -1
 		set_process(false)
+		room_disconnected.emit()
 	elif not opened and Time.get_ticks_msec() - handshake_at >= CONNECTION_TIMEOUT_MS:
 		connection_failed.emit("Connection timed out")
 		close()

@@ -19,6 +19,7 @@ func _ready() -> void:
 	transport.authoritative_state.connect(_on_snapshot)
 	transport.server_notice.connect(_on_notice)
 	transport.connection_failed.connect(_on_notice)
+	transport.room_disconnected.connect(_on_disconnected)
 	set_physics_process(false)
 
 func open_room(endpoint: String, origin: String, invitation: String="", stage: String="reliquary") -> bool:
@@ -38,6 +39,7 @@ func _on_room(code: String, slot: int) -> void:
 
 func _on_match_start(snapshot: Dictionary) -> void:
 	started=true
+	latest_ack=0
 	get_parent().get_node("CombatHud").reset_mode("PRIVATE 1V1",false)
 	get_parent().last_confirmed_tick=-1
 	if not get_parent().apply_authoritative_state(snapshot):
@@ -60,11 +62,23 @@ func _on_snapshot(snapshot: Dictionary, ack: int, _events: Array) -> void:
 func _on_notice(message: String) -> void:
 	connection_state.emit(message)
 
+func _on_disconnected() -> void:
+	if not online:
+		return
+	online=false
+	started=false
+	latest_ack=0
+	set_physics_process(false)
+	get_parent().get_node("CombatHud").clear()
+	connection_state.emit("Private room disconnected. Create or join a new room.")
+
 func _physics_process(_delta: float) -> void:
 	if not online or not started:
 		return
 	var overlay: CanvasLayer=get_parent().get_node("InputSettings")
-	var commands: Array[int]=[0,0,0,0] if overlay.visible else get_parent().get_node("NativeControls").encoded_input()
+	var native_menu: CanvasLayer=get_parent().get_node_or_null("NativeMenu")
+	var paused_by_menu := overlay.visible or (native_menu!=null and native_menu.visible)
+	var commands: Array[int]=[0,0,0,0] if paused_by_menu else get_parent().get_node("NativeControls").encoded_input()
 	transport.send_fighter_input(commands[0],commands[1],["","cut","hew","shot","step","feint"][commands[2]],commands[3]==1)
 
 func close_room() -> void:
