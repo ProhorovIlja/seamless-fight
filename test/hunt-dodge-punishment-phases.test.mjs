@@ -9,6 +9,9 @@ function meleeContactDuringQuickstepAge(age,attackerSlot=0){
  s.p[0].x=attackerSlot===0?430:500;
  s.p[1].x=attackerSlot===0?500:430;
  const attacker=s.p[attackerSlot],defender=s.p[1-attackerSlot];
+ // Establish actual facing for both mirror geometries before committing.
+ attacker.dir=defender.x>=attacker.x?1:-1;
+ defender.dir=-attacker.dir;
  attacker.act='foldedLight';
  attacker.age=HUNT_MOVES.foldedLight.startup;
  defender.act='step';
