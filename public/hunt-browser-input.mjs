@@ -39,3 +39,19 @@ export function huntBrowserGamepadTokens(gamepad,deadzone=HUNT_PAD_DEADZONE){
  }
  return Object.freeze({connected:true,down:Object.freeze(down)});
 }
+
+/**
+ * A manually selected pad is an exclusive session-local input source.
+ * A detached/mis-mapped pad MUST NOT silently hand a fighter to a different
+ * USB arcade controller. null means automatic first detected standard pad.
+ * The browser Gamepad.index is not a stable persistent hardware identifier.
+ */
+export function selectHuntStandardGamepad(pads,requestedIndex=null){
+ if(requestedIndex!==null&&(!Number.isSafeInteger(requestedIndex)||requestedIndex<0))
+  throw RangeError('Controller selection must be an index or automatic');
+ const available=Array.from(pads||[]).filter(p=>p?.connected===true&&
+  p.mapping==='standard'&&Number.isSafeInteger(p.index)&&p.index>=0);
+ if(requestedIndex!==null)return available.find(p=>p.index===requestedIndex)||null;
+ available.sort((a,b)=>a.index-b.index);
+ return available[0]||null;
+}
