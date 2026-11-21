@@ -92,3 +92,33 @@ test('reject malformed or leaked spectator URLs and fabricated ranked tables',()
  assert.deepEqual(ranked.entries,[]);
  assert.match(ranked.reason,/authenticated/);
 });
+
+
+test('side-view host opt-in galleries appear in the same English Court and count real spectators',()=>{
+ const room=fake();
+ const side=[{watchCode:'SideWatch123',watchPath:'/fight/side/?watch=SideWatch123',
+  arena:'cistern',format:'casual-1v1',status:'in-progress',fighters:2,
+  spectators:3,spectatorCapacity:6,protocol:'seamless-side/1'}];
+ const snapshot=projectFightActivity({
+  rooms:new Map([['a',room]]),galleries:new Map([[code,room]]),
+  queued:0,mainConnections:3,sideStats:{clients:5,rooms:1,duels:1,fighters:2,spectators:3},
+  sidePublicGalleries:side
+ });
+ assert.equal(snapshot.connectedClients,8);
+ assert.equal(snapshot.duels,2);
+ assert.equal(snapshot.spectators,3);
+ assert.equal(snapshot.publicGalleryCount,2);
+ assert.equal(snapshot.publicGalleries.length,2);
+ assert(snapshot.publicGalleries.some(g=>g.watchPath==='/fight/side/?watch=SideWatch123'));
+ assert(snapshot.publicGalleries.every(g=>validatePublicGallery(g)));
+ assert(!JSON.stringify(snapshot).includes('PRIVATE12345'));
+ assert(validateCourtStatus(snapshot));
+ const malicious={...side[0],watchPath:'https://evil.invalid/watch',arena:'unverified'};
+ const tampered=projectFightActivity({
+  rooms:new Map(),galleries:new Map(),queued:0,mainConnections:0,
+  sideStats:{clients:0},sidePublicGalleries:[malicious]
+ });
+ assert.deepEqual(tampered.publicGalleries,[]);
+ assert.throws(()=>projectFightActivity({rooms:new Map(),galleries:new Map(),
+  sidePublicGalleries:Array(65).fill(side[0])}),/Bounded/);
+});
