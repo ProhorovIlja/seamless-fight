@@ -9,6 +9,15 @@ on:
       - 'experiments/godot-native-4.7/tests/verify_native_combat.gd'
       - 'scripts/native-godot-vectors.mjs'
       - '.github/workflows/native-combat-godot.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'native/combat/**'
+      - 'native/godot/**'
+      - 'experiments/godot-native-4.7/extension/**'
+      - 'experiments/godot-native-4.7/tests/verify_native_combat.gd'
+      - 'scripts/native-godot-vectors.mjs'
+      - '.github/workflows/native-combat-godot.yml'
   workflow_dispatch:
 permissions:
   contents: read
