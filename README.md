@@ -1,6 +1,17 @@
 # Seamless Fight
 
-Seamless Fight is a playable, in-development standalone original gothic 2D browser dueling game for Seamless Hunt. It does not use Bloodborne assets, executable files, or accounts.
+Seamless Fight is an original Gothic 2.5D side-view fighting-game project. Its **current playable prototype** runs in a browser; the **new long-term target** is a native Windows PC game with server-hosted online services. No private Bloodborne/BBSC game assets or accounts are redistributed.
+
+## Native Windows-first development direction (21 November 2026)
+
+**Status: renderer and combat/network foundations only; not a complete native Windows fighting game or finished AAA-quality art.** The draft branch now contains a real Godot 4.7.2 Forward+ Windows x64 rendering experiment, cross-compiled as an EXE + PCK, then successfully launched on a Windows runner. It has the original high-resolution painted arena, fixed side-view camera, native graphics options and an experimental WebSocket bridge compatible with the existing UNRATED private Node 1v1 server. Real high-end character meshes, production animation/voice/music, finished menus, ranked, multiplayer rollback and Windows GPU benchmarks remain missing.
+
+A separate portable native C++17 combat core is tested against the canonical 60 Hz JavaScript `seamless-side/1` rules: **6,500 ticks, 266,500 state fields, zero difference** with both GCC/Linux and MSVC/Windows on tested traces including hits, blocks, parries and rounds. This is a rollback *prerequisite*, not rollback implementation.
+
+For the eventual premium native production engine, **Unreal Engine 5.8 is the leading evaluation candidate** for advanced authoring and currently documented NVIDIA/AMD/Intel plugin ecosystem. Godot remains a fully free native alternative and the verified prototype. **DLSS 5, DLSS 4.5, FSR 4.1.2, XeSS 3, Reflex, frame generation, Anti-Lag 2 and Xe Low Latency are not integrated into this game.** Do not mistake future SDK targets for actual graphics menu support. See [native Windows architecture, SDK support and network strategy](docs/NATIVE-WINDOWS-ARCHITECTURE.md), [Godot native renderer experiment](experiments/godot-native-4.7/README.md), and [portable C++ combat parity](native/combat/README.md).
+
+The current browser prototype remains available for source parity, practice and regression tests; its engine and public website have **not** been replaced or deployed.
+
 
 ## Genuine side-view combat with 2.5D scenery (in development)
 
