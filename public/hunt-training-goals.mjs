@@ -21,10 +21,6 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'timing-read':{category:'Reads & Footsies',goal:'Recognize a heavy windup or a genuine feint; punish its recovery.',trigger:'feint',success:'feintPunish'},
  'visceral-followup':{category:'Offense',goal:'Convert a successful firearm counter into a real timed visceral strike.',trigger:'gunParry',success:'visceral'}
 });
-for(const [id,goal] of Object.entries(HUNT_TRAINING_GOALS)){
- HUNT_TRAINING_GOALS[id]=Object.freeze(goal);
-}
-const inWindow=(e,prior,min,max)=>prior&&e.tick-prior.tick>=min&&e.tick-prior.tick<=max;
 const is=(e,kind,actor,move)=>e.kind===kind&&e.actor===actor&&
  (move===undefined||e.move===move);
 const earlier=(events,index,predicate,min,max)=>{
