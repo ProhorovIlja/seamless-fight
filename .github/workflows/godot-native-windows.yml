@@ -6,6 +6,9 @@ on:
       - 'experiments/godot-native-4.7/**'
       - '.github/workflows/godot-native-windows.yml'
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
