@@ -12,7 +12,7 @@ test('isolated /fight handler is strictly namespaced; no Bloodborne Caddy or bac
  assert.equal(COHOST_PORT,18080);
  assert.deepEqual(inspectCohostContract({caddy,unit}),[]);
  assert.match(caddy,/handle @seamless_fight/);
- assert.doesNotMatch(caddy,/handle_path/); // Comments explicitly warn about handle_path; test executable separately.
+ assert.doesNotMatch(caddy.split('\n').filter(line=>!line.trim().startsWith('#')).join('\n'),/handle_path/);
 });
 test('cohost validator rejects prefix stripping and over-broad routing',()=>{
  for(const broken of [
