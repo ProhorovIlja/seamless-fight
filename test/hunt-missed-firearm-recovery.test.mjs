@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
- huntMatch,huntStep,huntInput,HUNT_MOVES,HUNT_WEAPONS
+ huntMatch,huntStep,huntInput,huntMoveSpec,HUNT_WEAPONS
 } from '../public/side-hunt-lab.mjs';
 import {
  huntPracticeSession,HUNT_PRACTICE_DRILLS
@@ -14,8 +14,8 @@ function exchange({gunFacingRight,weapon='mournweave'}={}){
  const hunter=s.p[0],gunner=s.p[1];
  hunter.x=420;hunter.vx=0;hunter.dir=1;
  gunner.x=500;gunner.vx=0;gunner.dir=gunFacingRight?1:-1;
- hunter.act='foldedLight';hunter.age=HUNT_MOVES.foldedLight.startup-1;
- gunner.act='shot';gunner.age=HUNT_MOVES.shot.startup;
+ hunter.act='foldedLight';hunter.age=huntMoveSpec(hunter).startup-1;
+ gunner.act='shot';gunner.age=huntMoveSpec(gunner).startup;
  // Ammo has already been spent to begin the committed firearm action.
  gunner.ammo=6;
  const events=[];
