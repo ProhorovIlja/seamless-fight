@@ -104,7 +104,8 @@ const http=createServer((req,res)=>{
   }
   if(path==='/fight/status.json'||path==='/fight/lobbies.json'||path==='/fight/leaderboard.json'){
     const activity=projectFightActivity({rooms,galleries,queued:casual.size,
-      mainConnections:ws.clients.size,sideStats:sideHub.stats()});
+      mainConnections:ws.clients.size,sideStats:sideHub.stats(),
+      sidePublicGalleries:sideHub.publicGalleries()});
     const payload=path==='/fight/status.json'?activity:
       path==='/fight/lobbies.json'?{
        schema:activity.schema,gameMode:activity.gameMode,language:'en',
