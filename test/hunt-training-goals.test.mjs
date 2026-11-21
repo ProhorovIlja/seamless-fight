@@ -217,3 +217,34 @@ test('real firearm counter converts to timed visceral strike before opening expi
  assert.equal(s.goal().successes,1);
  assert.equal(s.goal().lastSuccessTick,103);
 });
+
+test('actual source trigger-to-success intervals are measured in frames and do not grant fake successes',()=>{
+ const failed=run(huntPracticeSession({drill:'parry-heavy'}),{},85).goal();
+ assert.equal(failed.lastIntervalFrames,null);
+ assert.equal(failed.bestIntervalFrames,null);
+ assert.equal(failed.averageIntervalFrames,null);
+ assert.equal(failed.intervalSamples,0);
+ const parry=run(huntPracticeSession({drill:'parry-heavy'}),{62:cmd('shot')},85).goal();
+ assert.equal(parry.lastIntervalFrames,parry.lastSuccessTick-56);
+ assert.equal(parry.bestIntervalFrames,parry.lastIntervalFrames);
+ assert.equal(parry.averageIntervalFrames,parry.lastIntervalFrames);
+ assert.equal(parry.intervalSamples,1);
+ const anti=play('anti-air',tick=>cmd(tick===52?'shot':''),95).goal();
+ assert.equal(anti.lastIntervalFrames,5);
+ const visceral=play('visceral-followup',tick=>cmd(tick===59?'shot':tick===97?'visceral':''),125).goal();
+ assert.equal(visceral.lastIntervalFrames,35);
+ const combo=play('hit-confirm',tick=>cmd([1,11].includes(tick)?'light':''),70).goal();
+ assert.equal(combo.lastIntervalFrames,10,'start from first landed strike, not second hit');
+});
+test('rewind erases observed timing and verified import rebuilds proof',()=>{
+ const p=run(huntPracticeSession({drill:'parry-heavy'}),{62:cmd('shot')},85);
+ const frames=p.goal().lastIntervalFrames;
+ assert(frames>0);
+ const capture=p.save();
+ assert(p.rewind(35));
+ assert.equal(p.goal().lastIntervalFrames,null);
+ assert.equal(p.goal().intervalSamples,0);
+ assert(p.load(capture));
+ assert.equal(p.goal().lastIntervalFrames,frames);
+ assert.equal(p.goal().intervalSamples,1);
+});

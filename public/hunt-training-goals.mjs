@@ -42,13 +42,21 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
   throw TypeError('Unknown English Hunt v3 1v1 training goal');
  if(!Array.isArray(evidence))throw TypeError('Source event evidence array required');
  const definition=HUNT_TRAINING_GOALS[drill];
- let attempts=0,successes=0,lastSuccessTick=null;
+ let attempts=0,successes=0,lastSuccessTick=null,lastAttemptTick=null;
+ let lastIntervalFrames=null,bestIntervalFrames=null,intervalSum=0,intervalSamples=0;
  // Every evidence entry comes from the local 60Hz source state projection.
  // Stable order matters for reaction/convert sequences.
  const entries=evidence.filter(e=>e&&Number.isSafeInteger(e.tick)&&
   e.tick>=0&&typeof e.kind==='string');
- const success=e=>{
+ const success=(e,sourceTick=lastAttemptTick)=>{
   successes++;lastSuccessTick=e.tick;
+  if(Number.isSafeInteger(sourceTick)&&sourceTick>=0&&sourceTick<=e.tick){
+   const elapsed=e.tick-sourceTick;
+   lastIntervalFrames=elapsed;
+   bestIntervalFrames=bestIntervalFrames===null?elapsed:Math.min(bestIntervalFrames,elapsed);
+   intervalSum+=elapsed;
+   intervalSamples++;
+  }
  };
  for(let i=0;i<entries.length;i++){
   const e=entries[i];
@@ -65,7 +73,10 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    drill==='rally-reclaim'&&is(e,'hit',1)||
    drill==='blood-economy'&&is(e,'bloodBullets',0)||
    drill==='timing-read'&&is(e,'action',1,'foldedHeavy')||
-   drill==='visceral-followup'&&is(e,'gunParry',0))attempts++;
+   drill==='visceral-followup'&&is(e,'gunParry',0)){
+   attempts++;
+   lastAttemptTick=e.tick;
+  }
   switch(drill){
    case 'parry-heavy':
    case 'parry-heal':
@@ -93,10 +104,13 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
     if(is(e,'hit',0)&&earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),0,25))
      success(e);
     break;
-   case 'hit-confirm':
-    if(is(e,'hit',0)&&e.combo>=2&&
-      earlier(entries,i,p=>is(p,'hit',0),1,48))success(e);
+   case 'hit-confirm':{
+    if(is(e,'hit',0)&&e.combo>=2){
+     const prior=earlier(entries,i,p=>is(p,'hit',0),1,48);
+     if(prior)success(e,prior.tick);
+    }
     break;
+   }
    case 'transform-pressure':
     if(is(e,'hit',0)&&earlier(entries,i,p=>is(p,'transform',0),0,50))success(e);
     break;
@@ -124,6 +138,11 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
   schema:HUNT_TRAINING_SCORE_SCHEMA,language:'en',mode:'unrated-offline-1v1',
   drill,category:definition.category,goal:definition.goal,
   attempts,successes,lastSuccessTick,completed:successes>0,
+  // Genuine scenario trigger -> confirmed source combat outcome.
+  // NOT physiological reaction time, input-to-photon or network latency.
+  lastIntervalFrames,bestIntervalFrames,intervalSamples,
+  averageIntervalFrames:intervalSamples?
+   Number((intervalSum/intervalSamples).toFixed(2)):null,
   // An attempt is a true opponent action, never a fictitious timed event.
   status:drill==='free'?'Explore the combat system.':
    successes>0?'Objective met with confirmed combat events.':

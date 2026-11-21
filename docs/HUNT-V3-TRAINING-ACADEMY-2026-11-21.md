@@ -91,3 +91,7 @@ A new attempt is adjudicated by the original 60Hz Hunt v3 action rules, so forme
 Availability is restricted to an observed training opportunity in the last 720 retained source ticks. The feature is offline, unrated, English-only and 1v1; it does not add block, grabs, air-steps, infinite ammunition, remote rollback, or authenticated competitive evidence.
 
 Regression checks: `test/hunt-review-takeover.test.mjs` validates exact opponent input parity and changed outcomes; `test/hunt-browser-practice.test.mjs` checks the served English UI.
+
+## Source-confirmed scenario completion intervals (2026-11-21)
+
+The English offline Practice objective now reports last/best/average source-completion intervals, from a genuine opponent startup, jump, hit, whiff, transformation or other pre-existing scenario trigger until a confirmed goal outcome. The hit-confirm drill measures from the FIRST successful strike rather than incorrectly returning zero when the second strike itself triggers its attempt. Failed or unobserved opportunities receive no timing, never fictitious points. Replay rewind discards prior timing proof; verified import restores it by resimulating actual events. This metric is measured in 60Hz simulated frames, and is NOT human reaction time, input-to-photon, network RTT or ranked evidence. No weapon move table or combat rule changes.

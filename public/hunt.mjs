@@ -210,6 +210,11 @@ function updateHud(){
  $('goal-category').textContent=goal.category.toUpperCase();
  $('goal-progress').textContent=goal.successes+' confirmed · '+goal.attempts+' observed';
  $('goal-feedback').textContent=goal.status;
+ $('goal-timing').textContent=goal.lastIntervalFrames===null?
+  'No confirmed source interval yet.':
+  'Scenario trigger to outcome: '+goal.lastIntervalFrames+'F ('+
+  Math.round(goal.lastIntervalFrames*1000/HUNT_HZ)+' ms simulated) · best '+
+  goal.bestIntervalFrames+'F · '+goal.intervalSamples+' measured';
  $('goal-progress').classList.toggle('completed',goal.completed);
  $('input-readout').textContent=
   'X '+lastFrame.x+' · Y '+lastFrame.y+' · '+huntActionName(lastFrame.act);
