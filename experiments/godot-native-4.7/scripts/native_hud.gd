@@ -228,7 +228,7 @@ func apply_hunt_snapshot(snapshot: Dictionary,frame_meter: Dictionary) -> bool:
 		if bool(frame_meter.get("groundedHitstunEscapeReady",false)):
 			windows.append("HITSTUN QUICKSTEP READY")
 		if not windows.is_empty():
-			move_label.text+="\n"+"  |  ".join(windows)
+			move_label.text+="\n"+"  |  ".join(PackedStringArray(windows))
 	last_tick=tick
 	return true
 
