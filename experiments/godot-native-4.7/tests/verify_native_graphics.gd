@@ -17,6 +17,28 @@ func _verify() -> void:
 	if stage.get_node_or_null("OriginalPaintedReliquary")==null:
 		_fail("Missing original painted Gothic stage")
 		return
+	if not stage.set_visual_stage("moonlit"):
+		_fail("Could not activate actual site-art skyline stage")
+		return
+	var site: Node3D = stage.get_node("SiteBackdrop")
+	if not site.visible or not site.has_node("FarCity") or not site.has_node("Moon") or not site.has_node("Mist"):
+		_fail("Site-backed 2.5D arena lacks required original artwork")
+		return
+	if stage.get_node("OriginalPaintedReliquary").visible:
+		_fail("Two stage artworks rendered on top of each other")
+		return
+	var origin: Vector3 = stage.world_position(255.0,436.0)
+	if stage.set_visual_stage("unknown") or stage.world_position(255.0,436.0) != origin:
+		_fail("Stage art changed authoritative combat projection or accepted invalid theme")
+		return
+	site.set_reduce_motion(true)
+	if site.is_processing():
+		_fail("Reduced-motion preference must stop scenery drift")
+		return
+	if not stage.set_visual_stage("reliquary") or not stage.get_node("OriginalPaintedReliquary").visible:
+		_fail("Original stage restoration failed")
+		return
+
 	var options := Graphics.new()
 	root.add_child(options)
 	var profile := options.default_profile()
