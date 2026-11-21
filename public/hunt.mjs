@@ -29,7 +29,7 @@ const KEYBOARD_TOKENS=[
  ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(x=>'key:Key'+x),
  ...'0123456789'.split('').map(x=>'key:Digit'+x),
  ...['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','ShiftLeft',
- 'ShiftRight','ControlLeft','ControlRight','AltLeft','AltRight',
+ 'ShiftRight',
  'Backquote','Minus','Equal','BracketLeft','BracketRight','Semicolon',
  'Quote','Comma','Period','Slash','Backslash'].map(x=>'key:'+x),
  ...Array.from({length:5},(_,i)=>'mouse:'+i)
@@ -63,7 +63,7 @@ function refreshBindingEditor(){
  }
  token.value=profiles[layout].binds[action][0];
  $('active-bindings').textContent=HUNT_BINDABLE.map(key=>
-  ACTION_LABELS[key]+': '+profiles[layout].binds[key].join(' / ')).join('\\n');
+  ACTION_LABELS[key]+': '+profiles[layout].binds[key].join(' / ')).join('\n');
  $('input-guide').textContent=HUNT_BINDABLE.map(key=>
   ACTION_LABELS[key]+': '+profiles[layout].binds[key].join(' / ')).join(' · ');
 }
