@@ -124,7 +124,7 @@ const REQUIREMENTS=Object.freeze({
  gameplay:'Authoritative 60Hz combat events; clips never decide collision, damage, i-frames or rollback',
  verify:'Source ownership/license, editable rig/clip, real Windows GPU side-view capture and review'
 });
-const slug=v=>v.replace(/[^a-z0-9-]/g,'-');
+const slug=v=>v.replace(/([a-z])([A-Z])/g,'$1-$2').toLowerCase().replace(/[^a-z0-9-]/g,'-');
 function add(list,seen,{id,category,weapon=null,form=null,timing=null,layer='full-body',rank='tier-2',tag='original'}){
  if(!/^[a-z0-9/-]+$/.test(id)||seen.has(id))throw Error('Invalid or duplicate animation request '+id);
  seen.add(id);
@@ -141,9 +141,9 @@ export function buildHuntProductionCatalog(){
  }
  for(const weapon of HUNT_WEAPONS){
   for(const move of huntFrameTable(weapon)){
-   add(shots,seen,{id:weapon+'/combat/'+move.name,category:'combat-authoritative',
+   add(shots,seen,{id:weapon+'/combat/'+slug(move.name),category:'combat-authoritative',
     weapon,rank:'tier-0',tag:'direct-frame-synchronized',
-    timing:{fps:HUNT_HZ,startup:move.startup,active:move.active,
+    timing:{sourceAction:move.name,fps:HUNT_HZ,startup:move.startup,active:move.active,
       recovery:move.recovery,total:move.totalFrames,
       activeStart:move.damage?move.startup:null,
       activeEnd:move.damage?move.startup+move.active:null}});
