@@ -8,9 +8,16 @@ const ALLOWED_BOTS := ["passive","easy","normal","hard"]
 const HZ := 60
 const MAX_HISTORY_FRAMES := 720
 const DUMMY_TAPE_LIMIT := 600
+const INPUT_TRACE_LIMIT := 120
+# Exact legacy seamless-side/1 C++ frame-table values. Hunt v3 is not ported.
+const LEGACY_FRAME_TABLE := {
+ "cut":[9,5,15],"hew":[21,7,24],"shot":[9,1,25],
+ "step":[0,9,12],"feint":[0,0,14],"stun":[0,0,22],"guardBreak":[0,0,28]
+}
 var dummy_tape: Array = []
 var dummy_recording := false
 var dummy_replaying := false
+var input_trace: Array = []
 var dummy_replay_start_tick := 0
 var snapshots: Array[PackedByteArray] = []
 var history_start_tick := 0
@@ -34,6 +41,7 @@ func start_training(profile: String = "normal") -> bool:
 	active=true
 	paused=false
 	dummy_tape.clear()
+	input_trace.clear()
 	dummy_recording=false
 	dummy_replaying=false
 	last_state=_combat.get_state()
@@ -56,6 +64,7 @@ func stop_training() -> void:
 	active=false
 	paused=false
 	dummy_tape.clear()
+	input_trace.clear()
 	dummy_recording=false
 	dummy_replaying=false
 	snapshots.clear()
@@ -70,6 +79,7 @@ func reset_rounds() -> bool:
 	if not active or _combat==null:
 		return false
 	_combat.reset()
+	input_trace.clear()
 	dummy_recording=false
 	dummy_replaying=false
 	last_state=_combat.get_state()
@@ -176,6 +186,7 @@ func rewind_frames(frames: int) -> bool:
 			_combat.load_checkpoint(original)
 		return false
 	snapshots.resize(index+1)
+	input_trace=input_trace.filter(func(entry: Dictionary)->bool: return int(entry["tick"])<=destination)
 	last_state=_combat.get_state()
 	if int(last_state["tick"])!=destination:
 		_combat.load_checkpoint(original)
@@ -213,6 +224,9 @@ func _advance_state(command: Array) -> bool:
 		push_error("Native combat state exceeded bounded canonical checkpoint format")
 		return false
 	last_state=_combat.get_state()
+	input_trace.append({"tick":int(last_state["tick"]),"player":command.duplicate(),"dummy":foe.duplicate()})
+	if input_trace.size()>INPUT_TRACE_LIMIT:
+		input_trace.pop_front()
 	if dummy_recording and not last_state.get("over",false) and int(last_state.get("ready",0))==0 and int(last_state.get("end",0))==0:
 		if dummy_tape.size()<DUMMY_TAPE_LIMIT:
 			dummy_tape.append(command.duplicate())
@@ -228,6 +242,30 @@ func _advance_state(command: Array) -> bool:
 	if last_state.get("over",false):
 		set_physics_process(false)
 	return true
+
+func get_input_trace(limit: int=30) -> Array:
+	if not active or limit<1 or limit>INPUT_TRACE_LIMIT:
+		return []
+	return input_trace.slice(maxi(0,input_trace.size()-limit)).duplicate(true)
+
+func get_frame_meter(slot: int=0) -> Dictionary:
+	if not active or slot<0 or slot>1 or last_state.is_empty():
+		return {}
+	var fighter: Dictionary=last_state["p"][slot]
+	var action: String=str(fighter.get("act",""))
+	var timings: Array=LEGACY_FRAME_TABLE.get(action,[0,0,0])
+	var age: int=int(fighter.get("age",0))
+	var startup: int=int(timings[0])
+	var active_frames: int=int(timings[1])
+	var recovery: int=int(timings[2])
+	var total: int=startup+active_frames+recovery
+	var phase: String="idle"
+	if action!="":
+		phase="startup" if age<startup else "active" if age<startup+active_frames else "recovery"
+	return {"rules":"seamless-side/1","slot":slot,"action":action,
+		"phase":phase,"age":age,"startup":startup,"active":active_frames,
+		"recovery":recovery,"remaining":maxi(0,total-age),
+		"source":"legacy-C++-frame-table-not-Hunt-v3"}
 
 func _physics_process(_delta: float) -> void:
 	if not active or _combat == null:
