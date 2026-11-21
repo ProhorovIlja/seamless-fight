@@ -43,7 +43,9 @@ export function huntFrameMeter(state,slot=0){
   remaining:0,activeWindow:[0,0]};
  return Object.freeze({slot,weapon:p.weapon,form:p.form,move:p.action,
   frames,health:p.health,stamina:p.stamina,ammo:p.ammo,bloodAmmo:p.bloodAmmo,
-  vials:p.vials,focus:p.focus,visceralWindow:p.visceralWindow});
+  vials:p.vials,focus:p.focus,visceralWindow:p.visceralWindow,
+  firearmCounterWindowOpen:p.firearmCounterWindowOpen,
+  groundedHitstunEscapeReady:p.groundedHitstunEscapeReady});
 }
 export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
  const scenario=HUNT_PRACTICE_DRILLS.find(x=>x.id===drill);
