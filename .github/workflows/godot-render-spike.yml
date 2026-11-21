@@ -40,8 +40,10 @@ jobs:
           TARGET="${HOME}/.local/share/godot/export_templates/4.7.2.stable"
           mkdir -p "$TARGET"
           unzip -p "${RUNNER_TEMP}/godot-templates.tpz" templates/web_nothreads_release.zip > "$TARGET/web_nothreads_release.zip"
+          unzip -p "${RUNNER_TEMP}/godot-templates.tpz" templates/windows_release_x86_64.exe > "$TARGET/windows_release_x86_64.exe"
           unzip -p "${RUNNER_TEMP}/godot-templates.tpz" templates/version.txt > "$TARGET/version.txt"
           test -s "$TARGET/web_nothreads_release.zip"
+          test -s "$TARGET/windows_release_x86_64.exe"
           echo "Validated Godot $(cat "$TARGET/version.txt") WebGL2 export template"
       - name: Build actual browser version of stage experiment
         shell: bash
@@ -57,6 +59,23 @@ jobs:
           echo "GODOT_WEB_EXPORT_COMPILED=YES" >> "${GITHUB_STEP_SUMMARY}"
           echo "Renderer: Compatibility / WebGL2, threads disabled, original painted asset only" >> "${GITHUB_STEP_SUMMARY}"
           echo "This export is a rendering experiment, not a finished playable PvP client" >> "${GITHUB_STEP_SUMMARY}"
+      - name: Build a native Windows x64 executable for renderer evaluation
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          mkdir -p artifacts/godot-windows
+          "${GODOT}" --headless --path experiments/godot-4.7 --export-release "Windows Desktop" \
+            "$PWD/artifacts/godot-windows/SeamlessFight-RendererSpike.exe"
+          test -s artifacts/godot-windows/SeamlessFight-RendererSpike.exe
+          test -s artifacts/godot-windows/SeamlessFight-RendererSpike.pck
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("artifacts/godot-windows/SeamlessFight-RendererSpike.exe")
+          assert p.read_bytes()[:2]==b'MZ', "Expected actual native Windows PE executable"
+          print("GODOT_WINDOWS_NATIVE_PE_OK",p.stat().st_size)
+          PY
+          echo "GODOT_WINDOWS_NATIVE_RENDER_SPIKE=EXPORTED_NOT_PLAYTESTED" >> "${GITHUB_STEP_SUMMARY}"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -73,5 +92,12 @@ jobs:
           path: |
             artifacts/godot-web/
             artifacts/godot-472-painted-stage-runtime.png
+          if-no-files-found: warn
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: godot-472-native-windows-x64-render-spike
+          path: artifacts/godot-windows/
           if-no-files-found: warn
           retention-days: 7
