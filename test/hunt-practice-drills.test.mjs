@@ -39,7 +39,8 @@ test('18 English-only 1v1 scenarios all use original source actions, never guard
    if(scenario.id==='anti-air')
     assert.equal(session.slotData(0)[scenario.startAt].y,-1);
    if(scenario.id==='dodge-punish')
-    assert.equal(session.slotData(0)[scenario.startAt].x,-1);
+    assert.equal(session.slotData(0)[scenario.startAt].x,1,
+     'recorded opponent commands are mirrored; +1 produces actual world-left');
   }else{
    assert.equal(state.p[1].x-state.p[0].x,450);
    assert.equal(session.stats().mode,'passive');

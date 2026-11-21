@@ -53,7 +53,9 @@ function makeDrillTape(scenario,variation=0){
  const tape=Array.from({length:150},neutral);
  tape[scenario.startAt]=canonicalHuntInput({act:scenario.action});
  if(scenario.id==='dodge-punish')
-  tape[scenario.startAt]=canonicalHuntInput({act:'step',x:-1});
+  // Dummy tape is mirrored into player two's local directional controls.
+  // Recording +1 makes the actual opponent quickstep TOWARD player one.
+  tape[scenario.startAt]=canonicalHuntInput({act:'step',x:1});
  if(scenario.id==='anti-air'){
   // Mirror of the original hunter's inputs: the dummy jumps toward the
   // player once. Jump is a direction, never an extra invented action.
