@@ -41,6 +41,28 @@ func _verify() -> void:
 	if practice.step_manual([0,0,0,1],[0,0,0,0]) or practice.last_state["tick"]!=0:
 		fail("Conventional block accepted by Hunt practice")
 		return
+	# The real training HUD must teach frame evidence rather than fictitious block data.
+	for tick in range(90):
+		if not practice.step_manual([0,0,0,0],[0,0,0,0]):
+			fail("Cannot reach actionable first frame for native window HUD test")
+			return
+	if not practice.step_manual([1,0,6,0],[0,0,0,0]) or \
+	 not hud.move_label.text.contains("DODGE I-FRAMES"):
+		fail("Training-only HUD did not show actual quickstep i-frames")
+		return
+	for tick in range(6):practice.step_manual([0,0,0,0],[0,0,0,0])
+	if not hud.move_label.text.contains("DODGE VULNERABLE TAIL") or \
+	 hud.move_label.text.contains("DODGE RECOVERY"):
+		fail("Training HUD mislabeled vulnerable active tail as recovery")
+		return
+	for tick in range(2):practice.step_manual([0,0,0,0],[0,0,0,0])
+	if not hud.move_label.text.contains("DODGE RECOVERY: 12F") or \
+	 hud.move_label.text.contains("DODGE I-FRAMES"):
+		fail("Training HUD did not display true dodge recovery")
+		return
+	if not practice.reset_training() or practice.last_state["tick"]!=0:
+		fail("Native window drill did not reset combat before baseline practice")
+		return
 	var commands: Array=[]
 	for tick in range(240):
 		var act:=0
