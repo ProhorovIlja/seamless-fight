@@ -39,7 +39,7 @@ func _load_contract() -> bool:
 	if not shared is Array or shared.size()<15 or not weapons is Dictionary or weapons.size()!=2:
 		return false
 	for weapon in ["mournweave","thornwake"]:
-		if not weapons.get(weapon) is Array or weapons[weapon].size()!=25:
+		if not weapons.get(weapon) is Array or weapons[weapon].size()!=28:
 			return false
 		var names: Dictionary={}
 		for move in weapons[weapon]:
