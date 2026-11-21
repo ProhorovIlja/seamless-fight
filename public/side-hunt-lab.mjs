@@ -344,6 +344,13 @@ function resolveHit(s,actor,target,moveName,events){
  // This is NOT an invincible dodge reversal. A quickstep is punishable
  // only after its real six-frame invulnerable interval has expired, and
  // only until the ordinary action recovery ends.
+ // A clean melee interruption of the opponent's committed startup,
+ // prior to any active hitbox. Unlike a gun parry this grants no visceral
+ // opening or extra hidden damage; it is readable counter-hit evidence.
+ const hitDuringStartup=ATTACKS.has(b.act)&&
+  b.age>=1&&b.age<huntMoveSpec(b).startup;
+ const interruptedMove=hitDuringStartup?b.act:'';
+ const remainingStartup=hitDuringStartup?huntMoveSpec(b).startup-b.age:0;
  const dodgeSpec=huntMoveSpec(b);
  const punishedDodgeRecovery=b.act==='step'&&b.age>=7&&b.age<total(dodgeSpec);
  const dodgeRecoveryFrames=punishedDodgeRecovery?total(dodgeSpec)-b.age:0;
@@ -374,7 +381,8 @@ function resolveHit(s,actor,target,moveName,events){
  }
  events?.push({tick:s.tick,kind:'hit',actor,target,move:moveName,damage:prior-b.hp,combo,
   punishedRecovery,punishedMove,remainingRecovery,
-  punishedDodgeRecovery,dodgeRecoveryFrames});
+  punishedDodgeRecovery,dodgeRecoveryFrames,
+  hitDuringStartup,interruptedMove,remainingStartup});
 }
 export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  if(s?.rules!==HUNT_RULESET||!Array.isArray(s.p)||s.p.length!==2)

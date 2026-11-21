@@ -578,3 +578,25 @@ test('a late post-quickstep hit is real damage, but no dodge recovery punish',()
  assert.equal(hit.punishedDodgeRecovery,false);
  assert.equal(hit.dodgeRecoveryFrames,0);
 });
+
+test('a fast melee strike really interrupts a slow heavy BEFORE it becomes active',()=>{
+ const state=live(80),events=[];
+ for(let frame=0;frame<90;frame++)
+  huntStep(state,[cmd(frame===60?'light':''),cmd(frame===55?'heavy':'')],events);
+ const interrupt=events.find(e=>e.kind==='hit'&&e.actor===0);
+ assert(interrupt);
+ assert.equal(interrupt.hitDuringStartup,true);
+ assert.equal(interrupt.interruptedMove,'foldedHeavy');
+ assert.equal(interrupt.remainingStartup,5);
+ assert(!events.some(e=>e.kind==='hit'&&e.actor===1),
+  'actual startup interruption stops the pending heavy contact');
+});
+test('a late light does not become a fabricated heavy startup counter-hit',()=>{
+ const state=live(80),events=[];
+ for(let frame=0;frame<90;frame++)
+  huntStep(state,[cmd(frame===65?'light':''),cmd(frame===55?'heavy':'')],events);
+ const hit=events.find(e=>e.kind==='hit'&&e.actor===0);
+ assert(hit);
+ assert.equal(hit.hitDuringStartup,false);
+ assert.equal(hit.remainingStartup,0);
+});

@@ -15,6 +15,7 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'air-parry':{category:'Defense',goal:'Jump once and land an airborne firearm parry on a committed heavy action.',trigger:'heavy',success:'airParry'},
  'whiff-punish':{category:'Offense',goal:'Bait a real heavy miss and strike while the opponent is STILL in its locked recovery.',trigger:'whiff',success:'whiffPunish'},
  'dodge-punish':{category:'Defense',goal:'Bait an incoming quickstep; strike AFTER its real i-frames but BEFORE recovery ends.',trigger:'step',success:'dodgePunish'},
+ 'counter-hit':{category:'Defense',goal:'Interrupt an incoming heavy windup with real melee contact BEFORE its attack becomes active.',trigger:'heavy',success:'counterHit'},
  'hit-confirm':{category:'Offense',goal:'Follow an actual melee hit with a second confirmed melee contact.',trigger:'hit',success:'hitConfirm'},
  'transform-pressure':{category:'Offense',goal:'Land a real melee hit shortly after your weapon transforms.',trigger:'transform',success:'transformHit'},
  'rally-reclaim':{category:'Resources',goal:'Take a real melee hit, then reclaim health through a confirmed melee strike.',trigger:'hit',success:'rally'},
@@ -71,6 +72,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    drill==='air-parry'&&is(e,'action',1,'foldedHeavy')||
    drill==='whiff-punish'&&is(e,'whiff',1,'foldedHeavy')||
    drill==='dodge-punish'&&is(e,'action',1,'step')||
+   drill==='counter-hit'&&is(e,'action',1,'foldedHeavy')||
    drill==='hit-confirm'&&is(e,'hit',0)||
    drill==='transform-pressure'&&is(e,'transform',0)||
    drill==='rally-reclaim'&&is(e,'hit',1)||
@@ -103,6 +105,12 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
     break;
    case 'air-parry':
     if(is(e,'gunParry',0)&&e.playerAirborne===true)success(e);
+    break;
+   case 'counter-hit':
+    if(is(e,'hit',0)&&e.hitDuringStartup===true&&
+       e.interruptedMove==='foldedHeavy'&&e.remainingStartup>0&&
+       earlier(entries,i,p=>is(p,'action',1,'foldedHeavy'),0,25))
+     success(e);
     break;
    case 'dodge-punish':
     if(is(e,'hit',0)&&e.punishedDodgeRecovery===true&&

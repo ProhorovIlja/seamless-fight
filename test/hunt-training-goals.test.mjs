@@ -10,8 +10,8 @@ function run(session,actions={},count=95){
   assert.equal(session.append(actions[tick]||cmd()),true,'source append tick '+tick);
  return session;
 }
-test('all seventeen source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,17);
+test('all eighteen source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,18);
  const categories=new Set();
  for(const scenario of HUNT_PRACTICE_DRILLS){
   assert(Object.hasOwn(HUNT_TRAINING_GOALS,scenario.id));
@@ -299,4 +299,20 @@ test('quickstep recovery drill scores real contact after i-frames but before ste
  assert.equal(late.goal().successes,0,'post-recovery light must not earn punishment');
  const idle=run(huntPracticeSession({drill:'dodge-punish'}),{},98);
  assert.equal(idle.goal().successes,0,'observing the dummy step never awards points');
+});
+
+test('heavy startup interrupt is an authentic counter-hit, not free gun parry or extra damage',()=>{
+ const valid=run(huntPracticeSession({drill:'counter-hit'}),{61:cmd('light')},94);
+ const ev=valid.eventHistory(140);
+ const hit=ev.find(e=>e.kind==='hit'&&e.actor===0);
+ assert(hit);
+ assert.equal(hit.hitDuringStartup,true);
+ assert.equal(hit.interruptedMove,'foldedHeavy');
+ assert.equal(hit.remainingStartup,5);
+ assert.equal(hit.damage,15,'original physical light damage, not an invented bonus');
+ assert.equal(valid.goal().attempts,1);
+ assert.equal(valid.goal().successes,1);
+ assert(!ev.some(e=>e.kind==='gunParry'),'no firearm or visceral was used');
+ const idle=run(huntPracticeSession({drill:'counter-hit'}),{},95);
+ assert.equal(idle.goal().successes,0);
 });
