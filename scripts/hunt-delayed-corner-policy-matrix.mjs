@@ -99,6 +99,14 @@ export function huntDelayedCornerScenario({
   if(s.end||s.over)break;
  }
  const dodgeHits=events.filter(e=>e.kind==='hit'&&e.actor===1);
+ const defensiveContacts=events.filter(e=>e.kind==='hit'&&e.actor===0);
+ // Punish labels are produced ONLY by actual resolved 60Hz melee contact.
+ // No near-miss, failed input, elapsed-time guess or practice-script award.
+ const attackerPunishesDodgeTail=dodgeHits.filter(e=>e.punishedDodgeVulnerableTail===true).length;
+ const attackerPunishesDodgeRecovery=dodgeHits.filter(e=>e.punishedDodgeRecovery===true).length;
+ const attackerStartupInterrupts=dodgeHits.filter(e=>e.hitDuringStartup===true).length;
+ const defenderWhiffRecoveryPunishes=defensiveContacts.filter(e=>e.punishedRecovery===true).length;
+ const defenderStartupInterrupts=defensiveContacts.filter(e=>e.hitDuringStartup===true).length;
  const report={
   defenderWeapon,attackerWeapon,wall,initialStamina,observationDelay,
   defenderPolicy,attackerPattern,simulationHz:HUNT_HZ,rules:HUNT_RULESET,
@@ -110,6 +118,11 @@ export function huntDelayedCornerScenario({
   actualAttackerFeints:events.filter(e=>e.kind==='action'&&e.actor===1&&e.move==='feint').length,
   landedAttackerHits:dodgeHits.length,
   defenderMeleeHits:counts(events,'hit',0,1),
+  // Distinct real risk of a committed dodge versus a missed poke:
+  // tail is AFTER i-frames but BEFORE recovery, not a "recovery punish".
+  attackerPunishesDodgeTail,attackerPunishesDodgeRecovery,
+  attackerStartupInterrupts,defenderWhiffRecoveryPunishes,
+  defenderStartupInterrupts,
   confirmedDefenderGunParries:counts(events,'gunParry',0,1),
   confirmedDefenderCornerCrossings:counts(events,'cornerEscape',0,1),
   defenderQuicksteps:events.filter(e=>e.kind==='action'&&e.actor===0&&e.move==='step').length,
@@ -139,6 +152,9 @@ export function huntDelayedCornerMatrix(){
    defeatedDefenders:subset.filter(x=>x.defenderDefeated).length,
    successfulParryCases:subset.filter(x=>x.confirmedDefenderGunParries>0).length,
    cornerCrossCases:subset.filter(x=>x.confirmedDefenderCornerCrossings>0).length,
+   punishedDodgeTailCases:subset.filter(x=>x.attackerPunishesDodgeTail>0).length,
+   punishedDodgeRecoveryCases:subset.filter(x=>x.attackerPunishesDodgeRecovery>0).length,
+   defenderWhiffPunishCases:subset.filter(x=>x.defenderWhiffRecoveryPunishes>0).length,
    falseGuardEvents:subset.filter(x=>x.eventsContainForbiddenGuard).length});
  });
  return Object.freeze({
