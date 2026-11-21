@@ -329,6 +329,10 @@ inline void step(State&s,const Input&aa,const Input&bb){
   a.x=clamp(a.x+direction*d,65.0,double(WIDTH-65));
   b.x=clamp(b.x-direction*d,65.0,double(WIDTH-65));
  }
+ // Neutral facing must follow FINAL physical positions, not drive() slot
+ // order. A committed attack/dodge retains its authored action facing.
+ if(a.act==NONE)a.dir=b.x>=a.x?1:-1;
+ if(b.act==NONE)b.dir=a.x>=b.x?1:-1;
  const double rally_before_contact[2]={a.rally,b.rally};
  const bool gun[2]={
   (a.act==SHOT||a.act==AIR_SHOT)&&strike(a,b),
