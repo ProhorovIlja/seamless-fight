@@ -409,11 +409,32 @@ try{
  // The new research combat is NOT the legacy online engine: exercise its
  // real 60Hz practice runtime and original source on an actual Chromium page.
  const hunt=await browser.newPage({viewport:{width:1440,height:900}});
+ await hunt.addInitScript(()=>{
+  const makePad=(index,id)=>({index,id,connected:true,mapping:'standard',axes:[0,0],
+   buttons:Array.from({length:16},()=>({pressed:false,value:0}))});
+  window.qaPads=[makePad(0,'QA Standard Pad'),null,makePad(2,'QA Leverless Controller')];
+  Object.defineProperty(navigator,'getGamepads',{configurable:true,value:()=>window.qaPads});
+ });
  hunt.on('pageerror',err=>errors.push('hunt-v3: '+err.message));
  hunt.on('response',res=>{if(res.url().startsWith(url)&&res.status()>=400)errors.push(res.status()+' '+res.url());});
  await hunt.goto(url+'hunt/');
  assert.equal(await hunt.locator('html').getAttribute('lang'),'en');
  assert.match(await hunt.locator('.topbar .chip').textContent(),/1V1 · ENGLISH ONLY/);
+ await hunt.locator('#input-family').selectOption('leverless');
+ await until(async()=>await hunt.locator('#controller-select option').count()===3,
+   'two actual standard-mapped gamepads are enumerated');
+ await hunt.locator('#controller-select').selectOption('2');
+ assert.match(await hunt.locator('#input-device').textContent(),/QA Leverless Controller.*locked controller/);
+ await hunt.evaluate(()=>{
+  window.qaPads[2].connected=false;
+  window.dispatchEvent(new Event('gamepaddisconnected'));
+ });
+ await until(async()=>/Selected controller #2 disconnected/.test(await hunt.locator('#input-device').textContent()),
+   'unplugged locked leverless cannot silently hand control to pad zero');
+ assert.equal(await hunt.locator('#controller-select').inputValue(),'2');
+ await hunt.locator('#controller-select').selectOption('auto');
+ assert.match(await hunt.locator('#input-device').textContent(),/QA Standard Pad/);
+ await hunt.locator('#input-family').selectOption('keyboard-mouse');
  await until(async()=>Number((await hunt.locator('#tick').textContent()).replace(/\D/g,''))>=10,'Hunt v3 60Hz simulation advances');
  assert.match(await hunt.locator('#meter-0').textContent(),/startup \/ /);
  await hunt.locator('#pause').click();
