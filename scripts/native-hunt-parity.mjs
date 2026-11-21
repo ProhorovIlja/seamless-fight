@@ -219,12 +219,12 @@ try{
     hunter.rallyLife=priorRally?50:0;
    }
    const samples=Array.from({length:32},()=>[huntInput(),huntInput()]);
-   const packet=w0+' '+w1+'\\n'+samples.map(row=>row.flatMap(
-    v=>[v.x,v.y,REQUEST[v.act],Number(v.guard)]).join(' ')).join('\\n')+'\\n';
+   const packet=w0+' '+w1+'\n'+samples.map(row=>row.flatMap(
+    v=>[v.x,v.y,REQUEST[v.act],Number(v.guard)]).join(' ')).join('\n')+'\n';
    const result=spawnSync(exe,[flag],{input:packet,encoding:'utf8',
     maxBuffer:4*1024*1024,timeout:90000});
    assert.equal(result.status,0,'Directed trade CLI failed: '+result.stderr);
-   const nativeRows=result.stdout.trim().split('\\n');
+   const nativeRows=result.stdout.trim().split('\n');
    assert.equal(nativeRows.length,samples.length);
    for(let t=0;t<samples.length;t++){
     const actualEvents=[];
@@ -237,7 +237,7 @@ try{
      assert(source.p.every(x=>x.hitConfirmed===false),
       'No stunned fighter keeps an asymmetric hidden hit confirm');
     }
-    const native=nativeRows[t].trim().split(/\\s+/).map(Number);
+    const native=nativeRows[t].trim().split(/\s+/).map(Number);
     assert.equal(native.length,totalFields);
     let k=0;
     const compare=(field,val)=>{
