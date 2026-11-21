@@ -124,6 +124,7 @@ inline void buffer(Fighter&p,Request r){
  if(r!=NOTHING){p.queue=r;p.queueLife=6;}
  else if(p.queueLife>0){--p.queueLife;if(p.queueLife==0)p.queue=NOTHING;}
 }
+constexpr int WHIFF_HEAVY_TRANSFORM_RECOVERY=4;
 inline bool start(Fighter&p,Fighter&q,Action r,const Input&i,
                   double opponent_start_x,int opponent_start_exposed){
  if(r==NONE)return false;
@@ -154,7 +155,11 @@ inline bool start(Fighter&p,Fighter&q,Action r,const Input&i,
  }else if(r==FEINT&&heavy(p.act)&&p.age>=5&&p.age<old.startup-3){
   chained=true;
  }else if(transform(r)&&(ordinary(p.act)||p.act==STEP)&&
-           p.age>=old.startup+1&&p.age<total(old)-6&&p.chain<4){
+           p.age>=old.startup+1&&p.age<total(old)-6&&p.chain<4&&
+           // Preserve genuine L1 trick routes on a hit while requiring
+           // a four-tick exposed recovery after a MISSED heavy or charged R2.
+           (!(heavy(p.act)||charged(p.act))||p.hitConfirmed||
+            p.age>=old.startup+old.active+WHIFF_HEAVY_TRANSFORM_RECOVERY)){
   chained=true;
  }else if(was_attack&&ordinary(r)&&
            // Prevent generic heavy-to-heavy hit-cancels. R2 can be repeated
