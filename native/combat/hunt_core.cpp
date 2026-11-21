@@ -51,6 +51,25 @@ int main(int argc,char**argv){
    const Spec victim=spec(s.p[1].weapon,UNFURLED_HEAVY);
    s.p[1].age=victim.startup+victim.active;
    s.p[1].spent=previous_hit;
+  }else if(scenario.rfind("--visceral-p0-",0)==0||
+           scenario.rfind("--visceral-p1-",0)==0){
+   // Parry opening and target range are read from a shared start-of-tick
+   // snapshot. Test both slots at exact in/out boundaries and final frame.
+   s.ready=0;
+   const int attacker=scenario.rfind("--visceral-p1-",0)==0?1:0;
+   const bool outside=scenario.find("-outside")!=std::string::npos;
+   const bool inside=scenario.find("-inside")!=std::string::npos;
+   const bool expiry=scenario.find("-expiry")!=std::string::npos;
+   const bool expired=scenario.find("-expired")!=std::string::npos;
+   if(!outside&&!inside&&!expiry&&!expired)return 7;
+   s.p[attacker].x=500;
+   s.p[1-attacker].x=500-(outside?77:74);
+   s.p[attacker].vx=0;
+   s.p[1-attacker].vx=outside?6:inside?-6:0;
+   s.p[attacker].act=NONE;
+   s.p[1-attacker].act=STAGGER;
+   s.p[1-attacker].age=1;
+   s.p[1-attacker].exposed=expired?0:expiry?1:15;
   }else if(scenario=="--attack-facing-p0-left"||scenario=="--attack-facing-p0-right"||
            scenario=="--attack-facing-p1-left"||scenario=="--attack-facing-p1-right"){
    // Both inputs are simultaneous. At 1U separation the neutral walker
