@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
- TRICK_RULESET,TRICK_HZ,TRICK_FLOOR,TRICK_MOVES,TRICK_ACTIONS,
+ TRICK_RULESET,TRICK_HZ,TRICK_FLOOR,TRICK_MOVES,TRICK_ACTIONS,TRICK_PURSUIT_FOCUS,
  TRICK_WEAPONS,TRICK_WEAPON_SPECS,trickMoveSpec,trickFrameTable,
  trickInput,trickMatch,trickStep,trickPhase,trickAttackbox,trickInspector,
  canonicalTrickInput
@@ -19,8 +19,8 @@ function finish(s,limit=100){
 }
 test('new experimental ruleset is isolated from existing production protocol and input spoofing',()=>{
  const state=trickMatch();
- assert.equal(state.rules,'sf-trick-lab/2');
- assert.equal(TRICK_RULESET,'sf-trick-lab/2');assert.equal(TRICK_HZ,60);
+ assert.equal(state.rules,'sf-trick-lab/3');
+ assert.equal(TRICK_RULESET,'sf-trick-lab/3');assert.equal(TRICK_HZ,60);
  assert.notEqual(state.rules,'seamless-side/1');
  assert.equal(trickPhase(state.p[0]),'neutral');
  assert.deepEqual(canonicalTrickInput({}),trickInput());
@@ -141,6 +141,53 @@ test('quickstep invulnerability has limited frames and focus cancel consumes a r
  finish(focus);
  assert.equal(p.act,'');
 });
+test('hit-confirm pursuit costs focus and stamina, advances inertia and respects cancel depth',()=>{
+ const s=live(80),p=s.p[0],events=[];
+ p.act='foldedLight';p.age=12;p.hitConfirmed=true;p.chain=1;p.focus=40;p.st=100;
+ const x=p.x;
+ trickStep(s,[cmd('step'),trickInput()],events);
+ assert.equal(TRICK_PURSUIT_FOCUS,25);
+ assert.equal(p.act,'step');
+ assert.equal(p.chain,2);
+ assert.equal(p.focus,15,'pursuit cannot be free');
+ assert.equal(p.st,81,'normal step stamina cost still applies');
+ assert(p.x>x,'chase dash carries real forward motion');
+ assert(events.some(e=>e.kind==='action'&&e.move==='step'));
+});
+test('pursuit rejects whiff, insufficient meter, early window and infinite chains',()=>{
+ function attempt({hit=true,focus=40,age=12,chain=1}={}){
+  const s=live(100),p=s.p[0];
+  p.act='foldedLight';p.age=age;p.hitConfirmed=hit;p.chain=chain;p.focus=focus;
+  trickStep(s,[cmd('step'),trickInput()]);
+  return p;
+ }
+ for(const options of [
+  {hit:false},{focus:24},{age:8},{chain:4}
+ ]){
+  const p=attempt(options);
+  assert.equal(p.act,'foldedLight',JSON.stringify(options));
+  assert.equal(p.focus,options.focus??40,'illegal attempt never spends meter');
+ }
+});
+test('transformation strikes can chase after a real confirm, air steps stay once per airtime',()=>{
+ const s=live(85),p=s.p[0];
+ p.form='unfurled';p.act='unfurl';p.age=16;p.hitConfirmed=true;
+ p.focus=50;p.chain=2;
+ trickStep(s,[cmd('step'),trickInput()]);
+ assert.equal(p.act,'step');
+ assert.equal(p.chain,3);
+ assert.equal(p.focus,25);
+ const air=live(90),a=air.p[0];
+ a.y=TRICK_FLOOR-70;a.vy=-3;a.jumps=1;
+ a.act='airFoldedLight';a.age=15;a.hitConfirmed=true;a.focus=55;a.chain=1;
+ trickStep(air,[cmd('step'),trickInput()]);
+ assert.equal(a.act,'airStep');assert.equal(a.airSteps,1);assert.equal(a.focus,30);
+ a.act='airFoldedLight';a.age=15;a.hitConfirmed=true;a.focus=55;a.chain=2;
+ trickStep(air,[cmd('step'),trickInput()]);
+ assert.equal(a.act,'airFoldedLight','second midair chase is rejected');
+ assert.equal(a.focus,55);
+});
+
 test('same-tick genuine attacks trade and render events do not modify the simulation',()=>{
  const a=live(74),b=structuredClone(a),events=[];
  a.p[0].act='foldedLight';a.p[0].age=7;
