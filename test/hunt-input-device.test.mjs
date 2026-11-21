@@ -46,7 +46,7 @@ test('leverless and keyboard SOCD neutralize left/right and jump/crouch',()=>{
   assert.equal(a.sample(frame(l,r)).x,0,layout+' horizontal SOCD');
   assert.equal(a.sample(frame(u,d)).y,0,layout+' vertical SOCD');
   assert.equal(a.sample(frame(l,u)).x,-1);
-  assert.equal(a.sample(frame(l,u)).y,0,'same held inputs do not create extra jump');
+  assert.equal(a.sample(frame(l,u)).y,-1,'one held up direction remains a valid jump input');
   a.reset();
   const diagonal=a.sample(frame(l,u));
   assert.equal(diagonal.x,-1);
