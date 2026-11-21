@@ -24,7 +24,7 @@ blender -b --python tools/art/build_hunter_base.py -- \
 
 5. Review the editable `.blend`, `_UNANIMATED_STUDIO_BASE.glb`, and `.provenance.json` with SHA-256 per source file. The manifest deliberately does not store the local machine's private directory path. A GLB without authored combat clips must FAIL the native runtime's animation contract.
 6. Author original premium Gothic coats, boots, hair cards and materials, weapons with two genuine mechanical forms, hand-IK, faces/eyes and expressions, bespoke startup-active-recovery attacks, trick transform attacks, aerial actions and parry responses. Retarget only legally usable motion and refine frame-by-frame for the side-on viewpoint. Evaluate PBR/skin quality and actual Windows GPU/VRAM cost.
-7. Only after professional art review, rig deformation, complete animation protocol, GLB skin/clip QA and license review can it become `assets/characters/veil.glb` or `cinder.glb`. Current native runtime names refer to `seamless-side/1`; trick-lab v2 animations require their own explicit migration.
+7. Only after professional art review, rig deformation, complete animation protocol, GLB skin/clip QA and license review can it become `assets/characters/veil.glb` or `cinder.glb`. Current native runtime names refer to `seamless-side/1`; trick-lab v3 animations require their own explicit migration.
 
 ## Validation and legal boundaries
 
