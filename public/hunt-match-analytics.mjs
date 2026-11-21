@@ -41,7 +41,7 @@ export function analyzeHuntReplay(capture){
    switch(ev.kind){
     case 'action':
      p.actionStarts++;
-     if(['light','heavy','charge','trick'].includes(ev.move))p.meleeStarts++;
+     if(isMelee(ev.move)||['light','heavy','charge','trick'].includes(ev.move))p.meleeStarts++;
      if(ev.move==='visceral')p.visceralAttempts++;
      if(ev.move==='step'){
       p.quicksteps++;
