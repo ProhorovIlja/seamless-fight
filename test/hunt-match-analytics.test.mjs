@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {HUNT_RULESET,HUNT_MOVES,huntMatch,huntStep,huntInput} from '../public/side-hunt-lab.mjs';
 import {createHuntReplay} from '../public/side-hunt-replay.mjs';
 import {analyzeHuntReplay,HUNT_STATS_SCHEMA} from '../public/hunt-match-analytics.mjs';
+import {huntPracticeSession} from '../public/hunt-practice-suite.mjs';
 const cmd=(act='',x=0,y=0)=>({act,x,y,guard:false});
 const fresh=()=>{const s=huntMatch();s.ready=0;s.p[0].x=400;s.p[1].x=500;return s;};
 test('offline 1v1 metrics never fabricate Elo, friends, ranked wins or online identity',()=>{
@@ -120,4 +121,58 @@ test('three different neutral punish counters come only from confirmed replay hi
  assert.equal(idle.players[0].recoveryPunishes,0);
  assert.equal(idle.players[0].dodgeRecoveryPunishes,0);
  assert.equal(idle.players[0].startupInterrupts,0);
+});
+
+
+test('source replay counts gun whiffs and actual gun recovery punishes, never mere presses',()=>{
+ for(const weapon of ['mournweave','thornwake']){
+  const s=huntMatch({weapons:[weapon,weapon]});s.ready=0;
+  const hunter=s.p[0],gunner=s.p[1];
+  hunter.x=420;hunter.vx=0;hunter.dir=1;
+  gunner.x=500;gunner.vx=0;gunner.dir=1;
+  hunter.act='foldedLight';hunter.age=weapon==='mournweave'?6:4;
+  gunner.act='shot';gunner.age=HUNT_MOVES.shot.startup;
+  gunner.ammo=6;
+  const replay=createHuntReplay({initialState:s});
+  replay.append([cmd(),cmd()]);
+  replay.append([cmd(),cmd()]);
+  const out=analyzeHuntReplay(replay.capture());
+  assert.equal(out.players[1].firearmShots,1);
+  assert.equal(out.players[1].firearmWhiffs,1);
+  assert.equal(out.players[1].firearmHits,0);
+  assert.equal(out.players[0].firearmRecoveryPunishes,1);
+  assert.equal(out.players[0].recoveryPunishes,1);
+  assert.equal(out.players[0].meleeHits,1);
+  assert.equal(out.players[0].dodgeVulnerableTailPunishes,0);
+  assert.equal(out.players[1].firearmRecoveryPunishes,0);
+ }
+});
+test('an i-frame tail hit is NOT a dodge recovery hit and each metric records its true source window',()=>{
+ for(const age of [7,10]){
+  const s=fresh();
+  s.p[1].x=463;
+  s.p[0].act='foldedLight';s.p[0].age=HUNT_MOVES.foldedLight.startup;
+  s.p[1].act='step';s.p[1].age=age;s.p[1].vx=0;
+  const replay=createHuntReplay({initialState:s});
+  replay.append([cmd(),cmd()]);
+  const p=analyzeHuntReplay(replay.capture()).players[0];
+  assert.equal(p.meleeHits,1);
+  assert.equal(p.dodgeVulnerableTailPunishes,age===7?1:0);
+  assert.equal(p.dodgeRecoveryPunishes,age===10?1:0);
+  assert.equal(p.recoveryPunishes,0,
+   'step has a distinct recovery punish channel, not a melee or firearm whiff');
+ }
+});
+test('real two-sided corner exits count only after paid physical crossing',()=>{
+ for(const wall of ['left','right']){
+  const practice=huntPracticeSession({
+   drill:wall==='left'?'corner-escape':'corner-escape-right'
+  });
+  for(let t=1;t<=66;t++)assert(practice.append(
+   t===48?cmd('step',wall==='left'?1:-1):cmd()));
+  const stats=analyzeHuntReplay(practice.save());
+  assert.equal(stats.players[0].cornerEscapes,1);
+  assert.equal(stats.players[1].cornerEscapes,0);
+  assert.equal(stats.players[0].quicksteps,1);
+ }
 });
