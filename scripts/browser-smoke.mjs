@@ -506,7 +506,18 @@ try{
  await hunt.locator('#drill').selectOption('parry-heal');
  assert.equal(await hunt.locator('#p1-health').getAttribute('style'),'width: 60%;');
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Counter Vial Healing/);
- assert.equal(await hunt.locator('#drill option').count(),18,'all 18 genuine Hunt drills must appear');
+ assert.equal(await hunt.locator('#drill option').count(),21,
+  'all 21 genuine source-based English Hunt drills must appear');
+ // Each wall has distinct visual training and source-verified score rules:
+ // no mirrored drill may disappear from the browser just because unit tests pass.
+ for(const drill of ['corner-escape','corner-escape-right',
+   'corner-interrupt-left','corner-interrupt-right']){
+  await hunt.locator('#drill').selectOption(drill);
+  assert.equal(await hunt.locator('#drill').inputValue(),drill);
+  assert.match(await hunt.locator('#goal-category').textContent(),/DEFENSE/);
+  assert.match(await hunt.locator('#goal-description').textContent(),/wall/i);
+  assert.equal(await hunt.locator('#dummy-mode').inputValue(),'loop');
+ }
  assert.match(await hunt.locator('#goal-category').textContent(),/DEFENSE/);
  assert.match(await hunt.locator('#goal-description').textContent(),/vial-healing/);
  // Actual jump and missed weapon swing are observable without awarding fake
