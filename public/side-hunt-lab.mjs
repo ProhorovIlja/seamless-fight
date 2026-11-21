@@ -439,7 +439,11 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  // Collision resumes immediately when the dodge window closes.
  const forwardStep=p=>p.act==='step'&&p.age>=1&&p.age<7&&p.vx*p.dir>0;
  if(!forwardStep(a)&&!forwardStep(b)&&Math.abs(a.y-b.y)<55&&Math.abs(a.x-b.x)<38){
-  const dir=a.x<=b.x?-1:1,d=(38-Math.abs(a.x-b.x))/2;
+  // Respect pre-movement body order. Using the NEW x order here allows a
+  // neutral walk to tunnel through an opponent at sub-frame overlap, a
+  // free cross-up/corner escape in an otherwise no-block 2.5D fighter.
+  // Real airborne overhead paths and i-frame forward steps still cross.
+  const dir=beforeX[0]<=beforeX[1]?-1:1,d=(38-Math.abs(a.x-b.x))/2;
   a.x=clamp(a.x+dir*d,65,HUNT_W-65);b.x=clamp(b.x-dir*d,65,HUNT_W-65);
  }
  // An idle hunter must face the FINAL opponent position after simultaneous
