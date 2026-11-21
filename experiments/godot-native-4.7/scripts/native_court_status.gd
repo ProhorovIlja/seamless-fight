@@ -63,7 +63,7 @@ func refresh() -> bool:
 	if pending or request_node==null:
 		return false
 	# HTTPS only, no externally supplied redirect URL, no credentials.
-	var result: Error=request_node.request(ENDPOINT,["Accept: application/json"],HTTPClient.METHOD_GET)
+	var result := request_node.request(ENDPOINT,["Accept: application/json"],HTTPClient.METHOD_GET)
 	if result!=OK:
 		available=false
 		last_failure="Court status currently unavailable"
