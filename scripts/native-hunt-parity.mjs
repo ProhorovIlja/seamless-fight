@@ -506,7 +506,10 @@ try{
   const inputs=Array.from({length:24},(_,t)=>{
    const pair=[huntInput(),huntInput()];
    if(t===0)pair[attacker]={...huntInput(),act:'visceral'};
-   pair[target]={...huntInput(),act:victimCommand,x:victimCommand==='step'?1:0};
+   // Input is deliberately held ONLY while the target is locked into
+   // the cinematic. Afterwards normal hitstun must remain available for
+   // separately tested paid quickstep escape; do not disable that mechanic.
+   if(t<6)pair[target]={...huntInput(),act:victimCommand,x:victimCommand==='step'?1:0};
    return pair;
   });
   const mode='--visceral-lock-p'+attacker+'-'+victimCommand;
