@@ -81,6 +81,20 @@ public:
   result["phase"]=p.act==sf_hunt::NONE?"idle":
     p.age<timing.startup?"startup":
     p.age<timing.startup+timing.active?"active":"recovery";
+  // Frame evidence is read directly from the authoritative native source.
+  // Never infer parryability or dodge i-frames from visual animation frames.
+  const bool stepping=p.act==sf_hunt::STEP;
+  const int recovery_start=timing.startup+timing.active;
+  const int recovery_end=sf_hunt::total(timing);
+  const bool step_recovery=stepping&&p.age>=recovery_start&&p.age<recovery_end;
+  result["firearmCounterWindowOpen"]=sf_hunt::parryable(p);
+  result["quickstepIframes"]=stepping&&p.age>=1&&p.age<7;
+  result["quickstepVulnerableTail"]=stepping&&p.age>=7&&p.age<recovery_start;
+  result["quickstepRecoveryPunishable"]=step_recovery;
+  result["quickstepRemainingRecovery"]=step_recovery?recovery_end-p.age:0;
+  result["groundedHitstunEscapeReady"]=p.act==sf_hunt::STUN&&p.y>=sf_hunt::FLOOR&&
+   p.age>=8&&p.age<sf_hunt::total(timing)-5&&
+   p.st>=sf_hunt::spec(p.weapon,sf_hunt::STEP).cost+6;
   return result;
  }
  PackedByteArray save_checkpoint() const{
