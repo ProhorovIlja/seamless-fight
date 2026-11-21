@@ -542,6 +542,9 @@ try{
  await hunt.locator('#drill').selectOption('whiff-punish');
  await until(async()=>/0 confirmed · 1 observed/.test(await hunt.locator('#goal-progress').textContent()),
    'source whiff punish drill observes one actually missed heavy');
+ await until(async()=>/WHIFF RECOVERY · EXPOSED WEAPON ARM \+\d+U/.test(
+   await hunt.locator('#meter-1').textContent()),
+  'source whiffed heavy must expose actual bounded arm ONLY during recoverable frames');
  await hunt.locator('#drill').selectOption('timing-read');
  assert.equal(await hunt.locator('#dummy-mode').inputValue(),'random');
  assert.match(await hunt.locator('#goal-category').textContent(),/READS & FOOTSIES/);
