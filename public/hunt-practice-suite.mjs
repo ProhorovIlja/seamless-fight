@@ -12,6 +12,15 @@ export const HUNT_PRACTICE_SCHEMA='sf-hunt-practice/1';
 export const HUNT_DUMMY_SLOTS=8,HUNT_DUMMY_MAX_FRAMES=600;
 export const HUNT_PRACTICE_HISTORY=720;
 export const HUNT_PRACTICE_INPUT_HISTORY=120;
+export const HUNT_DUMMY_LIBRARY_SCHEMA='sf-hunt-dummy-library/1';
+export const HUNT_PRACTICE_DRILLS=Object.freeze([
+ Object.freeze({id:'free',label:'Free Practice',spacing:450,action:'',startAt:0}),
+ Object.freeze({id:'parry-heavy',label:'Counter Heavy Windup',spacing:106,action:'heavy',startAt:55}),
+ Object.freeze({id:'parry-heal',label:'Counter Vial Healing',spacing:106,action:'heal',startAt:55}),
+ Object.freeze({id:'parry-blood',label:'Counter Blood Rounds',spacing:106,action:'blood',startAt:55}),
+ Object.freeze({id:'escape-stun',label:'Hitstun Quickstep Escape',spacing:100,action:'light',startAt:55}),
+ Object.freeze({id:'dodge-shot',label:'Evade Firearm Shot',spacing:140,action:'shot',startAt:55})
+]);
 const clone=x=>structuredClone(x);
 const neutral=()=>huntInput();
 const opposite=input=>({...input,x:-input.x});
@@ -36,16 +45,32 @@ export function huntFrameMeter(state,slot=0){
   frames,health:p.health,stamina:p.stamina,ammo:p.ammo,bloodAmmo:p.bloodAmmo,
   vials:p.vials,focus:p.focus,visceralWindow:p.visceralWindow});
 }
-export function huntPracticeSession({weapons,seed=1}={}){
+export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
+ const scenario=HUNT_PRACTICE_DRILLS.find(x=>x.id===drill);
+ if(!scenario)throw TypeError('Unknown source-based 1v1 training drill');
  if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)
   throw TypeError('Practice replay seed must be a 32-bit unsigned integer');
  const start=huntMatch(weapons?{weapons}:{});
  start.ready=0;
+ if(drill!=='free'){
+  start.p[0].x=480-scenario.spacing/2;
+  start.p[1].x=480+scenario.spacing/2;
+  if(drill==='parry-heal')start.p[1].hp=60;
+ }
  let replay=createHuntReplay({initialState:start,maxFrames:MAX_FRAMES,checkpointEvery:30});
  let state=clone(start),paused=false,mode='passive',activeSlot=0;
  let recordingSlot=-1,playStart=0,selectedSlot=0,randomState=seed>>>0;
  let reversalArmed=false,reversalPlaying=false;
  const tapes=Array.from({length:HUNT_DUMMY_SLOTS},()=>[]);
+ if(drill!=='free'){
+  const tape=Array.from({length:150},neutral);
+  // Every dummy action below is legal normal gameplay input, with no synthetic
+  // stagger or parry state forced on either fighter during the match.
+  // Tape is mirrored when played from slot 1 just like user recordings.
+  tape[scenario.startAt]=canonicalHuntInput({act:scenario.action});
+  tapes[0]=tape;
+  mode='loop';
+ }
  let history=[],events=[];
  function inspect(){return clone(state);}
  function record(slot){validateSlot(slot);recordingSlot=slot;mode='passive';tapes[slot]=[];return true;}
@@ -58,6 +83,27 @@ export function huntPracticeSession({weapons,seed=1}={}){
   return true;
  }
  function finish(){const n=recordingSlot<0?0:tapes[recordingSlot].length;recordingSlot=-1;return n;}
+ function saveDummyLibrary(){
+  return Object.freeze({schema:HUNT_DUMMY_LIBRARY_SCHEMA,rules:HUNT_RULESET,
+   language:'en',tapes:clone(tapes)});
+ }
+ function loadDummyLibrary(payload){
+  if(!payload||typeof payload!=='object'||Array.isArray(payload)||
+    payload.schema!==HUNT_DUMMY_LIBRARY_SCHEMA||payload.rules!==HUNT_RULESET||
+    payload.language!=='en'||!Array.isArray(payload.tapes)||
+    payload.tapes.length!==HUNT_DUMMY_SLOTS)
+   throw TypeError('Invalid or incompatible English Hunt v3 dummy library');
+  // Validate every single action before mutating any existing recording.
+  const safe=payload.tapes.map((tape,i)=>{
+   if(!Array.isArray(tape)||tape.length>HUNT_DUMMY_MAX_FRAMES)
+    throw RangeError('Dummy slot '+(i+1)+' exceeds 600 frames');
+   return tape.map(canonicalHuntInput);
+  });
+  for(let i=0;i<HUNT_DUMMY_SLOTS;i++)tapes[i]=safe[i];
+  recordingSlot=-1;mode='passive';selectedSlot=0;activeSlot=0;
+  reversalArmed=false;reversalPlaying=false;playStart=state.tick;
+  return true;
+ }
  function setMode(next,slot=0){
   if(!['passive','loop','random','reversal'].includes(next))throw TypeError('Unsupported dummy mode');
   validateSlot(slot);
@@ -152,7 +198,7 @@ export function huntPracticeSession({weapons,seed=1}={}){
  }
  function frame(slot=0){return huntFrameMeter(state,slot);}
  function stats(){return Object.freeze({schema:HUNT_PRACTICE_SCHEMA,rules:HUNT_RULESET,
-  simulationHz:HUNT_HZ,tick:state.tick,paused,mode,selectedSlot,activeSlot,
+  drill,simulationHz:HUNT_HZ,tick:state.tick,paused,mode,selectedSlot,activeSlot,
   dummyFrames:tapes.map(t=>t.length),historyFrames:history.length,
   recordedFrames:replay.stats().frames});}
  function load(capture){
@@ -170,6 +216,7 @@ export function huntPracticeSession({weapons,seed=1}={}){
  }
  return Object.freeze({inspect,record,recordInput,finish,setMode,append,step,
   pause,resume,rewind,restart,save,load,frame,stats,
+  saveDummyLibrary,loadDummyLibrary,
   metrics:()=>analyzeHuntReplay(replay.capture()),inputHistory,eventHistory,
   slotData:i=>{validateSlot(i);return clone(tapes[i]);},
   frameTable:weapon=>huntFrameTable(weapon)});
