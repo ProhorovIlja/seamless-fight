@@ -12,3 +12,12 @@ a{color:inherit;text-underline-offset:4px}button,input,select{font:inherit}butto
 .frame-card.escape-open{border-color:#98c3af;box-shadow:inset 0 0 0 1px #658f7880;background:linear-gradient(140deg,#1f302c,#121820 68%)}
 .frame-card.counter-open output{color:#f4d7a2}
 .frame-card.escape-open output{color:#b5d9c3}
+
+.binding-editor{margin-top:14px;padding:13px;border:1px solid #927b567d;background:#111922}
+.binding-editor .button-row{padding:13px 0}
+.binding-editor .button-row button{font-size:.73rem}
+#binding-message{font:.73rem/1.5 system-ui,sans-serif;color:#d5c19f}
+.binding-summary{display:block;max-height:195px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;
+ font:.73rem/1.75 ui-monospace,Consolas,monospace;color:#e1d0b6;padding:12px;background:#0b1018;
+ border:1px solid #78674c78}
+@media(max-width:550px){.binding-editor{padding:9px}}
