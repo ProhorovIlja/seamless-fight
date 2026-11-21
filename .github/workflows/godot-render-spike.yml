@@ -70,6 +70,8 @@ jobs:
         if: always()
         with:
           name: godot-472-painted-stage-webgl2-render-spike
-          path: artifacts/godot-web/
+          path: |
+            artifacts/godot-web/
+            artifacts/godot-472-painted-stage-runtime.png
           if-no-files-found: warn
           retention-days: 7
