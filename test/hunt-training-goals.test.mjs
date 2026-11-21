@@ -139,3 +139,76 @@ test('goal scorer rejects fake victory from bare attack commands without an auth
  ]);
  assert.equal(actual.successes,1);
 });
+
+function play(drill,command,count=130,prepare){
+ const s=huntPracticeSession({drill});
+ if(prepare)prepare(s);
+ for(let tick=1;tick<=count;tick++)assert(s.append(command(tick)));
+ return s;
+}
+test('anti-air success is a genuinely connected gunshot while second fighter is airborne',()=>{
+ const s=play('anti-air',t=>cmd(t===52?'shot':''),95);
+ assert(s.eventHistory(140).some(e=>e.kind==='jump'&&e.actor===1));
+ assert(s.eventHistory(140).some(e=>e.kind==='bulletHit'&&e.actor===0&&e.target===1));
+ assert.equal(s.goal().attempts,1);
+ assert.equal(s.goal().successes,1);
+ assert.equal(s.goal().lastSuccessTick,61);
+});
+test('aerial firearm parry is earned by one ordinary jump and precise real-airShot counter',()=>{
+ const s=play('air-parry',t=>cmd(t===58?'shot':'',0,t===45?-1:0),95);
+ assert(s.eventHistory(140).some(e=>e.kind==='jump'&&e.actor===0));
+ assert(s.eventHistory(140).some(e=>e.kind==='action'&&e.actor===0&&e.move==='airShot'));
+ assert(s.eventHistory(140).some(e=>e.kind==='gunParry'&&e.actor===0));
+ assert.equal(s.goal().successes,1);
+ assert.equal(s.inspect().p[0].jumps<=1,true,'no double jump added');
+});
+test('whiff punishment counts a real attacker hit only after the dummy heavy whiffs',()=>{
+ const s=play('whiff-punish',t=>cmd(t===88?'light':'',
+  t>=69&&t<88?1:0),135);
+ assert(s.eventHistory(140).some(e=>e.kind==='whiff'&&e.actor===1&&e.move==='foldedHeavy'));
+ assert(s.eventHistory(140).some(e=>e.kind==='hit'&&e.actor===0&&e.target===1));
+ assert.equal(s.goal().successes,1);
+});
+test('actual two-contact hit confirm is counted, without importing traditional guard or throw',()=>{
+ const s=play('hit-confirm',t=>cmd([1,11].includes(t)?'light':''),70);
+ assert.equal(s.goal().successes,1);
+ assert.equal(s.goal().attempts,2);
+ const hits=s.eventHistory(120).filter(e=>e.kind==='hit'&&e.actor===0);
+ assert.deepEqual(hits.map(e=>e.combo),[1,2]);
+});
+test('offense scores a confirmed weapon transformation hit, not the transformation alone',()=>{
+ const s=play('transform-pressure',t=>cmd(t===1?'trick':t===17?'light':''),80);
+ assert(s.eventHistory(100).some(e=>e.kind==='transform'&&e.actor===0&&e.form==='unfurled'));
+ assert(s.eventHistory(100).some(e=>e.kind==='hit'&&e.actor===0&&e.move==='unfurledLight'));
+ assert.equal(s.goal().successes,1);
+ const noHit=play('transform-pressure',t=>cmd(t===1?'trick':''),75);
+ assert.equal(noHit.goal().attempts,1);
+ assert.equal(noHit.goal().successes,0);
+});
+test('source rally recovery restores actual HP only after melee is taken and returned',()=>{
+ const s=play('rally-reclaim',t=>cmd(t===92?'light':'',
+  t>=85&&t<92?1:0),125);
+ const events=s.eventHistory(160);
+ assert(events.some(e=>e.kind==='hit'&&e.actor===1));
+ assert(events.some(e=>e.kind==='rally'&&e.actor===0&&e.health===15));
+ assert.equal(s.goal().successes,1);
+ assert.equal(s.inspect().p[0].hp,100);
+});
+test('true heavy-to-feint timing read rewards the confirmed punish and not a synthetic mixup',()=>{
+ const s=play('timing-read',t=>cmd(t===72?'light':'',
+  t>=67&&t<72?1:0),105,
+  instance=>instance.setMode('loop',1));
+ const events=s.eventHistory(140);
+ assert(events.some(e=>e.kind==='action'&&e.actor===1&&e.move==='feint'));
+ assert(events.some(e=>e.kind==='hit'&&e.actor===0));
+ assert.equal(s.goal().attempts,1);
+ assert.equal(s.goal().successes,1);
+});
+test('real firearm counter converts to timed visceral strike before opening expires',()=>{
+ const s=play('visceral-followup',t=>cmd(t===59?'shot':t===97?'visceral':''),125);
+ const events=s.eventHistory(140);
+ assert(events.some(e=>e.kind==='gunParry'&&e.actor===0));
+ assert(events.some(e=>e.kind==='visceral'&&e.actor===0));
+ assert.equal(s.goal().successes,1);
+ assert.equal(s.goal().lastSuccessTick,103);
+});
