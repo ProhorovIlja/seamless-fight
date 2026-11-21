@@ -7,4 +7,4 @@ if env["platform"] == "linux":
 elif env["platform"] == "windows":
     env.Append(CXXFLAGS=["/fp:strict"])
 name = "sf_combat.{}.{}.{}".format(env["platform"], env["target"], env["arch"])
-env.SharedLibrary(target=os.path.join("..", "bin", name), source=["side_native.cpp"])
+env.SharedLibrary(target=os.path.join("..", "bin", name + env["SHLIBSUFFIX"]), source=["side_native.cpp"])
