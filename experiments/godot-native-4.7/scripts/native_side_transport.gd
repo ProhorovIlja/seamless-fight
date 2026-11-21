@@ -235,7 +235,7 @@ func reset_latency() -> void:
 	rtt_samples.clear()
 
 func _tick_latency_probe() -> void:
-	if socket==null or socket.get_ready_state()!=WebSocketPeer.STATE_OPEN or local_slot<0:
+	if socket==null or socket.get_ready_state()!=WebSocketPeer.STATE_OPEN or (local_slot<0 and not spectating):
 		return
 	var now: int=Time.get_ticks_msec()
 	if pending_probe_id>=0 and now-pending_probe_at>=PROBE_TIMEOUT_MS:
