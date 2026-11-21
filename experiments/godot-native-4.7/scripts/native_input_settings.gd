@@ -66,6 +66,18 @@ func _button(message: String) -> Button:
 	button.add_theme_stylebox_override("hover",_button_style(Color("#34343b")))
 	return button
 
+func _line(stack: VBoxContainer, caption: String, widget: Control) -> void:
+	# Match the native graphics options layout. Missing helper previously
+	# prevented GDScript compilation and broke online/input settings smoke.
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation",18)
+	var heading := _label(caption,16,COLORS["bone"])
+	heading.custom_minimum_size=Vector2(175,34)
+	line.add_child(heading)
+	widget.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	line.add_child(widget)
+	stack.add_child(line)
+
 func _build() -> void:
 	var shade := ColorRect.new()
 	shade.color=Color(0.018,0.020,0.028,0.92)
