@@ -17,7 +17,7 @@ function frames(s,n,a=huntInput(),b=huntInput(),events){
 
 test('isolated Bloodborne-inspired version keeps two original transform weapons and no low/mid/high block',()=>{
  const s=live();
- assert.equal(s.rules,'sf-hunt-lab/2');
+ assert.equal(s.rules,'sf-hunt-lab/3');
  assert.notEqual(s.rules,'sf-trick-lab/3');
  assert.equal(HUNT_HZ,60);
  assert.equal(s.p[0].weapon,'mournweave');
