@@ -18,7 +18,7 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'transform-pressure':{category:'Offense',goal:'Land a real melee hit shortly after your weapon transforms.',trigger:'transform',success:'transformHit'},
  'rally-reclaim':{category:'Resources',goal:'Take a real melee hit, then reclaim health through a confirmed melee strike.',trigger:'hit',success:'rally'},
  'blood-economy':{category:'Resources',goal:'Create five temporary rounds at an HP cost and fire one afterward.',trigger:'bloodBullets',success:'bloodShot'},
- 'timing-read':{category:'Reads & Footsies',goal:'Recognize a heavy windup or a genuine feint; punish its recovery.',trigger:'feint',success:'feintPunish'},
+ 'timing-read':{category:'Reads & Footsies',goal:'Read a committed heavy or a genuine feint, then retaliate when a safe opening appears.',trigger:'heavy',success:'timingPunish'},
  'visceral-followup':{category:'Offense',goal:'Convert a successful firearm counter into a real timed visceral strike.',trigger:'gunParry',success:'visceral'}
 });
 const is=(e,kind,actor,move)=>e.kind===kind&&e.actor===actor&&
@@ -64,7 +64,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    drill==='transform-pressure'&&is(e,'transform',0)||
    drill==='rally-reclaim'&&is(e,'hit',1)||
    drill==='blood-economy'&&is(e,'bloodBullets',0)||
-   drill==='timing-read'&&is(e,'action',1,'feint')||
+   drill==='timing-read'&&is(e,'action',1,'foldedHeavy')||
    drill==='visceral-followup'&&is(e,'gunParry',0))attempts++;
   switch(drill){
    case 'parry-heavy':
@@ -90,7 +90,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
     if(is(e,'gunParry',0)&&e.playerAirborne===true)success(e);
     break;
    case 'whiff-punish':
-    if(is(e,'hit',0)&&earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),0,45))
+    if(is(e,'hit',0)&&earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),0,25))
      success(e);
     break;
    case 'hit-confirm':
@@ -109,8 +109,10 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
       earlier(entries,i,p=>is(p,'bloodBullets',0),0,150))success(e);
     break;
    case 'timing-read':
-    if(is(e,'hit',0)&&
-      earlier(entries,i,p=>is(p,'action',1,'feint'),0,50))success(e);
+    if(is(e,'hit',0)&&(
+      earlier(entries,i,p=>is(p,'action',1,'feint'),0,50)||
+      earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),0,25)
+     ))success(e);
     break;
    case 'visceral-followup':
     if(is(e,'visceral',0)&&
@@ -125,7 +127,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
   // An attempt is a true opponent action, never a fictitious timed event.
   status:drill==='free'?'Explore the combat system.':
    successes>0?'Objective met with confirmed combat events.':
-   attempts>0?'Opponent action observed. Objective not yet confirmed.':
+   attempts>0?'Training situation observed. Objective not yet confirmed.':
    'Waiting for a source-valid training situation.'
  });
 }
