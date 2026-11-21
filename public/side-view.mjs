@@ -111,7 +111,7 @@ const effects=[],MAX_EFFECTS=10;
 const footstepAt=[-99,-99];let nextTensionAt=0;
 let audioOn=false,queued='',priorPad=null,padQueued='',padMove={x:0,y:0,guard:false};
 let inspectorAt=0;const renderIntervals=[];
-let onlineSlot=-1,onlineCode='',onlineLooks=null,onlineTick=-1;
+let onlineSlot=-1,onlineCode='',watchCode='',onlineLooks=null,onlineTick=-1;
 const sideFootwork=footwork();let onlinePending=[],onlineAck=0;
 let onlineRtt=null,nextOnlinePingAt=0;const rttSamples=[];
 const held=new Set(),touchHeld=new Set();
@@ -304,14 +304,14 @@ function updateButtons(){
  $('replay-seek').disabled=!review||mode!=='review';
  $('frame-back').disabled=!review||mode!=='review';
  $('frame-next').disabled=!review||mode!=='review';
- $('pause').disabled=mode==='idle'||mode==='review'||mode==='online'||mode==='connecting';
- $('stage-select').disabled=mode==='online'||mode==='connecting';
- $('opponent').disabled=mode==='online'||mode==='connecting';
- $('show-boxes').disabled=mode==='online'||mode==='connecting';
- $('look-dye').disabled=mode==='online'||mode==='connecting';
- $('look-sigil').disabled=mode==='online'||mode==='connecting';
+ $('pause').disabled=['idle','review','online','spectate','connecting'].includes(mode);
+ $('stage-select').disabled=mode==='online'||mode==='spectate'||mode==='connecting';
+ $('opponent').disabled=mode==='online'||mode==='spectate'||mode==='connecting';
+ $('show-boxes').disabled=mode==='online'||mode==='spectate'||mode==='connecting';
+ $('look-dye').disabled=mode==='online'||mode==='spectate'||mode==='connecting';
+ $('look-sigil').disabled=mode==='online'||mode==='spectate'||mode==='connecting';
  $('pause').textContent=mode==='paused'?'Resume':'Pause';
- $('stage-mode').textContent=mode==='online'?'AUTHORITATIVE PRIVATE 1V1':mode==='connecting'?'JOINING ROOM':mode==='review'?'REPLAY / TAKEOVER':mode==='takeover'?'REPLAY TAKEOVER':mode==='paused'?'PAUSED':mode==='live'?'LOCAL DUEL · 60 HZ':'SIDE-VIEW LAB · OFFLINE';
+ $('stage-mode').textContent=mode==='online'?'AUTHORITATIVE PRIVATE 1V1':mode==='spectate'?'SPECTATING · 1V1':mode==='connecting'?'JOINING ROOM':mode==='review'?'REPLAY / TAKEOVER':mode==='takeover'?'REPLAY TAKEOVER':mode==='paused'?'PAUSED':mode==='live'?'LOCAL DUEL · 60 HZ':'SIDE-VIEW LAB · OFFLINE';
 }
 function restart(){
  sideTransport.close();resetOnlineButtons();clearHeld();s=sideMatch();bot=createSideBot(sidePrefs.level==='dummy'?'easy':sidePrefs.level);
@@ -388,35 +388,61 @@ $('takeover').onclick=()=>{
 };
 
 function resetOnlineButtons(){
- onlineSlot=-1;onlineCode='';onlineLooks=null;onlineTick=-1;sideFootwork.clear();onlinePending=[];onlineAck=0;
+ onlineSlot=-1;onlineCode='';watchCode='';onlineLooks=null;onlineTick=-1;sideFootwork.clear();onlinePending=[];onlineAck=0;
  onlineRtt=null;rttSamples.length=0;nextOnlinePingAt=0;
- $('side-copy').hidden=true;$('side-rematch').hidden=true;$('side-server-replay').hidden=true;
+ $('side-copy').hidden=true;$('side-gallery').hidden=true;$('side-watch-copy').hidden=true;
+ $('side-audience').hidden=true;$('side-gallery').textContent='Open public spectator gallery';
+ $('side-rematch').hidden=true;$('side-server-replay').hidden=true;
  $('side-network').textContent='Offline';
 }
 const sideTransport=createSideTransport({
  room(m){
   onlineSlot=m.slot;onlineCode=m.code;onlineLooks=m.looks;
   setStage(m.stage);$('stage-select').value=scene;$('side-code').value=m.code;
-  $('side-copy').hidden=false;
+  $('side-copy').hidden=false;$('side-gallery').hidden=m.slot!==0;
   $('side-network').textContent='Private room '+m.code+' · '+(m.slot===0?'host':'guest');
   setStatus(m.slot===0?'Private side-view room created. Share the invite code.':'Joined room. Awaiting both fighters.');
  },
  start(m){
   if(m.s?.rules!==SIDE_RULESET)return;
-  s=m.s;onlineTick=-1;onlineAck=0;onlinePending=[];mode='online';clearHeld();effects.length=0;onlineLooks=m.looks;sideFootwork.clear();
+  s=m.s;onlineTick=-1;onlineAck=0;onlinePending=[];if(mode!=='spectate')mode='online';clearHeld();effects.length=0;onlineLooks=m.looks;sideFootwork.clear();
   $('side-rematch').hidden=true;$('side-server-replay').hidden=true;
-  setStatus('Server-authoritative side-view duel. Private, unrated and unranked.');
+  setStatus(mode==='spectate'?'Spectating a live 1v1 duel. Combat input is disabled.':'Server-authoritative side-view duel. Private, unrated and unranked.');
   updateButtons();
  },
+ watching(m){
+  if(m.s?.rules!==SIDE_RULESET||!Array.isArray(m.s.p)||m.s.p.length!==2)return;
+  onlineSlot=-1;onlineLooks=m.looks;onlineTick=m.s.tick;s=m.s;mode='spectate';
+  setStage(m.stage);$('stage-select').value=scene;
+  clearHeld();effects.length=0;sideFootwork.clear();sideFootwork.push(s,performance.now());
+  $('side-network').textContent='Spectating · '+(m.viewerCount||1)+' / 6 viewers';
+  setStatus('Watching a public 2.5D duel · read-only, no combat commands.');
+  updateButtons();
+ },
+ gallery(m){
+  if(onlineSlot!==0)return;
+  watchCode=typeof m.code==='string'&&SIDE_INVITE_PATTERN.test(m.code)?m.code:'';
+  $('side-gallery').textContent=watchCode?'Close public spectator gallery':'Open public spectator gallery';
+  $('side-watch-copy').hidden=!watchCode;$('side-audience').hidden=!watchCode;
+  setStatus(watchCode?'Public spectators may now enter this 1v1 duel.':'Public spectator gallery closed.');
+ },
+ audience(m){
+  if(onlineSlot!==0)return;
+  $('side-audience').textContent=Number.isSafeInteger(m.viewers)?m.viewers+' / 6 spectators':'Audience count unavailable';
+ },
  state(m){
-  if(mode!=='online'||m.s?.rules!==SIDE_RULESET||
+  if(!['online','spectate'].includes(mode)||m.s?.rules!==SIDE_RULESET||
      !Number.isSafeInteger(m.s.tick)||m.s.tick<onlineTick)return;
   onlineTick=m.s.tick;s=m.s;sideFootwork.push(s,performance.now());sideFootstepCues();
-  onlineAck=Number.isSafeInteger(m.ack)?m.ack:onlineAck;
-  onlinePending=onlinePending.filter(i=>i.seq>onlineAck).slice(-SIDE_PREDICTION_LIMIT);
+  if(mode==='online'){
+   onlineAck=Number.isSafeInteger(m.ack)?m.ack:onlineAck;
+   onlinePending=onlinePending.filter(i=>i.seq>onlineAck).slice(-SIDE_PREDICTION_LIMIT);
+  }
   effectsFrom(Array.isArray(m.events)?m.events:[]);
-  $('side-network').textContent='Server tick '+s.tick+' · input receipt ACK '+m.ack+' · RTT median '+(onlineRtt===null?'collecting':onlineRtt.toFixed(0)+' ms')+' · room '+onlineCode;
-  if(s.over){$('side-rematch').hidden=false;$('side-server-replay').hidden=false;
+  $('side-network').textContent=mode==='spectate'?
+   'SPECTATING · server tick '+s.tick+' · no combat input':
+   'Server tick '+s.tick+' · input receipt ACK '+m.ack+' · RTT median '+(onlineRtt===null?'collecting':onlineRtt.toFixed(0)+' ms')+' · room '+onlineCode;
+  if(s.over&&mode==='online'){$('side-rematch').hidden=false;$('side-server-replay').hidden=false;
    setStatus('Online side-view bout finished. Request a replay or a rematch.');}
  },
  replay(m){
@@ -432,14 +458,14 @@ const sideTransport=createSideTransport({
  },
  notice(m){setStatus(String(m.message||'Server notice').slice(0,180));},
  error(){setStatus('Side-view server connection failed.');},
- close(){clearHeld();resetOnlineButtons();if(mode==='online'||mode==='connecting'){mode='idle';updateButtons();setStatus('Side-view room closed. Start another private duel.');}}
+ close(){clearHeld();resetOnlineButtons();if(mode==='online'||mode==='spectate'||mode==='connecting'){mode='idle';updateButtons();setStatus('Side-view room closed. Start another private duel.');}}
 });
-function connectSide(code=null){
+function connectSide(code=null,watch=false){
  sideTransport.close();resetOnlineButtons();clearHeld();
  review=null;capture=null;replayLooks=null;tape=[];cursor=0;effects.length=0;s=sideMatch();
  mode='connecting';setStatus('Connecting to side-view duel server…');
- $('side-network').textContent='Opening private room…';updateButtons();
- try{sideTransport.connect(code,scene,sidePrefs.look);}
+ $('side-network').textContent=watch?'Opening spectator stream…':'Opening private room…';updateButtons();
+ try{if(watch)sideTransport.watch(code);else sideTransport.connect(code,scene,sidePrefs.look);}
  catch(err){mode='idle';setStatus('Could not open side-view room.');$('side-network').textContent=err.message;updateButtons();}
 }
 $('side-host').onclick=()=>connectSide();
@@ -454,10 +480,19 @@ $('side-copy').onclick=async()=>{
  try{await navigator.clipboard.writeText(url.href);$('side-network').textContent='Private room URL copied.';}
  catch{$('side-network').textContent='Copy code '+onlineCode+' to invite a friend.';}
 };
-$('side-rematch').onclick=()=>{if(s.over)sideTransport.rematch();};
+$('side-gallery').onclick=()=>{if(onlineSlot===0)sideTransport.gallery(!watchCode);};
+$('side-watch-copy').onclick=async()=>{
+ if(!watchCode)return;
+ const url=new URL('/fight/side/',location.href);url.searchParams.set('watch',watchCode);
+ try{await navigator.clipboard.writeText(url.href);setStatus('Public spectator link copied. Private fighter invitation remains secret.');}
+ catch{setStatus('Watch code: '+watchCode);}
+};
+$('side-rematch').onclick=()=>{if(mode==='online'&&s.over)sideTransport.rematch();};
 $('side-server-replay').onclick=()=>{if(s.over)sideTransport.replay();};
 const invited=new URLSearchParams(location.search).get('room');
-if(invited&&SIDE_INVITE_PATTERN.test(invited)){$('side-code').value=invited;connectSide(invited);}
+const spectator=new URLSearchParams(location.search).get('watch');
+if(spectator&&SIDE_INVITE_PATTERN.test(spectator))connectSide(spectator,true);
+else if(invited&&SIDE_INVITE_PATTERN.test(invited)){$('side-code').value=invited;connectSide(invited);}
 addEventListener('pagehide',()=>sideTransport.close());
 
 for(const [key,m]of Object.entries(SIDE_MOVES))if(m.damage){
@@ -492,7 +527,7 @@ function paint(now,elapsed){
  if(elapsed>0&&elapsed<100){renderIntervals.push(elapsed);if(renderIntervals.length>120)renderIntervals.shift();}
  if(now>=inspectorAt){
   inspectorAt=now+125;
-  const view=mode==='online'||mode==='connecting'?null:sideReadout(s);
+  const view=['online','spectate','connecting'].includes(mode)?null:sideReadout(s);
   $('live-spacing').textContent=view?'Center distance '+view.distance+' units · hurtbox gap '+view.gap+' units':'Training-only frame inspector · disabled for online fairness';
   for(let side=0;side<2;side++){
    $('live-phase-'+side).textContent=view?view.fighters[side]:'Offline drills and replay only';
@@ -513,7 +548,7 @@ function paint(now,elapsed){
  const illustrated=hasIllustratedScene();
  canvas.dataset.artMode=illustrated?'illustrated':'procedural';
  if(audioOn&&now>=nextTensionAt){nextTensionAt=now+220;sound.tension(Math.round(sideScoreTension(s)*20)/20);}
- const camera=sideCameraImpact(effects,now,reduced()||!sidePrefs.impactCamera,sidePrefs.depthQuality,sidePrefs.boxes&&mode!=='online');
+ const camera=sideCameraImpact(effects,now,reduced()||!sidePrefs.impactCamera,sidePrefs.depthQuality,sidePrefs.boxes&&!['online','spectate'].includes(mode));
  const lens=sideWorldLens(s,sidePrefs.depthQuality);
  g.save();g.translate(camera.x,camera.y);
  // Identical lens for the stage, two fighters and frame-data boxes. HUD and
@@ -525,8 +560,8 @@ function paint(now,elapsed){
   paintSideDepthBack(g,scene,now,s,sidePrefs.depthQuality,reduced());
   paintSideWeather(g,now,scene,reduced()||sidePrefs.depthQuality==='performance');
  }
- const appearance=mode==='online'&&Array.isArray(onlineLooks)&&onlineLooks.length===2?onlineLooks:(mode==='review'||mode==='takeover')&&replayLooks?replayLooks:[sidePrefs.look,outfit({dye:'oxblood',sigil:'thorn'})];
- const neutralFoot=mode==='online'?sideFootwork.sample(now):null;
+ const appearance=['online','spectate'].includes(mode)&&Array.isArray(onlineLooks)&&onlineLooks.length===2?onlineLooks:(mode==='review'||mode==='takeover')&&replayLooks?replayLooks:[sidePrefs.look,outfit({dye:'oxblood',sigil:'thorn'})];
+ const neutralFoot=['online','spectate'].includes(mode)?sideFootwork.sample(now):null;
  const ownPrediction=mode==='online'&&onlineSlot>=0?reconcileSide(s,onlineSlot,onlinePending,onlineAck):null;
  for(let i=0;i<2;i++){
   const p=s.p[i],smooth=neutralFoot?.[i];
@@ -534,7 +569,7 @@ function paint(now,elapsed){
   // predicted; committed attacks and impact decisions use immediate server state.
   const localPose=i===onlineSlot&&ownPrediction?.predicted?ownPrediction.p:null;
   const pose=localPose?{...p,x:localPose.x,y:localPose.y,vx:localPose.vx,vy:localPose.vy,crouch:localPose.crouch}:
-   mode==='online'&&i!==onlineSlot&&smooth?{...p,x:smooth.x,y:smooth.y}:p;
+   ['online','spectate'].includes(mode)&&i!==onlineSlot&&smooth?{...p,x:smooth.x,y:smooth.y}:p;
   if(!previewRig||!paintSideSprite(g,pose,previewRig.img,previewRig.manifest,now))
    paintSideFighter(g,pose,appearance[i],now,reduced(),sidePrefs.contrast);
  }
@@ -561,7 +596,7 @@ function paint(now,elapsed){
 }
 function animate(now){
  const elapsed=Math.max(0,Math.min(100,now-priorFrame));priorFrame=now;
- if(mode==='online'&&now>=nextOnlinePingAt&&sideTransport.connected()){
+ if(['online','spectate'].includes(mode)&&now>=nextOnlinePingAt&&sideTransport.connected()){
   nextOnlinePingAt=now+2000;sideTransport.ping(now);
  }
  usePad();
