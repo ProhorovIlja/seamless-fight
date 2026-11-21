@@ -1,5 +1,5 @@
 // Offline Hunt combat replay, seek and takeover. No server trust, no player data.
-// Same pure rules as the separately versioned sf-hunt-lab/1 simulator.
+// Same pure rules as the separately versioned sf-hunt-lab/2 simulator.
 import {HUNT_RULESET,huntMatch,huntStep,canonicalHuntInput} from './side-hunt-lab.mjs';
 
 export const HUNT_CAPTURE_SCHEMA='sf-hunt-replay/1';
