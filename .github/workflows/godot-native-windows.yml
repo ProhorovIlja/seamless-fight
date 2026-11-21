@@ -55,7 +55,17 @@ jobs:
           done
           curl -fsS http://127.0.0.1:18893/fight/health
           G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
-          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_online.gd --quit-after 720
+          # Exit code alone is insufficient: Godot can log a GDScript error yet
+          # return 0 when --quit-after expires. Require a real explicit assertion.
+          timeout 26s "$G" --headless --path experiments/godot-native-4.7 \
+            --script res://tests/verify_native_online.gd > "$RUNNER_TEMP/native-online-test.log" 2>&1
+          cat "$RUNNER_TEMP/native-online-test.log"
+          if grep -E 'SCRIPT ERROR|NATIVE_GODOT_PRIVATE_1V1_FAIL|GDScript backtrace' "$RUNNER_TEMP/native-online-test.log"; then
+            echo 'Native online runtime emitted an error despite engine exit status' >&2
+            exit 1
+          fi
+          grep -F 'GODOT_NATIVE_WINDOWS_1V1_SCENES_SERVER_PASS' "$RUNNER_TEMP/native-online-test.log"
+
       - name: Cross-build native x86-64 Windows PE and resource pack
         shell: bash
         run: |

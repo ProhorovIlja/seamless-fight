@@ -76,7 +76,7 @@ func _process(_delta: float) -> void:
 				close()
 				return
 		var count := 0
-		while socket.get_available_packet_count() > 0 and count < 48:
+		while socket != null and socket.get_ready_state() == WebSocketPeer.STATE_OPEN and socket.get_available_packet_count() > 0 and count < 48:
 			count += 1
 			var packet := socket.get_packet()
 			if not socket.was_string_packet() or packet.size() > MAX_PACKET_BYTES:
