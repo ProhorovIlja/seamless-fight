@@ -65,9 +65,11 @@ export const trickPhase=p=>{
  return p.age<m.startup?'startup':p.age<m.startup+m.active?'active':'recovery';
 };
 const motion=(p,input)=>{
- const form=p.form==='folded'?'Folded':'Unfurled';
+ const airborne=p.y<TRICK_FLOOR;
+ const form=p.form==='folded'
+  ?(airborne?'Folded':'folded'):(airborne?'Unfurled':'unfurled');
  if(input==='light'||input==='heavy')
-  return (p.y<TRICK_FLOOR?'air':'')+form+input[0].toUpperCase()+input.slice(1);
+  return (airborne?'air':'')+form+input[0].toUpperCase()+input.slice(1);
  if(input==='trick')
   return !p.act?(p.form==='folded'?'shiftOut':'shiftIn'):
    (p.form==='folded'?'unfurl':'refold');
