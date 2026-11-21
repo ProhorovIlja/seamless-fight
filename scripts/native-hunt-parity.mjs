@@ -312,9 +312,9 @@ try{
  }
  assert.equal(limbScenarios,4);
  // The two participant slots must settle BOTH neutral facings from
- // post-collision positions. A one-unit separation and one walk command
- // deliberately reverse the fighters during the first tick. Verify every
- // native C++ state field, not only the visible dir field, for 24 ticks.
+ // post-collision positions. A one-unit gap and one forward walk command
+ // must NOT cross an opponent's solid body or reverse the initial ordering.
+ // Compare all 69 native C++ fields on both sides, for 24 ticks.
  let neutralFaceScenarios=0,neutralFaceTicks=0;
  for(const second of [false,true]){
   const source=huntMatch();source.ready=0;
@@ -338,8 +338,10 @@ try{
    huntStep(source,inputs[t]);
    if(t===0){
     const [a,b]=source.p;
-    assert(second?a.x<b.x:a.x>b.x,
-     'Point-blank body solver must genuinely reverse order');
+    assert(second?a.x>b.x:a.x<b.x,
+     'Neutral walking must not tunnel through the opponent');
+    assert.equal(Math.abs(a.x-b.x),38,
+     'Body solver must resolve a full gap with no free crossing');
     assert.equal(a.dir,b.x>=a.x?1:-1);
     assert.equal(b.dir,a.x>=b.x?1:-1);
     assert.equal(a.dir,-b.dir);
