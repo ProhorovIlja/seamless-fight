@@ -83,6 +83,27 @@ test('new English neutral drill records a real gun action; attempts require its 
  assert.equal(practice.goal().mode,'unrated-offline-1v1');
 });
 
+test('a real player can dodge the live gunshot then melee-punish its recovery',()=>{
+ const s=huntPracticeSession({drill:'gun-whiff-punish'});
+ for(let tick=1;tick<=101;tick++){
+  const input=tick===59?cmd('step',1):tick===81?cmd('light'):cmd();
+  assert(s.append(input),'replay must accept each ordinary 60Hz input');
+ }
+ const events=s.eventHistory(300);
+ const shot=events.find(e=>e.kind==='action'&&e.actor===1&&e.move==='shot');
+ const miss=events.find(e=>e.kind==='whiff'&&e.actor===1&&e.move==='shot');
+ const hit=events.find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
+ assert(shot,'dummy must execute real firearm input');
+ assert(miss,'real step i-frames must dodge the single active gun frame');
+ assert(hit,'hunter must actually connect the follow-up attack');
+ assert.equal(hit.punishedRecovery,true);
+ assert.equal(hit.punishedMove,'shot');
+ assert.equal(s.goal().attempts,1);
+ assert.equal(s.goal().successes,1);
+ assert.equal(s.inspect().p[0].hp,100);
+ assert.equal(s.goal().lastIntervalFrames,hit.tick-miss.tick);
+});
+
 test('LEFT-corner escape attempts cannot be awarded from RIGHT-wall pressure',()=>{
  const action={tick:46,kind:'action',actor:1,move:'foldedHeavy'};
  const crossed={tick:53,kind:'cornerEscape',actor:0,side:'left'};
