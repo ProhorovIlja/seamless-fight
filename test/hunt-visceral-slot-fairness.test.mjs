@@ -65,3 +65,46 @@ test('visceral requires a true grounded, forward-facing exposed opponent',()=>{
   assert.notEqual(s.p[actor].act,'visceral','no airborne grab-like visceral');
  }
 });
+
+
+test('locked visceral victim cannot buffer phantom shots, steps or resources in either slot',()=>{
+ for(const attacker of [0,1])for(const command of ['shot','step']){
+  const victimSlot=1-attacker;
+  const state=huntMatch();state.ready=0;
+  const hunter=state.p[attacker],victim=state.p[victimSlot];
+  hunter.x=500;hunter.vx=0;hunter.act='';
+  victim.x=426;victim.vx=6;victim.act='stagger';
+  victim.age=20;victim.exposed=20;
+  victim.queue='';victim.queueLife=0;
+  const ammo=victim.ammo,stamina=victim.st;
+  const inputs=[huntInput(),huntInput()];
+  inputs[attacker]=visceral();
+  inputs[victimSlot]={...huntInput(),act:command,x:command==='step'?1:0};
+  const events=[];
+  huntStep(state,inputs,events);
+  assert.equal(hunter.act,'visceral','confirmed parry follow-up starts');
+  assert.equal(victim.act,'visceralVictim','victim is genuinely locked');
+  assert.equal(victim.age,1,'visceral starts on the same simulation tick');
+  assert.equal(victim.exposed,0,'opening is consumed exactly once');
+  assert.equal(victim.queue,'','locked victim cannot buffer another action');
+  assert.equal(victim.queueLife,0,'no latent queued input for rollback');
+  assert.equal(victim.ammo,ammo,'no ammunition spent after capture');
+  assert.equal(victim.st,stamina,'no stamina spent after capture');
+  assert.equal(events.some(e=>e.kind==='action'&&e.actor===victimSlot),false,
+   'captured opponent cannot start a free gun or dodge action');
+  const afterFirst={x:victim.x,vx:victim.vx,queue:victim.queue,
+   age:victim.age,act:victim.act,ammo:victim.ammo,st:victim.st};
+  // Even if the victim keeps pressing shot during the lock, the buffer
+  // remains empty and the same simulation state replays deterministically.
+  for(let frame=0;frame<5;frame++){
+   const held=[huntInput(),huntInput()];
+   held[victimSlot]={...huntInput(),act:command};
+   huntStep(state,held);
+   assert.equal(victim.queue,'');
+   assert.equal(victim.queueLife,0);
+   assert.equal(victim.ammo,ammo);
+   assert.equal(victim.st,stamina);
+  }
+  assert(Number.isFinite(afterFirst.x)&&Number.isFinite(afterFirst.vx));
+ }
+});
