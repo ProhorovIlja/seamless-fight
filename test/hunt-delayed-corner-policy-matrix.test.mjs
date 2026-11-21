@@ -23,6 +23,19 @@ test('four attacker patterns and five no-block responses are exercised at both w
  assert.equal(report.noActualNetworkRollbackHere,true);
  assert.equal(report.defenderUsesDelayedOpponentObservation,true);
  assert(report.byDelay.every(x=>x.scenarios===480&&x.falseGuardEvents===0));
+ for(const delay of report.byDelay){
+  for(const category of ['punishedDodgeTailCases','punishedDodgeRecoveryCases',
+   'defenderWhiffPunishCases']){
+   assert(Number.isSafeInteger(delay[category]));
+   assert(delay[category]>=0&&delay[category]<=delay.scenarios);
+  }
+  assert.equal(delay.punishedDodgeTailCases,
+   report.cases.filter(x=>x.observationDelay===delay.observationDelay&&
+    x.attackerPunishesDodgeTail>0).length);
+  assert.equal(delay.punishedDodgeRecoveryCases,
+   report.cases.filter(x=>x.observationDelay===delay.observationDelay&&
+    x.attackerPunishesDodgeRecovery>0).length);
+ }
  const keys=new Set();
  for(const x of report.cases){
   keys.add([x.defenderWeapon,x.attackerWeapon,x.wall,x.initialStamina,
@@ -35,6 +48,17 @@ test('four attacker patterns and five no-block responses are exercised at both w
   assert(x.neutralAfterDamage<=x.actionableAfterDamage);
   assert(x.confirmedDefenderCornerCrossings<=x.defenderQuicksteps);
   assert(x.confirmedDefenderGunParries<=x.defenderShots);
+  for(const field of ['attackerPunishesDodgeTail','attackerPunishesDodgeRecovery',
+   'attackerStartupInterrupts','defenderWhiffRecoveryPunishes',
+   'defenderStartupInterrupts']){
+   assert(Number.isSafeInteger(x[field])&&x[field]>=0,
+    'genuine resolved-contact metric required: '+field);
+  }
+  assert(x.attackerPunishesDodgeTail+x.attackerPunishesDodgeRecovery<=
+   x.landedAttackerHits,'no dodge may count twice as tail and recovery');
+  assert(x.attackerStartupInterrupts<=x.landedAttackerHits);
+  assert(x.defenderWhiffRecoveryPunishes<=x.defenderMeleeHits);
+  assert(x.defenderStartupInterrupts<=x.defenderMeleeHits);
   assert.equal(x.defenderDefeated,x.defenderHP===0);
   assert.equal(x.eventsContainForbiddenGuard,false);
  }
