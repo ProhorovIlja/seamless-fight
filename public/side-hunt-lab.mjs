@@ -164,7 +164,7 @@ function buffer(p,input){
   if(!p.queueLife)p.queue='';
  }
 }
-function starts(p,other,requested,input){
+function starts(p,other,requested,input,opponentStartX,opponentStartExposed){
  if(!requested)return false;
  const m=huntMoveSpec(p,requested);
  const escaping=p.act==='stun'&&requested==='step';
@@ -175,8 +175,8 @@ function starts(p,other,requested,input){
  if(['blood','heal'].includes(requested)&&p.y<HUNT_FLOOR)return false;
  if(requested==='blood'&&(p.hp<=HUNT_BLOOD_COST||p.bloodAmmo))return false;
  if(requested==='heal'&&(!p.vials||p.hp>=100))return false;
- if(requested==='visceral'&&(!other.exposed||p.y<HUNT_FLOOR||
-   Math.abs(p.x-other.x)>76||p.dir*(other.x-p.x)<0))return false;
+ if(requested==='visceral'&&(!opponentStartExposed||p.y<HUNT_FLOOR||
+   Math.abs(p.x-opponentStartX)>76||p.dir*(opponentStartX-p.x)<0))return false;
  if(['heal','blood','visceral'].includes(requested)&&p.act&&!huntCanAct(p))return false;
  if((requested==='shiftOut'||requested==='shiftIn')&&p.y<HUNT_FLOOR)return false;
  const old=huntMoveSpec(p);
@@ -253,7 +253,7 @@ function starts(p,other,requested,input){
  }
  return true;
 }
-function drive(p,q,input,events,tick,actor,opponentStartX){
+function drive(p,q,input,events,tick,actor,opponentStartX,opponentStartExposed){
  const wasGround=p.y>=HUNT_FLOOR;
  if(p.exposed>0)p.exposed--;
  if(p.rallyLife>0)p.rallyLife--;
@@ -278,7 +278,7 @@ function drive(p,q,input,events,tick,actor,opponentStartX){
   const requested=motion(p,p.queue,input.x);
   // One queued attack is consumed only when permitted. No free neutral inputs.
   // A transform queued during an attack is morph; otherwise it's a slow shift.
-  if(starts(p,q,requested,input)){
+  if(starts(p,q,requested,input,opponentStartX,opponentStartExposed)){
    events?.push({tick,kind:'action',actor,move:requested,form:p.form,x:p.x,y:p.y-80});
    p.queue='';p.queueLife=0;
   }
@@ -435,9 +435,9 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  }
  if(s.ready){s.ready--;return s;}
  const a=s.p[0],b=s.p[1];
- const beforeX=[a.x,b.x];
- drive(a,b,commands[0],events,s.tick,0,beforeX[1]);
- drive(b,a,commands[1],events,s.tick,1,beforeX[0]);
+ const beforeX=[a.x,b.x],beforeExposed=[a.exposed,b.exposed];
+ drive(a,b,commands[0],events,s.tick,0,beforeX[1],beforeExposed[1]);
+ drive(b,a,commands[1],events,s.tick,1,beforeX[0],beforeExposed[0]);
  // During paid forward quickstep i-frames, pass the opponent's body to exit
  // a wall trap. No teleport, wall jump, air dodge or free defensive guard.
  // Collision resumes immediately when the dodge window closes.
