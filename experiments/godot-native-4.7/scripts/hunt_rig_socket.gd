@@ -181,9 +181,13 @@ func _decide_clip(fighter: Dictionary) -> String:
 		return action
 	if float(fighter.get("y",436.0))<435.5:
 		return "jump"
-	if bool(fighter.get("crouch",false)):
-		return "crouch"
-	if absf(float(fighter.get("vx",0.0)))>2.0:
+	# Reverse-speed gait is an authored retreat in no-guard footsies.
+	# No crouch pose: Hunt combat has no crouch input or state.
+	var velocity: float=float(fighter.get("vx",0.0))
+	var facing: int=int(fighter.get("dir",1))
+	if absf(velocity)>0.15 and velocity*float(facing)<0.0:
+		return "retreat"
+	if absf(velocity)>2.0:
 		return "run"
 	if absf(float(fighter.get("vx",0.0)))>0.15:
 		return "walk"
