@@ -11,3 +11,5 @@ Research links: GGPO developer guide https://github.com/pond3r/ggpo/blob/master/
 This file is NOT networked rollback. No public match server, GGPO adapter, authoritative input authentication, native C++ Hunt v3 parity, real latency testing, production anti-cheat or ranked scoring has been implemented by this batch. The online legacy protocol must not accept these snapshots until an end-to-end transition with version checks, native parity, disconnection/abuse policy and remote hardware testing.
 
 The working seamlesshunt.com VPS is not touched. No Bloodborne-owned graphics/sounds/assets were added.
+
+Additional source-driven regression: remote heavy at tick 56, player legal shot at tick 59 and authentic firearm parry on tick 68, conversion to real visceral at tick 103 (42 damage) despite delayed heavy packet delivery. HP-sacrifice bullet ritual and later shot stay correct through speculative opponent quicksteps and reconciliation. All source mechanics remain unmodified.

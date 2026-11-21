@@ -80,3 +80,42 @@ test('other rulesets, extra fighters and oversized windows cannot enter Hunt rol
  assert.throws(()=>createHuntRollback({initialState:bad}),/Hunt/);
  assert.throws(()=>createHuntRollback({maxRollback:121}),/1..120/);
 });
+
+test('late heavy produces exact firearm parry and timed visceral after true rollback',()=>{
+ const original=huntMatch();original.ready=0;
+ original.p[0].x=442;original.p[1].x=518;
+ const expected=structuredClone(original),r=createHuntRollback({initialState:original,maxRollback:10});
+ const events=[],deliveries=[];
+ for(let tick=1;tick<=120;tick++){
+  const local={...neutral(),act:tick===59?'shot':tick===97?'visceral':''};
+  const remote={...neutral(),act:tick===56?'heavy':''};
+  huntStep(expected,[local,remote],events);r.advance(local);
+  deliveries.push({tick:tick-1,remote,due:tick+3});
+  for(const item of deliveries.filter(x=>x.due===tick))
+   r.confirm(item.tick,item.remote);
+ }
+ for(const item of deliveries.filter(x=>x.due>120))r.confirm(item.tick,item.remote);
+ assert.deepEqual(r.getState(),expected,'rollback must preserve both counter and conversion');
+ assert(events.some(e=>e.tick===68&&e.kind==='gunParry'&&e.actor===0));
+ assert(events.some(e=>e.tick===103&&e.kind==='visceral'&&e.actor===0&&e.damage===42));
+ assert(r.getStats().corrections>=1);
+ assert.equal(r.getStats().pending,0);
+});
+test('HP-cost temporary blood rounds survive deterministic delayed remote reconciliation',()=>{
+ const original=huntMatch();original.ready=0;
+ const expected=structuredClone(original),r=createHuntRollback({initialState:original,maxRollback:8});
+ const mail=[];
+ for(let tick=1;tick<=75;tick++){
+  const local={...neutral(),act:tick===1?'blood':tick===46?'shot':''};
+  const remote={...neutral(),act:tick===17?'step':''};
+  huntStep(expected,[local,remote]);r.advance(local);
+  mail.push({tick:tick-1,remote,due:tick+2});
+  for(const m of mail.filter(x=>x.due===tick))r.confirm(m.tick,m.remote);
+ }
+ for(const m of mail.filter(x=>x.due>75))r.confirm(m.tick,m.remote);
+ assert.deepEqual(r.getState(),expected);
+ assert.equal(r.getState().p[0].hp,70);
+ assert.equal(r.getState().p[0].bloodAmmo,4);
+ assert.equal(r.getState().p[0].ammo,7);
+ assert.equal(r.getStats().pending,0);
+});
