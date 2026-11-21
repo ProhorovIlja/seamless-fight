@@ -4,7 +4,7 @@ import {
  HUNT_PRACTICE_SCHEMA,HUNT_DUMMY_SLOTS,HUNT_DUMMY_MAX_FRAMES,HUNT_PRACTICE_HISTORY,
  huntFrameMeter,huntPracticeSession
 } from '../public/hunt-practice-suite.mjs';
-import {HUNT_RULESET,HUNT_HZ,HUNT_MOVES,huntMatch,huntInput} from '../public/side-hunt-lab.mjs';
+import {HUNT_RULESET,HUNT_HZ,HUNT_MOVES,huntMatch,huntInput,huntStep} from '../public/side-hunt-lab.mjs';
 import {createHuntReplay} from '../public/side-hunt-replay.mjs';
 const cmd=(act='',x=0,y=0)=>({act,x,y,guard:false});
 test('offline practice owns exact Hunt v3 state, not older Godot/JS duel rules',()=>{
@@ -38,6 +38,23 @@ test('frame meter derives action phases directly from actual 60Hz move table',()
  assert.equal(meter.stamina,100);
  assert.equal(meter.weapon,'mournweave');
  assert.equal(huntFrameMeter(s,1).frames.total,0);
+});
+test('browser training frame meter matches native quickstep phase contract',()=>{
+ const s=huntMatch();s.ready=0;
+ huntStep(s,[cmd('step',1),cmd()]);
+ for(let age=1;age<=21;age++){
+  const m=huntFrameMeter(s);
+  assert.equal(m.frames.age,age);
+  assert.equal(m.quickstepIframes,age>=1&&age<=6);
+  assert.equal(m.quickstepVulnerableTail,age>=7&&age<=8);
+  assert.equal(m.quickstepRecoveryPunishable,age>=9&&age<=20);
+  assert.equal(m.quickstepRemainingRecovery,age>=9&&age<=20?21-age:0);
+  assert.equal(m.firearmCounterWindowOpen,false,
+   'quickstep is not itself a firearm-parryable action');
+  huntStep(s,[cmd(),cmd()]);
+ }
+ assert.equal(huntFrameMeter(s).quickstepIframes,false);
+ assert.equal(huntFrameMeter(s).quickstepRecoveryPunishable,false);
 });
 test('practice advances exactly one authoritative combat frame and records ordered input history',()=>{
  const t=huntPracticeSession({seed:5});
