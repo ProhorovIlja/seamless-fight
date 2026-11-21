@@ -9,7 +9,6 @@
 #include <cstdint>
 #include <iomanip>
 #include <ostream>
-#include <stdexcept>
 
 namespace sf_hunt {
 constexpr int HZ=60, FLOOR=436, WIDTH=960;
@@ -52,7 +51,9 @@ constexpr std::array<Spec,14> THORN={{
 constexpr Spec THORN_SHIFT_IN={4,0,11,5,0,0,-105,-26};
 inline Spec spec(Weapon w,Action a){
  const int n=static_cast<int>(a);
- if(n<0||n>=COUNT)throw std::out_of_range("Unknown Hunt move");
+ // Godot's official GDExtension toolchain disables C++ exceptions.
+ // No invalid enum can cause an out-of-bounds table access.
+ if(n<0||n>=COUNT)return BASE[NONE];
  if(w==THORNWAKE && n<static_cast<int>(THORN.size()))return THORN[n];
  if(w==THORNWAKE && a==SHIFT_IN)return THORN_SHIFT_IN;
  return BASE[n];
@@ -271,7 +272,7 @@ inline void step(State&s,const Input&aa,const Input&bb){
  for(const Input&i:{aa,bb}){
   if((i.x<-1||i.x>1)||(i.y<-1||i.y>1)||i.guard||
      i.act<NOTHING||i.act>BLOOD_INPUT)
-   throw std::invalid_argument("Invalid Hunt v3 input, blocking forbidden");
+   return; // Deterministic fail-closed no-op; validated GDExtension/CLI reject callers.
  }
  ++s.tick;if(s.over)return;
  if(s.end){

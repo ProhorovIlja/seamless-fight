@@ -15,7 +15,14 @@ int main(){
  while(std::cin>>x0>>y0>>a0>>g0>>x1>>y1>>a1>>g1){
   const Input a{x0,y0,static_cast<Request>(a0),g0!=0},
               b{x1,y1,static_cast<Request>(a1),g1!=0};
-  try{step(s,a,b);}catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 3;}
+  const auto valid=[](const Input&i){
+   return i.x>=-1&&i.x<=1&&i.y>=-1&&i.y<=1&&!i.guard&&
+    i.act>=NOTHING&&i.act<=BLOOD_INPUT;
+  };
+  if(!valid(a)||!valid(b)){
+   std::cerr<<"HUNT_V3_REJECTED_INVALID_INPUT\n";return 3;
+  }
+  step(s,a,b);
   commands.push_back({a,b});checkpoints.push_back(s);
   const std::size_t n=checkpoints.size();
   if(n>=9&&n%157==0){
