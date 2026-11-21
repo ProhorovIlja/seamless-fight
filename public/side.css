@@ -21,3 +21,13 @@ main{width:min(1450px,calc(100% - 32px));margin:0 auto}.intro{max-width:880px;pa
 html[data-hunt-font="true"] h1,html[data-hunt-font="true"] h2,html[data-hunt-font="true"] .nav .site{font-family:'Hunt Garamond',Georgia,serif}
 
 .wardrobe-layout{display:flex;flex-wrap:wrap;gap:1rem;align-items:center}.wardrobe-layout canvas{width:min(230px,100%);height:auto;aspect-ratio:230/225;flex:none;background:radial-gradient(ellipse at 50% 35%,#38313c,#11151c 72%);border:1px solid #9a825e6e}.wardrobe-options{display:flex;flex-direction:column;gap:1rem;flex:1 1 190px;min-width:0}.wardrobe-options label{display:flex;flex-direction:column;align-items:stretch;gap:.45rem;font:.82rem/1.5 system-ui,sans-serif;color:#cbbca3}.wardrobe-options select{min-width:0;width:100%}#look-note{font:.77rem/1.55 system-ui,sans-serif;color:#b9a989}@media(max-width:520px){.wardrobe-layout{justify-content:center}.wardrobe-options{flex:1 1 100%}}
+
+/* Experimental artist import stays out of the everyday combat settings. */
+.artist-stage-studio{grid-column:1/-1;padding:.55rem 1rem}
+.artist-stage-studio details summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:.5rem;color:#d9b878;font:600 .88rem/1.5 Georgia,serif;letter-spacing:.03em;padding:.5rem .1rem}
+.artist-stage-studio details summary span{font:.7rem/1.6 system-ui,sans-serif;color:#9c968b}
+.artist-stage-studio details[open] summary{border-bottom:1px solid #d9b87840;margin-bottom:.7rem}
+.artist-stage-studio .studio-fields{display:grid;gap:.6rem}
+.artist-stage-studio .studio-fields label{display:flex;flex-direction:column;gap:.35rem}
+.artist-stage-studio input[type=file]{display:block;max-width:100%;color:#d9b878;background:#151920;border:1px solid #7967497d;padding:.5rem;border-radius:3px}
+.artist-stage-studio input[type=file]::file-selector-button{background:#282a30;color:#eadab8;border:1px solid #b79a67;padding:.45rem .65rem;margin-right:.8rem;cursor:pointer}
