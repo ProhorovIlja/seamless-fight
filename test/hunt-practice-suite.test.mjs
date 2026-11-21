@@ -56,6 +56,11 @@ test('practice advances exactly one authoritative combat frame and records order
  assert(t.append(cmd()));
  assert.equal(t.stats().tick,3);
  assert.deepEqual(t.inputHistory().map(x=>x.tick),[1,2,3]);
+ const actual=t.metrics();
+ assert.equal(actual.mode,'unrated-local-1v1');
+ assert.equal(actual.observedFrames,3);
+ assert.equal(actual.players[0].meleeStarts,1);
+ assert.equal(actual.verifiedCompetitiveResult,false);
 });
 test('8 independent dummy slots can record inputs and reject absent/invalid playback slots',()=>{
  const t=huntPracticeSession();
