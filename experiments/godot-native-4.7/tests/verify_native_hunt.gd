@@ -48,7 +48,7 @@ func _verify() -> void:
 		_fail("Source vector ruleset mismatch")
 		return
 	var frames: Array=parsed["ticks"]
-	if frames.size()!=900 or parsed["weaponPair"]!=[0,1]:
+	if frames.size()!=900 or not _same(parsed["weaponPair"],[0,1]):
 		_fail("Source trace truncated or weapon pair mismatch")
 		return
 	var checkpoint_tick: int=-1
