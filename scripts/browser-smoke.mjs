@@ -473,10 +473,14 @@ try{
  assert.match(await hunt.locator('#status').textContent(),/loop/);
  await hunt.locator('#toggle-boxes').click();
  assert.equal(await hunt.locator('#toggle-boxes').getAttribute('aria-pressed'),'true');
- await hunt.locator('#pause').click();
+ // Record intentionally resumed the real simulation; don't toggle a
+ // playing session into pause while claiming it is still playing.
+ if(await hunt.locator('#pause').textContent()==='Resume')
+  await hunt.locator('#pause').click();
  assert.equal(await hunt.locator('#pause').textContent(),'Pause');
  await sleep(180);
  await hunt.locator('#pause').click();
+ assert.equal(await hunt.locator('#pause').textContent(),'Resume');
  await hunt.locator('#metrics').click();
  assert.match(await hunt.locator('#status').textContent(),/UNRATED 1v1/);
  assert.match(await hunt.locator('#input-guide').textContent(),/gun|firearm/i);
