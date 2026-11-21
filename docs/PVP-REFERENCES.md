@@ -55,3 +55,13 @@ The new `test/sync.test.mjs` exercises 2,400 seeded input frames, reconstructs t
 ### Separate genuine side-view ruleset
 
 The in-development `/fight/side/` local combat lab is now a distinct horizontal fighter simulation, not the existing overhead multiplayer ruleset. The data-driven move tables and isolated display/physics boundary were compared with the MIT-released [shoto-fighter-godot](https://github.com/aminRX/shoto-fighter-godot), and deterministic replay/versioning gates use the [GGPO Developer Guide](https://github.com/pond3r/ggpo/blob/master/doc/DeveloperGuide.md) as reference. No third-party code or character sprites were copied. Asset trials compare the independently licensed [Dark Knight 2D Character Sprites](https://opengameart.org/content/dark-knight-2d-character-sprites) and [GothicVania Cemetery](https://ansimuz.itch.io/gothicvania-cemetery). Do not confuse free-to-download with verified compatible public redistribution rights.
+
+
+## November 21, 2026 — native PC research source references (not imported gameplay)
+
+- [Godot 4.7: C++ GDExtension system](https://docs.godotengine.org/en/4.7/engine_details/engine_api/gdextension/index.html) and [official godot-cpp source](https://github.com/godotengine/godot-cpp) inform a direct deterministic C++ engine-to-native-renderer bridge. A GDExtension is a native shared library; source must compile for the exact target platform and compatible Godot API. The official examples are **references, not a full fighter or netcode package**.
+- [Guilty Gear Strive online/how-to](https://www.guiltygear.com/ggst/en/howto/online/) documents training-mode matchmaking and private-room restrictions as meaningful player-flow reference. No live training queue has been integrated into the Godot client.
+- [Street Fighter 6 official training recording guidance](https://game.capcom.com/manual/SF6/en/ps5/page/8/6) supports record/replay-and-takeover usability goals. The browser drill already has replay features, but those do not imply native UI parity.
+- [AMD November 16, 2026 FSR 4.1.2 official Unreal plugin](https://gpuopen.com/learn/amd-fsr-ue-plugin-412/) applies to UE 5.3–5.8 configurations, not automatically to the Godot prototype or all graphics cards. No modern vendor neural SDK is falsely advertised as installed.
+
+For serious release acceptance, exercise on an actual Win10/11 GPU and display at 60/120/144/240 Hz, quantify input-to-photon and 1% lows with physical measurements, test controller dead zones, wireless/wired RTT jitter and loss independently, and benchmark hardware-cost impact of authored character rigs and shader-heavy stage passes. Marketing claims of zero input lag or AAA quality cannot follow from compiler, headless, or browser CI alone.
