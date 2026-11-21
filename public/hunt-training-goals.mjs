@@ -15,6 +15,7 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'air-parry':{category:'Defense',goal:'Jump once and land an airborne firearm parry on a committed heavy action.',trigger:'heavy',success:'airParry'},
  'whiff-punish':{category:'Offense',goal:'Bait a real heavy miss and strike while the opponent is STILL in its locked recovery.',trigger:'whiff',success:'whiffPunish'},
  'dodge-punish':{category:'Defense',goal:'Bait an incoming quickstep; strike AFTER its real i-frames but BEFORE recovery ends.',trigger:'step',success:'dodgePunish'},
+ 'gun-whiff-punish':{category:'Reads & Footsies',goal:'Evade a real firearm shot, then land a melee hit before its vulnerable recovery ends.',trigger:'whiff',success:'gunWhiffPunish'},
  'counter-hit':{category:'Defense',goal:'Interrupt an incoming heavy windup with real melee contact BEFORE its attack becomes active.',trigger:'heavy',success:'counterHit'},
  'hit-confirm':{category:'Offense',goal:'Follow an actual melee hit with a second confirmed melee contact.',trigger:'hit',success:'hitConfirm'},
  'transform-pressure':{category:'Offense',goal:'Land a real melee hit shortly after your weapon transforms.',trigger:'transform',success:'transformHit'},
@@ -75,6 +76,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    drill==='air-parry'&&is(e,'action',1,'foldedHeavy')||
    drill==='whiff-punish'&&is(e,'whiff',1,'foldedHeavy')||
    drill==='dodge-punish'&&is(e,'action',1,'step')||
+   drill==='gun-whiff-punish'&&is(e,'whiff',1,'shot')||
    drill==='counter-hit'&&is(e,'action',1,'foldedHeavy')||
    drill==='hit-confirm'&&is(e,'hit',0)||
    drill==='transform-pressure'&&is(e,'transform',0)||
@@ -82,7 +84,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    drill==='blood-economy'&&is(e,'bloodBullets',0)||
    drill==='timing-read'&&is(e,'action',1,'foldedHeavy')||
    drill==='visceral-followup'&&is(e,'gunParry',0)||
-   drill==='corner-escape'&&is(e,'action',1,'foldedHeavy')||
+   drill==='corner-escape'&&is(e,'action',1,'foldedHeavy')&&e.playerWall==='left'||
    drill==='corner-escape-right'&&is(e,'action',1,'foldedHeavy')&&e.playerWall==='right'||
    drill==='corner-interrupt-left'&&is(e,'action',1,'foldedHeavy')&&e.playerWall==='left'||
    drill==='corner-interrupt-right'&&is(e,'action',1,'foldedHeavy')&&e.playerWall==='right'){
@@ -130,6 +132,17 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
        earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),0,25))
      success(e);
     break;
+   case 'gun-whiff-punish':{
+    // A successful gun parry, chip hit, mere attempted shot, or a late
+    // normal melee hit is NOT a recovery punish. This needs the
+    // authoritative *shot missed* event AND connected melee contact
+    // inside the original firearm's remaining vulnerable recovery.
+    const missed=earlier(entries,i,p=>is(p,'whiff',1,'shot'),0,25);
+    if(is(e,'hit',0)&&e.target===1&&e.punishedRecovery===true&&
+       e.punishedMove==='shot'&&e.remainingRecovery>0&&missed)
+      success(e,missed.tick);
+    break;
+   }
    case 'hit-confirm':{
     if(is(e,'hit',0)&&e.combo>=2){
      const prior=earlier(entries,i,p=>is(p,'hit',0),1,48);
