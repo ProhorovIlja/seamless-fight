@@ -11,10 +11,12 @@ const run=(session,{shootTick=-1,stepTick=-1,frames=85}={})=>{
  }
  return {state:session.inspect(),events:session.eventHistory(400)};
 };
-test('six distinct English 1v1 scenarios all use actual original Hunt v3 fighter state',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,6);
+test('15 English-only 1v1 scenarios all use original source actions, never guard/throws',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,15);
  assert.deepEqual(HUNT_PRACTICE_DRILLS.map(x=>x.id),[
-  'free','parry-heavy','parry-heal','parry-blood','escape-stun','dodge-shot']);
+  'free','parry-heavy','parry-heal','parry-blood','escape-stun','dodge-shot',
+  'anti-air','air-parry','whiff-punish','hit-confirm','transform-pressure',
+  'rally-reclaim','blood-economy','timing-read','visceral-followup']);
  for(const scenario of HUNT_PRACTICE_DRILLS){
   const session=huntPracticeSession({drill:scenario.id,weapons:['thornwake','mournweave']});
   const state=session.inspect();
@@ -26,10 +28,16 @@ test('six distinct English 1v1 scenarios all use actual original Hunt v3 fighter
   assert.equal(session.stats().simulationHz,60);
   if(scenario.id!=='free'){
    assert.equal(state.p[1].x-state.p[0].x,scenario.spacing);
-   assert.equal(session.stats().mode,'loop');
+   assert.equal(session.stats().mode,scenario.id==='timing-read'?'random':'loop');
    assert.equal(session.slotData(0).length,150);
    assert.equal(session.slotData(0)[scenario.startAt].act,scenario.action);
    assert.equal(session.inspect().p[1].act,'');
+   if(scenario.id==='timing-read'){
+    assert.equal(session.slotData(1).length,150);
+    assert.equal(session.slotData(1)[scenario.startAt+7].act,'feint');
+   }
+   if(scenario.id==='anti-air')
+    assert.equal(session.slotData(0)[scenario.startAt].y,-1);
   }else{
    assert.equal(state.p[1].x-state.p[0].x,450);
    assert.equal(session.stats().mode,'passive');
