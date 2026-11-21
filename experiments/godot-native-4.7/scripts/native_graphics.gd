@@ -80,4 +80,13 @@ func load_profile() -> Dictionary:
 	if file==null or file.get_length()>4096:
 		return default_profile()
 	var loaded: Variant = JSON.parse_string(file.get_as_text())
-	return loaded if validate_profile(loaded).is_empty() else default_profile()
+	if not loaded is Dictionary:
+		return default_profile()
+	# Godot JSON numbers can deserialize exact integers as float, even though
+	# these are discrete enum/cap values. Do not silently truncate fractions.
+	var canonical: Dictionary=loaded.duplicate(true)
+	for key in ["version","fps_cap"]:
+		var value: Variant=canonical.get(key,null)
+		if typeof(value)==TYPE_FLOAT and is_finite(float(value)) and float(value)==floor(float(value)):
+			canonical[key]=int(value)
+	return canonical if validate_profile(canonical).is_empty() else default_profile()
