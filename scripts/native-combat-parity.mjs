@@ -43,6 +43,7 @@ try{
  const packet=traces.map(pair=>pair.flatMap(v=>[v.x,v.y,MOVE[v.act],Number(v.guard)]).join(' ')).join('\n')+'\n';
  const native=spawnSync(exe,[],{input:packet,encoding:'utf8',maxBuffer:25*1024*1024,timeout:60000});
  if(native.status!==0)throw Error('Native simulation execution failed: '+native.stderr);
+ assert.match(native.stderr,/NATIVE_LOCAL_ROLLBACK_RESIM_PASSED checkpoints=[1-9][0-9]*/,'native eight-frame rewind must be exercised');
  const lines=native.stdout.trim().split('\n');
  assert.equal(lines.length,traces.length,'native C++ output count');
  const s=sideMatch(),observed={hit:0,parry:0,block:0,round:0,whiff:0,action:0};
@@ -73,5 +74,5 @@ try{
  assert(observed.parry>0,'trace did not exercise genuine 4-frame perfect-deflect window');
  assert(observed.action>0&&observed.round>0,'trace did not exercise move actions and rounds');
  console.log(JSON.stringify({status:'NATIVE_CPP_JS_RULESET_PARITY_PASS',rules:s.rules,
-  ticks:traces.length,checkedFields:states,maxDifference,events:observed,round:s.round,score:s.score}));
+  ticks:traces.length,checkedFields:states,maxDifference,rollbackCheckpoints:Math.floor(traces.length/157),events:observed,round:s.round,score:s.score}));
 }finally{rmSync(work,{recursive:true,force:true});}
