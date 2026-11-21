@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="theme-color" content="#0c1015">
+ <meta name="description" content="Seamless Fight — original Gothic 1v1 dueling, live public galleries and training.">
+ <title>The Court — Seamless Fight</title>
+ <link rel="icon" href="../art/lantern.svg" type="image/svg+xml">
+ <link rel="stylesheet" href="../hub.css">
+ <script type="module" src="../hub.mjs"></script>
+</head>
+<body>
+ <a class="skip" href="#main">Skip to the Court</a>
+ <div class="shell">
+  <header class="topbar">
+   <a class="wordmark" href="/fight/hub/" aria-label="Seamless Fight — The Court"><img src="../art/lantern.svg" width="27" height="27" alt=""><span>SEAMLESS <strong>FIGHT</strong></span></a>
+   <nav aria-label="Court navigation">
+    <a href="#matches">Live matches</a>
+    <a href="#friends">Friends</a>
+    <a href="#ranked">Leaderboard</a>
+    <a href="../">Play</a>
+   </nav>
+   <span id="connection-indicator" class="connection" aria-live="polite">Connecting to the Court</span>
+  </header>
+  <main id="main">
+   <section class="hero">
+    <div class="hero-top"><span class="eyebrow">THE COURT / ORIGINAL GOTHIC DUELING</span><span class="version">1V1 ONLY · ENGLISH</span></div>
+    <div class="hero-inner">
+     <div class="hero-copy">
+      <p class="eyebrow">A rival. A reckoning. An audience.</p>
+      <h1>Every duel<br>has a <em>witness.</em></h1>
+      <p class="lede">A gathering place for private duels, practice, and the matches their hosts choose to share. Two fighters enter. Everyone else watches.</p>
+      <div class="buttons">
+       <a class="primary" href="../">Enter the duel arena</a>
+       <a class="secondary" href="../side/">Practice the side-view prototype</a>
+      </div>
+      <p class="disclaimer">Current online rooms run the legacy prototype. The newer Hunt v3 combat system, verified rollback, and native Windows launcher are not online yet.</p>
+     </div>
+     <div class="hero-crest" aria-hidden="true"><span class="halo"></span><img src="../art/crossed-swords.svg" width="220" height="220" alt=""><span class="crest-caption">NO GUARDS · NO TEAMS · NO SECOND CHANCES</span></div>
+    </div>
+   </section>
+   <section class="telemetry" aria-label="Live server activity">
+    <div><span class="metric-label">Connected clients</span><strong id="metric-connections" class="metric-value" aria-live="polite">—</strong><small>Connections, not verified unique accounts</small></div>
+    <div><span class="metric-label">Live 1v1 duels</span><strong id="metric-duels" class="metric-value">—</strong><small>Main and side-view prototypes</small></div>
+    <div><span class="metric-label">Spectators</span><strong id="metric-spectators" class="metric-value">—</strong><small>Read-only connected viewers</small></div>
+    <div><span class="metric-label">Public galleries</span><strong id="metric-lobbies" class="metric-value">—</strong><small>Only host-enabled rooms</small></div>
+   </section>
+   <div class="content-grid">
+    <section id="matches" class="panel matches" aria-labelledby="matches-title">
+     <div class="panel-heading"><div><p class="eyebrow">THE GALLERY</p><h2 id="matches-title">Live duels</h2></div><button type="button" id="refresh" class="refresh">Refresh <span aria-hidden="true">↻</span></button></div>
+     <p class="subtext">Watch a duel whose host has enabled public spectating. Private invitations and unlisted rooms remain private. Spectators cannot submit combat inputs.</p>
+     <div id="gallery-list" class="gallery-list" aria-live="polite"><p class="empty">Loading active galleries…</p></div>
+     <div class="panel-foot"><span id="updated">Live activity has not yet been retrieved.</span><span>Updated every 15 seconds</span></div>
+    </section>
+    <aside class="stack">
+     <section class="panel" id="friends" aria-labelledby="friends-title">
+      <div class="panel-heading"><div><p class="eyebrow">COMPANIONS</p><h2 id="friends-title">Friends & invitations</h2></div></div>
+      <p class="subtext">Invite links currently let you share a private room directly. Persistent friend lists, account authentication, and “watch a friend” will arrive only after the independent identity service is connected.</p>
+      <a class="simple-link" href="../">Create a private room <span aria-hidden="true">↗</span></a>
+      <p class="integrity">Friends: Not connected · No simulated online contacts</p>
+     </section>
+     <section class="panel" id="ranked" aria-labelledby="ranked-title">
+      <div class="panel-heading"><div><p class="eyebrow">THE RECORD</p><h2 id="ranked-title">Ranked leaderboard</h2></div></div>
+      <p class="subtext">No fabricated rankings. Competitive standings require verified accounts, authenticated match results, anti-cheat and a persistent ranking ledger.</p>
+      <p id="ranked-state" class="integrity" aria-live="polite">Verified ranked competition is not available.</p>
+     </section>
+     <section class="note-panel">
+      <p class="eyebrow">THE HUNTER'S DISCIPLINE</p>
+      <h2>Combat comes first.</h2>
+      <p>Parry the commitment. Punish the recovery. Reclaim your health. Two transforming weapons, finite ammunition and a decisive timed visceral window belong to Hunt v3—not yet the networked legacy prototype.</p>
+     </section>
+    </aside>
+   </div>
+   <section class="scope-note" aria-label="Development disclosure"><span>SEAMLESS FIGHT / RESEARCH BUILD</span><p>This web Court is a live read-only hub for experimental online duels. It is not the finished Windows game, a verified player-account service, or a production-ranked platform.</p></section>
+  </main>
+  <footer><span>SEAMLESS FIGHT · WORKING TITLE</span><span>Independent original game · All text in English</span><a href="../">Return to arena</a></footer>
+ </div>
+</body>
+</html>
