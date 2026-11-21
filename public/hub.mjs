@@ -4,7 +4,7 @@ export const HUB_SCHEMA='sf-public-activity/1';
 export const HUB_LANGUAGE='en';
 export const HUB_DUEL_SIZE=2;
 export const HUB_UPDATE_MS=15000;
-export const WATCH_PATH=/^\/fight\/\?watch=[-A-Za-z0-9_]{12}$/;
+export const WATCH_PATH=/^\/fight\/(?:side\/)?\?watch=[-A-Za-z0-9_]{12}$/;
 export function validateCourtStatus(value){
  if(!value||typeof value!=='object'||value.schema!==HUB_SCHEMA||
     value.gameMode!=='1v1'||value.language!=='en'||value.service!=='legacy-duel-preview')
