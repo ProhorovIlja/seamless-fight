@@ -8,6 +8,8 @@ var _fog: MeshInstance3D
 var _near: MeshInstance3D
 var _rays: MeshInstance3D
 var _ray_mat: ShaderMaterial
+var _night_air: MeshInstance3D
+var _air_mat: ShaderMaterial
 var _clock := 0.0
 var reduce_motion := false
 
@@ -18,6 +20,7 @@ func _ready() -> void:
 	_near=_make_alpha_layer("NearCity","skyline-near.webp",Vector2(18.5,5.155),Vector3(0,-2.15,-7.0),0.98)
 	_fog=_make_alpha_layer("Mist","fog.webp",Vector2(20.5,4.46),Vector3(0,-3.35,-6.0),0.47)
 	_make_moonbeams()
+	_make_night_air()
 	_install_optional_photogrammetry()
 	set_active(false)
 
@@ -88,6 +91,45 @@ void fragment() {
 	_rays.material_override=_ray_mat
 	add_child(_rays)
 
+## One translucent 3D plane for original night-air grain / distant rain.
+## Render-only, behind all playable fighters; no CPU particles, hitboxes or RNG
+## in deterministic combat. This is a subtle atmosphere component, not an
+## expensive final stage substitute.
+func _make_night_air() -> void:
+	_night_air=MeshInstance3D.new()
+	_night_air.name="NightAir"
+	var quad := QuadMesh.new()
+	quad.size=Vector2(16.0,9.0)
+	_night_air.mesh=quad
+	_night_air.position=Vector3(0.0,0.0,-4.75)
+	_night_air.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var shader := Shader.new()
+	shader.code="""shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, fog_disabled;
+uniform float phase = 0.0;
+uniform float intensity : hint_range(0.0,1.0) = 0.55;
+float hashcell(vec2 p) {
+	return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);
+}
+void fragment() {
+	vec2 grid = UV*vec2(95.0,52.0);
+	vec2 cell = floor(grid);
+	vec2 local = fract(grid);
+	float seed = hashcell(cell);
+	float pulse = 0.76 + 0.24*sin(phase*0.22 + seed*6.2831853);
+	vec2 point = vec2(fract(seed*17.0),fract(seed*31.0));
+	float dist = length(local-point);
+	float dust = smoothstep(0.058,0.008,dist)*step(0.955,seed);
+	float wisp = sin(grid.x*0.16 + phase*0.065)*sin(grid.y*0.11-phase*0.042);
+	ALBEDO=vec3(0.62,0.69,0.82);
+	ALPHA=clamp((dust*0.07*pulse + max(wisp,0.0)*0.002)*intensity,0.0,0.06);
+}
+"""
+	_air_mat=ShaderMaterial.new()
+	_air_mat.shader=shader
+	_night_air.material_override=_air_mat
+	add_child(_night_air)
+
 func _install_optional_photogrammetry() -> void:
 	# A pinned, license-audited Poly Haven CC0 glTF, downloaded at build time.
 	# Optional: sources stay usable on developer machines without downloaded art.
@@ -131,6 +173,8 @@ func set_active(enabled: bool) -> void:
 			_near.position.x=0.0
 		if _ray_mat != null:
 			_ray_mat.set_shader_parameter("phase",0.0)
+		if _air_mat != null:
+			_air_mat.set_shader_parameter("phase",0.0)
 
 func set_reduce_motion(enabled: bool) -> void:
 	reduce_motion=enabled
@@ -142,11 +186,15 @@ func set_reduce_motion(enabled: bool) -> void:
 			_near.position.x=0.0
 		if _ray_mat != null:
 			_ray_mat.set_shader_parameter("phase",0.0)
+		if _air_mat != null:
+			_air_mat.set_shader_parameter("phase",0.0)
 
 func _process(delta: float) -> void:
 	_clock=fmod(_clock+minf(maxf(delta,0.0),0.1),3600.0)
 	if _ray_mat!=null:
 		_ray_mat.set_shader_parameter("phase",_clock)
+	if _air_mat!=null:
+		_air_mat.set_shader_parameter("phase",_clock)
 	# Tiny drift only. Source image atlases are wider than the visible camera.
 	# Combat position, clock and authoritative latency are never consulted.
 	if _fog != null:
