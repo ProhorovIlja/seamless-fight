@@ -101,7 +101,8 @@ export function huntFighter(slot,weapon=HUNT_WEAPON){
   crouch:false,jumpHeld:false,jumps:0,regen:0,
   combo:0,chain:0,queue:'',queueLife:0};
 }
-export function huntMatch({weapons=[HUNT_WEAPON,HUNT_WEAPON]}={}){
+export function huntMatch({weapons=[HUNT_WEAPON,HUNT_WEAPON],...unsupported}={}){
+ if(Object.keys(unsupported).length)throw TypeError('Unsupported Hunt match option');
  if(!Array.isArray(weapons)||weapons.length!==2||weapons.some(x=>!HUNT_WEAPONS.includes(x)))
   throw TypeError('Two original trick weapons required');
  return {rules:HUNT_RULESET,tick:0,clock:65*HUNT_HZ,ready:90,end:0,round:1,
