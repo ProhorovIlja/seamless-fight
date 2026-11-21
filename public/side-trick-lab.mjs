@@ -3,7 +3,7 @@
 // Research mechanics only: DO NOT feed this state to seamless-side/1 clients,
 // the existing Node authority, the GGPO prototype or ranked matchmaking.
 // Pure and deterministic; no wall clock, rendering, sound or networking.
-export const TRICK_RULESET='sf-trick-lab/2';
+export const TRICK_RULESET='sf-trick-lab/3';
 export const TRICK_HZ=60, TRICK_FLOOR=436, TRICK_W=960;
 export const TRICK_WEAPON='mournweave';
 export const TRICK_WEAPONS=Object.freeze(['mournweave','thornwake']);
@@ -62,6 +62,9 @@ const ATTACKS=new Set(Object.keys(TRICK_MOVES).filter(x=>TRICK_MOVES[x].damage>0
 const ORDINARY=new Set(['foldedLight','foldedHeavy','unfurledLight','unfurledHeavy',
  'airFoldedLight','airFoldedHeavy','airUnfurledLight','airUnfurledHeavy']);
 const TRANSFORMS=new Set(['unfurl','refold']);
+// Meter-backed mobility cancel: only after confirmed contact, never on whiff.
+// Reuses existing step/airStep motion, stamina costs and per-airtime limits.
+export const TRICK_PURSUIT_FOCUS=25;
 const total=s=>s.startup+s.active+s.recovery;
 export const trickInput=()=>({x:0,y:0,act:'',guard:false});
 export function canonicalTrickInput(input){
@@ -149,6 +152,12 @@ function starts(p,other,requested){
    p.age<total(old)-6&&p.chain<4){
   // Regular follow-up only after confirmed contact, not free whiff cancels.
   chained=true;
+ }else if((requested==='step'||requested==='airStep')&&wasAttacking&&
+   p.hitConfirmed&&p.focus>=TRICK_PURSUIT_FOCUS&&p.chain<4&&
+   p.age>=old.startup+old.active-1&&p.age<total(old)-5){
+  // Hit-confirm-only dash chase: meaningful mobility with a meter and stamina tax.
+  // No input-free pressure reset after a whiff, and no unbounded air-step loops.
+  chained=true;
  }else if(requested==='sync'&&p.focus>=60&&wasAttacking&&
    p.age>=old.startup+old.active&&p.age<total(old)-3){
   chained=true;
@@ -156,6 +165,7 @@ function starts(p,other,requested){
   return false;
  }
  if(requested==='sync')p.focus-=60;
+ if(chained&&(requested==='step'||requested==='airStep'))p.focus-=TRICK_PURSUIT_FOCUS;
  p.act=requested;p.age=0;p.spent=false;p.hitConfirmed=false;
  p.chain=chained?p.chain+1:1;
  p.st=clamp(p.st-m.cost,0,100);p.regen=27;
