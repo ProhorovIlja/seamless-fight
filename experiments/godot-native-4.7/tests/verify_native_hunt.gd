@@ -205,9 +205,11 @@ func _verify() -> void:
 	for age in range(1,47):
 		var meter: Dictionary=game.get_move_frame_data(0)
 		var exposed: bool=age>=23 and age<46
+		var morph_lock: int=27-age if age>=23 and age<27 else 0
 		if int(meter.get("age",-1))!=age or \
 		 bool(meter.get("whiffRecoveryArmExposed",false))!=exposed or \
-		 int(meter.get("whiffRecoveryArmUnits",-1))!=(22 if exposed else 0):
+		 int(meter.get("whiffRecoveryArmUnits",-1))!=(22 if exposed else 0) or \
+		 int(meter.get("whiffHeavyMorphLockFrames",-1))!=morph_lock:
 			_fail("Native whiff arm source mismatch at heavy age "+str(age))
 			return
 		game.step_encoded(0,0,0,0,0,0,0,0)
