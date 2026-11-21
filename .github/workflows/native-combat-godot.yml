@@ -8,6 +8,9 @@ on:
       - 'experiments/godot-native-4.7/extension/**'
       - 'experiments/godot-native-4.7/tests/verify_native_combat.gd'
       - 'experiments/godot-native-4.7/tests/verify_native_practice.gd'
+      - 'experiments/godot-native-4.7/tests/verify_hunt_rig_contract.gd'
+      - 'experiments/godot-native-4.7/scripts/hunt_rig_socket.gd'
+      - 'experiments/godot-native-4.7/assets/hunt_animation_manifest.json'
       - 'experiments/godot-native-4.7/tests/verify_native_dummy_record.gd'
       - 'experiments/godot-native-4.7/scripts/native_practice.gd'
       - 'experiments/godot-native-4.7/scenes/stage.tscn'
@@ -21,6 +24,9 @@ on:
       - 'experiments/godot-native-4.7/extension/**'
       - 'experiments/godot-native-4.7/tests/verify_native_combat.gd'
       - 'experiments/godot-native-4.7/tests/verify_native_practice.gd'
+      - 'experiments/godot-native-4.7/tests/verify_hunt_rig_contract.gd'
+      - 'experiments/godot-native-4.7/scripts/hunt_rig_socket.gd'
+      - 'experiments/godot-native-4.7/assets/hunt_animation_manifest.json'
       - 'experiments/godot-native-4.7/tests/verify_native_dummy_record.gd'
       - 'experiments/godot-native-4.7/scripts/native_practice.gd'
       - 'experiments/godot-native-4.7/scenes/stage.tscn'
@@ -66,6 +72,7 @@ jobs:
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_practice.gd --quit-after 300
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_hunt_rig_contract.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_dummy_record.gd --quit-after 300
           echo 'NATIVE_CPP_60HZ_GODOT_JS_PARITY=PASS (1350 ticks * 41 fields)' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
@@ -137,6 +144,7 @@ jobs:
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_rig_contract.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_practice.gd --quit-after 300
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_hunt_rig_contract.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_dummy_record.gd --quit-after 300
           mkdir -p artifacts/native-cpp-windows
           "$G" --headless --path experiments/godot-native-4.7 --export-release "Windows Desktop" "$PWD/artifacts/native-cpp-windows/SeamlessFight-NativeCombatResearch.exe"
