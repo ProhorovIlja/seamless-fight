@@ -8,7 +8,9 @@ import {outfit} from '../public/wardrobe.mjs';
 
 // Side-view only. The legacy duel transport and replay rules are untouched.
 // No persistent user identity, rated play, global queue or region claims.
-export function createSideHub(expectedOrigin){
+export function createSideHub(expectedOrigin,{maxRooms=64}={}){
+ if(!Number.isSafeInteger(maxRooms)||maxRooms<1||maxRooms>64)
+  throw new RangeError('Side-room capacity must be 1..64');
  const ws=new WebSocketServer({noServer:true,maxPayload:512,perMessageDeflate:false});
  const rooms=new Map(),token=()=>randomBytes(9).toString('base64url');
  let stopping=false,simTicks=0;
@@ -39,7 +41,7 @@ export function createSideHub(expectedOrigin){
     if(m.t!=='hello')return;
     const look=outfit(m.look);
     if(m.code==null){
-     if(rooms.size>=64){send(c,{t:'error',message:'Side-view capacity reached.'});c.close(1013);return;}
+     if(rooms.size>=maxRooms){send(c,{t:'error',message:'Side-view capacity reached.'});c.close(1013);return;}
      room=createRoom(m.stage,look);
     }else{
      const target=typeof m.code==='string'&&rooms.get(m.code);
