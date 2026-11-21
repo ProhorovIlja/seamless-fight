@@ -9,12 +9,21 @@ signal authoritative_state(snapshot: Dictionary, ack: int, events: Array)
 signal server_notice(message: String)
 signal connection_failed(message: String)
 signal room_disconnected()
+signal latency_sample(rtt_ms: int, variation_ms: int)
 
 const RULESET := "seamless-side/1"
 const ENDPOINT := "/fight/side/socket"
 const MAX_PACKET_BYTES := 160000
 const MAX_BUFFERED_BYTES := 2048
 const CONNECTION_TIMEOUT_MS := 10000
+const PROBE_INTERVAL_MS := 1000
+const PROBE_TIMEOUT_MS := 4000
+const PROBE_WINDOW := 12
+var pending_probe_id := -1
+var pending_probe_at := -1
+var last_probe_at := -10000
+var next_probe_id := 1
+var rtt_samples: Array[int] = []
 
 var socket: WebSocketPeer = null
 var handshake_at: int = 0
@@ -59,6 +68,7 @@ func open_private_room(endpoint: String, origin: String, code: String = "", stag
 	requested_code = code
 	requested_stage = stage
 	handshake_at = Time.get_ticks_msec()
+	reset_latency()
 	set_process(true)
 	return true
 
@@ -76,6 +86,7 @@ func _process(_delta: float) -> void:
 				connection_failed.emit("Unable to send room greeting")
 				close()
 				return
+		_tick_latency_probe()
 		var count := 0
 		while socket != null and socket.get_ready_state() == WebSocketPeer.STATE_OPEN and socket.get_available_packet_count() > 0 and count < 48:
 			count += 1
@@ -97,6 +108,7 @@ func _process(_delta: float) -> void:
 		room_code = ""
 		local_slot = -1
 		set_process(false)
+		reset_latency()
 		room_disconnected.emit()
 	elif not opened and Time.get_ticks_msec() - handshake_at >= CONNECTION_TIMEOUT_MS:
 		connection_failed.emit("Connection timed out")
@@ -108,7 +120,9 @@ func _handle_message(message: Dictionary) -> void:
 		close()
 		return
 	var kind: String = str(message.get("t", ""))
-	if kind == "room":
+	if kind == "pong":
+		_accept_probe(message.get("id"))
+	elif kind == "room":
 		var new_slot: int = WireNumbers.checked_nonnegative(message.get("slot",-1),1)
 		var new_code: String = str(message.get("code", ""))
 		var pattern := RegEx.create_from_string("^[A-Za-z0-9_-]{12}$")
@@ -164,6 +178,52 @@ func send_fighter_input(x: int, y: int, action: String = "", guard: bool = false
 	last_sent_at = now
 	return true
 
+func reset_latency() -> void:
+	pending_probe_id=-1
+	pending_probe_at=-1
+	last_probe_at=-10000
+	next_probe_id=1
+	rtt_samples.clear()
+
+func _tick_latency_probe() -> void:
+	if socket==null or socket.get_ready_state()!=WebSocketPeer.STATE_OPEN or local_slot<0:
+		return
+	var now: int=Time.get_ticks_msec()
+	if pending_probe_id>=0 and now-pending_probe_at>=PROBE_TIMEOUT_MS:
+		pending_probe_id=-1
+		pending_probe_at=-1
+	if pending_probe_id>=0 or now-last_probe_at<PROBE_INTERVAL_MS:
+		return
+	if socket.get_current_outbound_buffered_amount()>MAX_BUFFERED_BYTES:
+		return
+	if send_latency_probe(next_probe_id):
+		pending_probe_id=next_probe_id
+		pending_probe_at=now
+		last_probe_at=now
+		next_probe_id+=1
+		if next_probe_id>=2000000000:
+			next_probe_id=1
+
+func _accept_probe(wire_id: Variant) -> bool:
+	var id: int=WireNumbers.checked_nonnegative(wire_id,2000000000)
+	if id<0 or id!=pending_probe_id or pending_probe_at<0:
+		return false
+	var elapsed: int=Time.get_ticks_msec()-pending_probe_at
+	pending_probe_id=-1
+	pending_probe_at=-1
+	if elapsed<0 or elapsed>PROBE_TIMEOUT_MS:
+		return false
+	rtt_samples.append(elapsed)
+	if rtt_samples.size()>PROBE_WINDOW:
+		rtt_samples.pop_front()
+	var low := PROBE_TIMEOUT_MS
+	var high := 0
+	for sample in rtt_samples:
+		low=mini(low,sample)
+		high=maxi(high,sample)
+	latency_sample.emit(elapsed,high-low)
+	return true
+
 func send_latency_probe(id: int) -> bool:
 	if socket == null or socket.get_ready_state() != WebSocketPeer.STATE_OPEN or id < 0:
 		return false
@@ -178,4 +238,5 @@ func close() -> void:
 	local_slot = -1
 	latest_tick = -1
 	sequence = 0
+	reset_latency()
 	set_process(false)

@@ -4,6 +4,7 @@ extends Node
 ## Transport is WebSocket/20Hz snapshots, NOT GGPO/UDP or ranked.
 signal room_code_ready(code: String, slot: int)
 signal connection_state(message: String)
+signal network_health(rtt_ms: int, variation_ms: int)
 const Transport = preload("res://scripts/native_side_transport.gd")
 var transport: Node
 var online := false
@@ -20,6 +21,7 @@ func _ready() -> void:
 	transport.server_notice.connect(_on_notice)
 	transport.connection_failed.connect(_on_notice)
 	transport.room_disconnected.connect(_on_disconnected)
+	transport.latency_sample.connect(_on_latency_sample)
 	set_physics_process(false)
 
 func open_room(endpoint: String, origin: String, invitation: String="", stage: String="reliquary") -> bool:
@@ -64,6 +66,12 @@ func _on_snapshot(snapshot: Dictionary, ack: int, events: Array) -> void:
 
 func _on_notice(message: String) -> void:
 	connection_state.emit(message)
+
+func _on_latency_sample(rtt_ms: int, variation_ms: int) -> void:
+	if not online:
+		return
+	get_parent().get_node("CombatHud").show_server_latency(rtt_ms,variation_ms)
+	network_health.emit(rtt_ms,variation_ms)
 
 func _on_disconnected() -> void:
 	if not online:

@@ -21,6 +21,7 @@ var center_status: Label
 var clock_label: Label
 var phase_label: Label
 var move_label: Label
+var server_latency: Label
 var last_tick := -1
 var mode := "TRAINING"
 var frame_data_enabled := false
@@ -130,6 +131,11 @@ func _build() -> void:
 	move_label=_text("",13,DIM)
 	move_label.name="PracticeFrameData"
 	column.add_child(move_label)
+	server_latency=_text("SERVER RTT: MEASURING…",12,DIM)
+	server_latency.name="ServerLatency"
+	server_latency.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	server_latency.visible=false
+	column.add_child(server_latency)
 
 func reset_mode(next_mode: String,frame_data: bool=false) -> void:
 	if next_mode not in ["TRAINING","PRIVATE 1V1"]:
@@ -139,12 +145,20 @@ func reset_mode(next_mode: String,frame_data: bool=false) -> void:
 	frame_data_enabled=frame_data and mode=="TRAINING"
 	center_status.text=mode
 	move_label.visible=frame_data_enabled
+	server_latency.visible=mode=="PRIVATE 1V1"
+	server_latency.text="SERVER RTT: MEASURING…"
 	visible=true
 
 func clear() -> void:
 	visible=false
 	frame_data_enabled=false
+	server_latency.visible=false
 	last_tick=-1
+
+func show_server_latency(rtt_ms: int, variation_ms: int) -> void:
+	if mode!="PRIVATE 1V1" or rtt_ms<0 or rtt_ms>4000 or variation_ms<0 or variation_ms>4000:
+		return
+	server_latency.text="SERVER RTT: %d ms   ·   VARIATION: %d ms" % [rtt_ms,variation_ms]
 
 func frame_inspector_text(fighter: Dictionary) -> String:
 	var action := str(fighter.get("act",""))
