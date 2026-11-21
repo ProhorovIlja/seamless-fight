@@ -61,6 +61,21 @@ func _verify() -> void:
 		fail("Training HUD did not display true dodge recovery")
 		return
 	if not practice.reset_training() or practice.last_state["tick"]!=0:
+		fail("Native window drill did not reset combat before whiff-arm practice")
+		return
+	for tick in range(90):practice.step_manual([0,0,0,0],[0,0,0,0])
+	if not practice.step_manual([0,0,2,0],[0,0,0,0]):
+		fail("Cannot start missed R2 for real whiff-only exposure HUD")
+		return
+	for tick in range(21):practice.step_manual([0,0,0,0],[0,0,0,0])
+	if hud.move_label.text.contains("WHIFF RECOVERY ARM"):
+		fail("Whiff arm appeared before active attack frames ended")
+		return
+	if not practice.step_manual([0,0,0,0],[0,0,0,0]) or \
+	 not hud.move_label.text.contains("WHIFF RECOVERY ARM: +22U"):
+		fail("Training-only HUD omitted actual missed-swing arm extension")
+		return
+	if not practice.reset_training() or practice.last_state["tick"]!=0:
 		fail("Native window drill did not reset combat before baseline practice")
 		return
 	var commands: Array=[]
