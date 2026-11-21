@@ -119,7 +119,12 @@ test('goal evidence resets on replay import, restart and branches when future is
  assert.equal(s.goal().successes,0);
  const replay=run(huntPracticeSession({drill:'parry-heavy'}),{62:cmd('shot')},77).save();
  assert(s.load(replay));
- assert.equal(s.goal().successes,0,'verified imported replay does not invent unsaved goal evidence');
+ assert.equal(s.goal().successes,1,
+  'verified imported replay must reconstruct the exact source parry evidence');
+ assert.equal(s.eventHistory(200).some(e=>e.kind==='gunParry'&&e.actor===0),true);
+ assert.equal(s.stats().paused,true);
+ assert(s.rewind(30));
+ assert.equal(s.goal().successes,0,'imported source replay supports a truly independent branch');
 });
 test('goal scorer rejects fake victory from bare attack commands without an authoritative hit event',()=>{
  const fake=evaluateHuntTrainingGoal('anti-air',[
