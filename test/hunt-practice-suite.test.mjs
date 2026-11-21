@@ -160,6 +160,7 @@ test('dummy reversal waits for a real hitstun recovery and does not auto-play wh
  const capture=createHuntReplay({initialState:initial,maxFrames:20}).capture();
  assert(t.load(capture));
  assert(t.setMode('reversal',0));
+ t.resume(); // Import intentionally pauses playback until the player resumes.
  let sawHitstun=false,sawReversal=false;
  for(let i=0;i<12;i++){
   t.append(cmd());
