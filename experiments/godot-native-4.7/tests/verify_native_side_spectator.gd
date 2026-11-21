@@ -8,7 +8,7 @@ func _fail(message: String) -> void:
 	push_error("NATIVE_2_5D_SPECTATOR_FAILURE: "+message)
 	quit(1)
 func _test() -> void:
-	var t: Node=Transport.new()
+	var t: Variant=Transport.new()
 	root.add_child(t)
 	await process_frame
 	var seen: Array[Dictionary]=[]
