@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {huntKeyboardToken,huntMouseToken,huntBrowserGamepadTokens,HUNT_STANDARD_BUTTONS,selectHuntStandardGamepad}
  from '../public/hunt-browser-input.mjs';
-import {huntDeviceProfile,createHuntInputAdapter} from '../public/hunt-input-device.mjs';
+import {huntDeviceProfile,createHuntInputAdapter,rebindHuntDeviceProfile} from '../public/hunt-input-device.mjs';
 const pad=()=>({connected:true,mapping:'standard',axes:[0,0,0,0],
  buttons:Array.from({length:16},()=>({pressed:false,value:0}))});
 test('input normalization accepts physical English game keys and mouse buttons only',()=>{
@@ -68,4 +68,21 @@ test('explicit USB gamepad/fightstick selection is exclusive and disconnect neve
  assert.equal(selectHuntStandardGamepad([],null),null);
  assert.throws(()=>selectHuntStandardGamepad([a],-1),/Controller selection/);
  assert.throws(()=>selectHuntStandardGamepad([a],'0'),/Controller selection/);
+});
+
+test('true remapped right-stick axis reaches game logic and conflicts do not replace a valid profile',()=>{
+ const padState=pad();
+ padState.axes=[0,0,0.85,-0.9];
+ const sample=huntBrowserGamepadTokens(padState);
+ assert(sample.down.includes('pad:right-x+'));
+ assert(sample.down.includes('pad:right-y-'));
+ const defaultProfile=huntDeviceProfile('gamepad');
+ const mapped=rebindHuntDeviceProfile(defaultProfile,'jump',['pad:right-x+']);
+ const controller=createHuntInputAdapter(mapped);
+ assert.equal(controller.sample(sample).y,-1);
+ assert.equal(controller.sample(sample).act,'');
+ assert.throws(()=>rebindHuntDeviceProfile(mapped,'shot',['pad:right-x+']),
+  /Ambiguous|duplicate/);
+ assert.equal(defaultProfile.binds.jump[0],'pad:south',
+  'custom bindings must not mutate the production default layout');
 });
