@@ -97,6 +97,8 @@ export function huntFrameMeter(state,slot=0){
   frames,health:p.health,stamina:p.stamina,ammo:p.ammo,bloodAmmo:p.bloodAmmo,
   vials:p.vials,focus:p.focus,visceralWindow:p.visceralWindow,
   firearmCounterWindowOpen:p.firearmCounterWindowOpen,
+  whiffRecoveryArmExposed:p.whiffRecoveryArmExposed,
+  whiffRecoveryArmUnits:p.whiffRecoveryArmUnits,
   quickstepIframes:p.quickstepIframes,
   quickstepVulnerableTail:p.quickstepVulnerableTail,
   quickstepRecoveryPunishable:p.quickstepRecoveryPunishable,
