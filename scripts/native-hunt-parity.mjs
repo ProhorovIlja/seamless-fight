@@ -311,11 +311,64 @@ try{
   }
  }
  assert.equal(limbScenarios,4);
+ // The two participant slots must settle BOTH neutral facings from
+ // post-collision positions. A one-unit separation and one walk command
+ // deliberately reverse the fighters during the first tick. Verify every
+ // native C++ state field, not only the visible dir field, for 24 ticks.
+ let neutralFaceScenarios=0,neutralFaceTicks=0;
+ for(const second of [false,true]){
+  const source=huntMatch();source.ready=0;
+  source.p[0].x=second?480.5:479.5;
+  source.p[1].x=second?479.5:480.5;
+  source.p[0].vx=0;source.p[1].vx=0;
+  const inputs=Array.from({length:24},(_,i)=>{
+   if(i!==0)return [huntInput(),huntInput()];
+   const moving={...huntInput(),x:1};
+   return second?[huntInput(),moving]:[moving,huntInput()];
+  });
+  const mode=second?'--face-cross-p1':'--face-cross-p0';
+  const packet='0 0\n'+inputs.map(pair=>pair.flatMap(
+   p=>[p.x,p.y,REQUEST[p.act],Number(p.guard)]).join(' ')).join('\n')+'\n';
+  const run=spawnSync(exe,[mode],{input:packet,encoding:'utf8',
+   timeout:90000,maxBuffer:4*1024*1024});
+  assert.equal(run.status,0,'Neutral face native fixture: '+run.stderr);
+  const lines=run.stdout.trim().split('\n');
+  assert.equal(lines.length,inputs.length);
+  for(let t=0;t<inputs.length;t++){
+   huntStep(source,inputs[t]);
+   if(t===0){
+    const [a,b]=source.p;
+    assert(second?a.x<b.x:a.x>b.x,
+     'Point-blank body solver must genuinely reverse order');
+    assert.equal(a.dir,b.x>=a.x?1:-1);
+    assert.equal(b.dir,a.x>=b.x?1:-1);
+    assert.equal(a.dir,-b.dir);
+   }
+   const values=lines[t].trim().split(/\s+/).map(Number);
+   assert.equal(values.length,totalFields);
+   let k=0;
+   const compare=(field,value)=>{
+    const actual=values[k++],expected=number(field,value);
+    if(!Number.isFinite(actual)||!Number.isFinite(expected)||
+      Math.abs(expected-actual)>1e-8)
+     throw Error('Native neutral facing mismatch '+mode+' t='+t+
+      ' field='+field+' JS='+expected+' CPP='+actual);
+    checks++;maxError=Math.max(maxError,Math.abs(expected-actual));
+   };
+   for(const field of GLOBAL)compare(field,source[field]);
+   compare('score0',source.score[0]);compare('score1',source.score[1]);
+   for(const fighter of source.p)for(const field of FIELDS)compare(field,fighter[field]);
+  }
+  neutralFaceScenarios++;
+  neutralFaceTicks+=inputs.length;
+ }
+ assert.equal(neutralFaceScenarios,2);
  assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0&&eventsSeen.visceral>0,
   'Trace missed core Hunt gameplay situations');
  console.log(JSON.stringify({result:'HUNT_V3_NATIVE_CPP_JS_PARITY_PASS',
-  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks,
+  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks,
   directedTradeScenarios,directedTradeTicks,limbScenarios,limbTicks,
+  neutralFaceScenarios,neutralFaceTicks,
   directedVisceral:true,directedTicks:trace.length,cornerCrossings:verifiedCornerCrossings,
   weaponPairs:PAIRS.length,fieldsPerTick:totalFields,fieldComparisons:checks,
   maxAbsoluteDifference:maxError,nativeRollbackChecks:rewinds,
