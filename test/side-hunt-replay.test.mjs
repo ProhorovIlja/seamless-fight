@@ -12,7 +12,7 @@ const scripted=t=>[0,1].map(slot=>{
   tick%103===25?'heal':tick%113===48?'charge':tick%73===14?'trick':'',
   tick%39<20?1:-1,tick%65===12?-1:0);
 });
-test('Hunt replay preserves 60 Hz v1 inputs and exact seekable health/resources',()=>{
+test('Hunt replay preserves 60 Hz v2 inputs and exact seekable health/resources',()=>{
  const initial=huntMatch({weapons:['thornwake','mournweave']});initial.ready=0;
  const r=createHuntReplay({initialState:initial,checkpointEvery:13,maxFrames:350});
  const sim=structuredClone(initial),expect=new Map([[0,structuredClone(initial)]]);
@@ -48,11 +48,13 @@ test('versioned export/import detects incompatible and modified tapes without ac
  for(let i=0;i<120;i++)r.append(scripted(i));
  const cap=JSON.parse(JSON.stringify(r.capture()));
  assert.equal(cap.schema,HUNT_CAPTURE_SCHEMA);
- assert.equal(cap.rules,'sf-hunt-lab/1');
+ assert.equal(cap.rules,'sf-hunt-lab/2');
  assert(!JSON.stringify(cap).includes('email'));
  const read=loadHuntReplay(cap);
  assert.deepEqual(read.getState(),r.getState());
  assert.throws(()=>loadHuntReplay({...cap,rules:'sf-trick-lab/3'}),/Invalid|incompatible/);
+ assert.throws(()=>loadHuntReplay({...cap,rules:'sf-hunt-lab/1'}),/Invalid|incompatible/,
+  'legacy Hunt tapes cannot silently inherit new aerial/parry rules');
  const changed=structuredClone(cap);
  changed.startState.p[0].hp=42; // Guaranteed semantic divergence, not an ignored early input.
  assert.throws(()=>loadHuntReplay(changed),/diverged|integrity/i);
