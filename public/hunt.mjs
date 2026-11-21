@@ -235,7 +235,9 @@ function updateHud(){
    (ev.move?' · '+ev.move:'')+
    (Number.isFinite(ev.damage)?' · '+ev.damage+' damage':'')+
    (ev.kind==='hit'&&ev.punishedRecovery===true?
-    ' · Recovery Punish · '+ev.remainingRecovery+'F left':'');
+    ' · Recovery Punish · '+ev.remainingRecovery+'F left':'')+
+   (ev.kind==='hit'&&ev.punishedDodgeRecovery===true?
+    ' · Dodge Punish · '+ev.dodgeRecoveryFrames+'F left':'');
   ol.append(item);
  }
  updateButtons();
@@ -252,10 +254,13 @@ function inspectEvents(time){
   // Based on the actual target recovery frame at impact, never on guesswork.
   if(ev.kind==='hit'&&ev.punishedRecovery===true)
    calloutText='RECOVERY PUNISH · '+ev.remainingRecovery+'F LEFT';
+  if(ev.kind==='hit'&&ev.punishedDodgeRecovery===true)
+   calloutText='DODGE PUNISH · '+ev.dodgeRecoveryFrames+'F LEFT';
   if(ev.kind==='round')calloutText=ev.winner===-1?'ROUND DRAW':
     ev.over?'DUEL CONCLUDED':'ROUND CONCLUDED';
   if(['gunParry','visceral','rearStagger','round'].includes(ev.kind)||
-     ev.kind==='hit'&&ev.punishedRecovery===true)calloutUntil=time+950;
+     ev.kind==='hit'&&(ev.punishedRecovery===true||
+      ev.punishedDodgeRecovery===true))calloutUntil=time+950;
  }
  if(s.over){calloutText='DUEL CONCLUDED · UNRATED';calloutUntil=time+1500;}
 }

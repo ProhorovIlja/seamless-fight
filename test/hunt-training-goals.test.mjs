@@ -10,8 +10,8 @@ function run(session,actions={},count=95){
   assert.equal(session.append(actions[tick]||cmd()),true,'source append tick '+tick);
  return session;
 }
-test('all sixteen source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,16);
+test('all seventeen source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,17);
  const categories=new Set();
  for(const scenario of HUNT_PRACTICE_DRILLS){
   assert(Object.hasOwn(HUNT_TRAINING_GOALS,scenario.id));
@@ -281,4 +281,22 @@ test('corner goal cannot be earned by a button press without actual source cross
   {tick:53,kind:'cornerEscape',actor:0,target:1,side:'left'}]);
  assert.equal(confirmed.completed,true);
  assert.equal(confirmed.lastIntervalFrames,7);
+});
+
+test('quickstep recovery drill scores real contact after i-frames but before step recovery',()=>{
+ const valid=run(huntPracticeSession({drill:'dodge-punish'}),{63:cmd('light')},94);
+ const step=valid.eventHistory(140).find(e=>e.kind==='action'&&e.actor===1&&e.move==='step');
+ const hit=valid.eventHistory(140).find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
+ assert(step&&hit);
+ assert.equal(hit.punishedDodgeRecovery,true);
+ assert.equal(hit.dodgeRecoveryFrames,7);
+ assert.equal(valid.goal().successes,1);
+ assert.equal(valid.goal().attempts,1);
+ const late=run(huntPracticeSession({drill:'dodge-punish'}),{70:cmd('light')},98);
+ const lateHit=late.eventHistory(140).find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
+ assert(lateHit);
+ assert.equal(lateHit.punishedDodgeRecovery,false);
+ assert.equal(late.goal().successes,0,'post-recovery light must not earn punishment');
+ const idle=run(huntPracticeSession({drill:'dodge-punish'}),{},98);
+ assert.equal(idle.goal().successes,0,'observing the dummy step never awards points');
 });

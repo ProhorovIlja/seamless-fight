@@ -553,3 +553,28 @@ test('a confirmed heavy may still convert to a light response, not a duplicate h
  assert(ev.some(e=>e.kind==='action'&&e.actor===0&&e.move==='foldedLight'),
   'fast light conversion is still permitted after real contact');
 });
+
+test('a real quickstep is immune inside i-frames but punishable during real recovery only',()=>{
+ for(const weapon of ['mournweave','thornwake']){
+  const fight=live(60,{weapons:[weapon,weapon]});
+  const events=[];
+  for(let frame=0;frame<90;frame++)
+   huntStep(fight,[cmd(frame===62?'light':''),cmd(frame===55?'step':'',frame===55?-1:0)],events);
+  const step=events.find(e=>e.kind==='action'&&e.actor===1&&e.move==='step');
+  const attack=events.find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
+  assert(step&&attack);
+  assert(attack.tick-step.tick>=7,'the attack never bypasses six real quickstep i-frames');
+  assert.equal(attack.punishedDodgeRecovery,true);
+  assert(attack.dodgeRecoveryFrames>0);
+  assert.equal(attack.punishedRecovery,false,'a step punish is not mislabeled attack whiff punish');
+ }
+});
+test('a late post-quickstep hit is real damage, but no dodge recovery punish',()=>{
+ const fight=live(60),events=[];
+ for(let frame=0;frame<91;frame++)
+  huntStep(fight,[cmd(frame===69?'light':''),cmd(frame===55?'step':'',frame===55?-1:0)],events);
+ const hit=events.find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
+ assert(hit);
+ assert.equal(hit.punishedDodgeRecovery,false);
+ assert.equal(hit.dodgeRecoveryFrames,0);
+});

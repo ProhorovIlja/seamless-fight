@@ -506,7 +506,7 @@ try{
  await hunt.locator('#drill').selectOption('parry-heal');
  assert.equal(await hunt.locator('#p1-health').getAttribute('style'),'width: 60%;');
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Counter Vial Healing/);
- assert.equal(await hunt.locator('#drill option').count(),16,'all 16 genuine Hunt drills must appear');
+ assert.equal(await hunt.locator('#drill option').count(),17,'all 17 genuine Hunt drills must appear');
  assert.match(await hunt.locator('#goal-category').textContent(),/DEFENSE/);
  assert.match(await hunt.locator('#goal-description').textContent(),/vial-healing/);
  // Actual jump and missed weapon swing are observable without awarding fake
@@ -515,6 +515,9 @@ try{
  await until(async()=>/Hunter 2.*jump/.test(await hunt.locator('#events').textContent()),
    'source airborne practice dummy executes a real single jump');
  assert.match(await hunt.locator('#goal-progress').textContent(),/0 confirmed · 1 observed/);
+ await hunt.locator('#drill').selectOption('whiff-punish');
+ await hunt.locator('#drill').selectOption('dodge-punish');
+ assert.match(await hunt.locator('#drill option:checked').textContent(),/Punish Quickstep Recovery/);
  await hunt.locator('#drill').selectOption('whiff-punish');
  await until(async()=>/0 confirmed · 1 observed/.test(await hunt.locator('#goal-progress').textContent()),
    'source whiff punish drill observes one actually missed heavy');

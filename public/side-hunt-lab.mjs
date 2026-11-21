@@ -341,6 +341,12 @@ function resolveHit(s,actor,target,moveName,events){
  // A true whiff punish must CONNECT while the target remains committed
  // to recovery of a genuinely missed attack. Time since a whiff alone
  // is insufficient: the opponent may already be able to attack/evade.
+ // This is NOT an invincible dodge reversal. A quickstep is punishable
+ // only after its real six-frame invulnerable interval has expired, and
+ // only until the ordinary action recovery ends.
+ const dodgeSpec=huntMoveSpec(b);
+ const punishedDodgeRecovery=b.act==='step'&&b.age>=7&&b.age<total(dodgeSpec);
+ const dodgeRecoveryFrames=punishedDodgeRecovery?total(dodgeSpec)-b.age:0;
  const recovery=huntMoveSpec(b);
  const punishedRecovery=ATTACKS.has(b.act)&&!b.spent&&
   b.age>=recovery.startup+recovery.active&&b.age<total(recovery);
@@ -367,7 +373,8 @@ function resolveHit(s,actor,target,moveName,events){
   events?.push({tick:s.tick,kind:'rearStagger',actor,target,opening:b.exposed});
  }
  events?.push({tick:s.tick,kind:'hit',actor,target,move:moveName,damage:prior-b.hp,combo,
-  punishedRecovery,punishedMove,remainingRecovery});
+  punishedRecovery,punishedMove,remainingRecovery,
+  punishedDodgeRecovery,dodgeRecoveryFrames});
 }
 export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  if(s?.rules!==HUNT_RULESET||!Array.isArray(s.p)||s.p.length!==2)

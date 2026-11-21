@@ -26,6 +26,7 @@ export const HUNT_PRACTICE_DRILLS=Object.freeze([
  Object.freeze({id:'anti-air',label:'Anti-Air: Read the Jump',spacing:132,action:'',startAt:55}),
  Object.freeze({id:'air-parry',label:'Airborne Firearm Counter',spacing:106,action:'heavy',startAt:55}),
  Object.freeze({id:'whiff-punish',label:'Whiff Punishment',spacing:182,action:'heavy',startAt:55}),
+ Object.freeze({id:'dodge-punish',label:'Punish Quickstep Recovery',spacing:60,action:'step',startAt:55}),
  Object.freeze({id:'hit-confirm',label:'Offense: Confirm Follow-up',spacing:83,action:'',startAt:55}),
  Object.freeze({id:'transform-pressure',label:'Offense: Trick-Weapon Pressure',spacing:95,action:'',startAt:55}),
  Object.freeze({id:'rally-reclaim',label:'Resources: Rally Recovery',spacing:95,action:'light',startAt:55}),
@@ -50,6 +51,8 @@ function scoreProjection(tickEvents,beforePlayerAction,confirmedState){
 function makeDrillTape(scenario,variation=0){
  const tape=Array.from({length:150},neutral);
  tape[scenario.startAt]=canonicalHuntInput({act:scenario.action});
+ if(scenario.id==='dodge-punish')
+  tape[scenario.startAt]=canonicalHuntInput({act:'step',x:-1});
  if(scenario.id==='anti-air'){
   // Mirror of the original hunter's inputs: the dummy jumps toward the
   // player once. Jump is a direction, never an extra invented action.

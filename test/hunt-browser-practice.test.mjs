@@ -61,6 +61,7 @@ test('real Node HTTP server exposes English-only interactive Hunt laboratory and
  const fightRuntime=await (await fetch(origin+'/fight/hunt.mjs')).text();
  assert.match(fightRuntime,/Recovery Punish/,'exact recovery punishment appears in English practice');
  assert.match(fightRuntime,/punishedRecovery===true/,'UI must not score late hits as recovery punishes');
+ assert.match(fightRuntime,/punishedDodgeRecovery===true/,'real dodge recovery evidence must drive callout');
  for(const asset of ['hunt.css','hunt.mjs','hunt-render.mjs','hunt-browser-input.mjs',
   'side-hunt-lab.mjs','side-hunt-replay.mjs','hunt-practice-suite.mjs',
   'hunt-match-analytics.mjs','hunt-input-device.mjs','hunt-identity.mjs',
