@@ -7,6 +7,9 @@ on:
       - 'native/godot/**'
       - 'experiments/godot-native-4.7/extension/**'
       - 'experiments/godot-native-4.7/tests/verify_native_combat.gd'
+      - 'experiments/godot-native-4.7/tests/verify_native_practice.gd'
+      - 'experiments/godot-native-4.7/scripts/native_practice.gd'
+      - 'experiments/godot-native-4.7/scenes/stage.tscn'
       - 'scripts/native-godot-vectors.mjs'
       - '.github/workflows/native-combat-godot.yml'
   pull_request:
@@ -16,6 +19,9 @@ on:
       - 'native/godot/**'
       - 'experiments/godot-native-4.7/extension/**'
       - 'experiments/godot-native-4.7/tests/verify_native_combat.gd'
+      - 'experiments/godot-native-4.7/tests/verify_native_practice.gd'
+      - 'experiments/godot-native-4.7/scripts/native_practice.gd'
+      - 'experiments/godot-native-4.7/scenes/stage.tscn'
       - 'scripts/native-godot-vectors.mjs'
       - '.github/workflows/native-combat-godot.yml'
   workflow_dispatch:
@@ -51,6 +57,7 @@ jobs:
           node scripts/native-godot-vectors.mjs
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_practice.gd --quit-after 300
           echo 'NATIVE_CPP_60HZ_GODOT_JS_PARITY=PASS (1350 ticks * 41 fields)' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
@@ -115,6 +122,7 @@ jobs:
           node scripts/native-godot-vectors.mjs
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_practice.gd --quit-after 300
           mkdir -p artifacts/native-cpp-windows
           "$G" --headless --path experiments/godot-native-4.7 --export-release "Windows Desktop" "$PWD/artifacts/native-cpp-windows/SeamlessFight-NativeCombatResearch.exe"
           test -s artifacts/native-cpp-windows/SeamlessFight-NativeCombatResearch.exe
@@ -129,3 +137,23 @@ jobs:
           name: sf-cpp-native-win64-evaluation-only
           path: artifacts/native-cpp-windows/
           retention-days: 14
+
+  windows-native-runtime:
+    name: Windows 2022 / exported exe plus extension DLL headless
+    needs: integrated-export
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sf-cpp-native-win64-evaluation-only
+          path: extracted/native-cpp-windows
+      - name: Launch exported Windows PE with native combat module
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $pwd 'extracted/native-cpp-windows/SeamlessFight-NativeCombatResearch.exe'
+          if (-not (Test-Path $exe)) {throw 'Missing native integrated executable'}
+          $p=Start-Process -FilePath $exe -ArgumentList @('--headless','--quit-after','120') -PassThru -NoNewWindow -Wait
+          if ($p.ExitCode -ne 0) {throw ('Native Windows runtime failed with exit code '+$p.ExitCode)}
+          'WINDOWS_NATIVE_COMBAT_EXE_LAUNCH=PASS (headless; GPU/display not certified)' | Out-File $env:GITHUB_STEP_SUMMARY -Append
