@@ -1,0 +1,58 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/stage.gd" id="1_stage"]
+[ext_resource type="Script" path="res://scripts/native_controls.gd" id="2_controls"]
+[ext_resource type="Script" path="res://scripts/site_scenery.gd" id="3_scenery"]
+[ext_resource type="Script" path="res://scripts/native_practice.gd" id="4_practice"]
+[ext_resource type="Script" path="res://scripts/native_input_settings.gd" id="5_settings"]
+[ext_resource type="Script" path="res://scripts/native_online_session.gd" id="6_online"]
+[ext_resource type="Script" path="res://scripts/native_hud.gd" id="7_hud"]
+[ext_resource type="Script" path="res://scripts/native_menu.gd" id="8_menu"]
+[ext_resource type="Script" path="res://scripts/native_audio.gd" id="9_audio"]
+[ext_resource type="Script" path="res://scripts/native_graphics_settings.gd" id="10_graphics"]
+[ext_resource type="Script" path="res://scripts/native_frame_pacing.gd" id="11_frame"]
+
+[node name="Stage" type="Node3D"]
+script = ExtResource("1_stage")
+
+[node name="CombatCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 12)
+projection = 1
+current = true
+size = 9.0
+near = 0.05
+far = 80.0
+
+[node name="Veil" type="Node3D" parent="."]
+
+[node name="Cinder" type="Node3D" parent="."]
+
+[node name="NativeControls" type="Node" parent="."]
+script = ExtResource("2_controls")
+
+[node name="SiteBackdrop" type="Node3D" parent="."]
+script = ExtResource("3_scenery")
+
+[node name="Practice" type="Node" parent="."]
+script = ExtResource("4_practice")
+
+[node name="InputSettings" type="CanvasLayer" parent="."]
+script = ExtResource("5_settings")
+
+[node name="Online" type="Node" parent="."]
+script = ExtResource("6_online")
+
+[node name="CombatHud" type="CanvasLayer" parent="."]
+script = ExtResource("7_hud")
+
+[node name="NativeMenu" type="CanvasLayer" parent="."]
+script = ExtResource("8_menu")
+
+[node name="NativeAudio" type="Node" parent="."]
+script = ExtResource("9_audio")
+
+[node name="GraphicsSettings" type="CanvasLayer" parent="."]
+script = ExtResource("10_graphics")
+
+[node name="FramePacing" type="CanvasLayer" parent="."]
+script = ExtResource("11_frame")

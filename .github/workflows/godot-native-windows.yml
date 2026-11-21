@@ -1,0 +1,127 @@
+name: Native Godot Forward+ Windows x64 Baseline
+on:
+  push:
+    branches: [feat/lantern-court]
+    paths:
+      - 'experiments/godot-native-4.7/**'
+      - '.github/workflows/godot-native-windows.yml'
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  native-windows:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify pinned Poly Haven CC0 high-detail Gothic 3D stage geometry
+        shell: bash
+        run: bash scripts/native-fetch-polyhaven-stage-prop.sh
+      - name: Download official 4.7.2 editor and matching native Windows export
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=https://github.com/godotengine/godot/releases/download/4.7.2-stable
+          curl -fL --retry 2 --max-time 150 --silent --show-error "$BASE/Godot_v4.7.2-stable_linux.x86_64.zip" -o "${RUNNER_TEMP}/godot.zip"
+          curl -fL --retry 2 --max-time 240 --silent --show-error "$BASE/Godot_v4.7.2-stable_export_templates.tpz" -o "${RUNNER_TEMP}/templates.tpz"
+          unzip -q "${RUNNER_TEMP}/godot.zip" -d "${RUNNER_TEMP}"
+          chmod +x "${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          TARGET="${HOME}/.local/share/godot/export_templates/4.7.2.stable"
+          mkdir -p "$TARGET"
+          unzip -p "${RUNNER_TEMP}/templates.tpz" templates/windows_release_x86_64.exe > "$TARGET/windows_release_x86_64.exe"
+          unzip -p "${RUNNER_TEMP}/templates.tpz" templates/version.txt > "$TARGET/version.txt"
+          test -s "$TARGET/windows_release_x86_64.exe"
+      - name: Real Godot native project parse and graphics tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          G="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
+          SF_EXPECT_PBR=1 "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_graphics.gd --quit-after 240
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_controls.gd --quit-after 240
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hud_menu.gd --quit-after 240
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_audio.gd --quit-after 240
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_video_menu.gd --quit-after 240
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_frame_pacing.gd --quit-after 240
+      - name: Exercise actual native-renderer private 1v1 against Node room server
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts --no-audit --no-fund
+          HOST=127.0.0.1 PORT=18893 PUBLIC_ORIGIN=http://127.0.0.1:18893 node server.mjs > "$RUNNER_TEMP/native-room-server.log" 2>&1 &
+          SID=$!
+          trap 'kill "$SID" 2>/dev/null || true; tail -c 1500 "$RUNNER_TEMP/native-room-server.log"' EXIT
+          for i in {1..70}; do
+            if curl -fsS http://127.0.0.1:18893/fight/health >/dev/null; then break; fi
+            sleep .1
+          done
+          curl -fsS http://127.0.0.1:18893/fight/health
+          G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+          # Exit code alone is insufficient: Godot can log a GDScript error yet
+          # return 0 when --quit-after expires. Require a real explicit assertion.
+          set +e
+          timeout 26s "$G" --headless --path experiments/godot-native-4.7 \
+            --script res://tests/verify_native_online.gd > "$RUNNER_TEMP/native-online-test.log" 2>&1
+          RESULT=$?
+          set -e
+          cat "$RUNNER_TEMP/native-online-test.log"
+          if [ "$RESULT" -ne 0 ]; then
+            echo "Native two-client test exited $RESULT" >&2
+            exit "$RESULT"
+          fi
+          if grep -E 'SCRIPT ERROR|NATIVE_GODOT_PRIVATE_1V1_FAIL|GDScript backtrace' "$RUNNER_TEMP/native-online-test.log"; then
+            echo 'Native online runtime emitted an error despite engine exit status' >&2
+            exit 1
+          fi
+          grep -F 'GODOT_NATIVE_WINDOWS_1V1_SCENES_SERVER_PASS' "$RUNNER_TEMP/native-online-test.log"
+
+      - name: Cross-build native x86-64 Windows PE and resource pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          G="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          mkdir -p artifacts/native-windows
+          "$G" --headless --path experiments/godot-native-4.7 --export-release "Windows Desktop"             "$PWD/artifacts/native-windows/SeamlessFight-NativeRenderer.exe"
+          test -s artifacts/native-windows/SeamlessFight-NativeRenderer.exe
+          test -s artifacts/native-windows/SeamlessFight-NativeRenderer.pck
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('artifacts/native-windows/SeamlessFight-NativeRenderer.exe')
+          assert p.open('rb').read(2)==b'MZ' and p.stat().st_size>1000000
+          print('NATIVE_WIN64_PE_EXPORT_VERIFIED',p.stat().st_size)
+          PY
+          echo 'Built native Forward+ PE executable (Windows GPU playtest pending)' >> "${GITHUB_STEP_SUMMARY}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: seamless-fight-godot-forwardplus-native-windows-x64
+          path: artifacts/native-windows/
+          if-no-files-found: warn
+          retention-days: 14
+
+  windows-exe-launch:
+    name: Windows Server 2022 / native exe launch
+    needs: native-windows
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: seamless-fight-godot-forwardplus-native-windows-x64
+          path: extracted/native-windows
+      - name: Execute the real exported PE with its resource pack
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = Join-Path $pwd 'extracted/native-windows/SeamlessFight-NativeRenderer.exe'
+          $pck = Join-Path $pwd 'extracted/native-windows/SeamlessFight-NativeRenderer.pck'
+          if (-not (Test-Path $exe) -or -not (Test-Path $pck)) {
+            throw 'Missing the signed-origin Windows renderer evaluation package'
+          }
+          $p = Start-Process -FilePath $exe -ArgumentList @('--headless','--quit-after','100') -NoNewWindow -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw ('Native Windows executable exited with code ' + $p.ExitCode) }
+          'GODOT_NATIVE_WINDOWS_HEADLESS_LAUNCH=PASSED' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          'No physical GPU, gamepad, native display or WAN benchmarks are established by this test.' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append

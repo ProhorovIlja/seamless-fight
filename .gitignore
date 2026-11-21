@@ -1,0 +1,13 @@
+node_modules/
+.env
+npm-debug.log*
+
+# Generated Godot cache, C++ bindings, and optional high-fidelity research model.
+experiments/godot-native-4.7/.godot/
+experiments/godot-native-4.7/extension/godot-cpp/
+experiments/godot-native-4.7/extension/.sconsign.dblite
+experiments/godot-native-4.7/bin/*.dll
+experiments/godot-native-4.7/bin/*.so
+experiments/godot-native-4.7/bin/*.gdextension
+experiments/godot-native-4.7/assets/pbr/*.glb
+artifacts/

@@ -1,0 +1,44 @@
+name: Native C++ to JS Side-View Ruleset Parity
+on:
+  push:
+    branches: [feat/lantern-court]
+    paths:
+      - 'native/combat/**'
+      - 'scripts/native-combat-parity.mjs'
+      - 'public/side-engine.mjs'
+      - '.github/workflows/native-combat-parity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cpp-js-authority-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Cross-check portable C++ against canonical 60Hz JS simulation
+        run: node scripts/native-combat-parity.mjs
+
+  windows-msvc-parity:
+    name: Windows / MSVC C++ vs JS combat parity
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Compile with the real MSVC Windows toolchain and validate 6,500 game ticks
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cl /nologo /std:c++17 /O2 /fp:precise /W4 /WX /EHsc /Fe:sf-native-core.exe native/combat/side_core.cpp
+          if ($LASTEXITCODE -ne 0) { throw 'MSVC compilation failed' }
+          $env:SF_NATIVE_CORE_EXE = Join-Path $pwd 'sf-native-core.exe'
+          node scripts/native-combat-parity.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Windows MSVC combat parity failed' }
+          'WINDOWS_MSVC_CPP_JS_COMBAT_PARITY=PASSED' | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
