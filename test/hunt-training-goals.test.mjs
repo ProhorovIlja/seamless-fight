@@ -10,8 +10,8 @@ function run(session,actions={},count=95){
   assert.equal(session.append(actions[tick]||cmd()),true,'source append tick '+tick);
  return session;
 }
-test('all twenty source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,20);
+test('all twenty-one source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,21);
  const categories=new Set();
  for(const scenario of HUNT_PRACTICE_DRILLS){
   assert(Object.hasOwn(HUNT_TRAINING_GOALS,scenario.id));
@@ -322,16 +322,52 @@ test('corner counterhit score requires the actual designated wall, heavy startup
 
 test('corner goal cannot be earned by a button press without actual source crossing',()=>{
  const empty=evaluateHuntTrainingGoal('corner-escape',[
-  {tick:46,kind:'action',actor:1,move:'foldedHeavy'},
+  {tick:46,kind:'action',actor:1,move:'foldedHeavy',playerWall:'left'},
   {tick:48,kind:'action',actor:0,move:'step'}]);
  assert.equal(empty.attempts,1);
  assert.equal(empty.completed,false);
  const confirmed=evaluateHuntTrainingGoal('corner-escape',[
-  {tick:46,kind:'action',actor:1,move:'foldedHeavy'},
+  {tick:46,kind:'action',actor:1,move:'foldedHeavy',playerWall:'left'},
   {tick:48,kind:'action',actor:0,move:'step'},
   {tick:53,kind:'cornerEscape',actor:0,target:1,side:'left'}]);
  assert.equal(confirmed.completed,true);
  assert.equal(confirmed.lastIntervalFrames,7);
+});
+
+test('both wall-crossing drills award only a real directional through-step at the indicated side',()=>{
+ for(const side of ['left','right']){
+  const drill=side==='left'?'corner-escape':'corner-escape-right';
+  const session=huntPracticeSession({drill});
+  assert.equal(session.inspect().p[0].x,side==='left'?65:895);
+  assert.equal(session.inspect().p[1].x,side==='left'?107:853);
+  for(let frame=1;frame<=66;frame++){
+   assert(session.append(cmd(frame===48?'step':'',frame===48?(side==='left'?1:-1):0)));
+  }
+  const pressure=session.eventHistory(200).find(e=>e.kind==='action'&&e.actor===1&&e.move==='foldedHeavy');
+  const crossing=session.eventHistory(200).find(e=>e.kind==='cornerEscape'&&e.actor===0);
+  assert(pressure&&crossing,`actual ${side} wall pressure and collision crossing required`);
+  assert.equal(crossing.side,side);
+  assert.equal(session.goal().attempts,1);
+  assert.equal(session.goal().successes,1);
+  const final=session.inspect().p;
+  assert(side==='left'?final[0].x>final[1].x:final[0].x<final[1].x);
+  const noInput=huntPracticeSession({drill});
+  for(let frame=1;frame<=66;frame++)noInput.append(cmd());
+  assert.equal(noInput.goal().successes,0);
+ }
+});
+
+test('mirrored wall-cross scoring rejects mismatched wall evidence',()=>{
+ const fake=[
+  {tick:46,kind:'action',actor:1,move:'foldedHeavy',playerWall:'left'},
+  {tick:54,kind:'cornerEscape',actor:0,target:1,side:'right'}
+ ];
+ assert.equal(evaluateHuntTrainingGoal('corner-escape',fake).successes,0);
+ assert.equal(evaluateHuntTrainingGoal('corner-escape-right',fake).successes,0);
+ assert.equal(evaluateHuntTrainingGoal('corner-escape',[
+  {...fake[0],playerWall:'right'},
+  {...fake[1],side:'left'}
+ ]).successes,0);
 });
 
 test('quickstep recovery drill scores real contact after i-frames but before step recovery',()=>{
