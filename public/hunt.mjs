@@ -22,7 +22,7 @@ let adapter=createHuntInputAdapter(huntDeviceProfile('keyboard-mouse'));
 let layout='keyboard-mouse',boxes=false,last=0,acc=0,lastDraw=0,lastHud=0;
 let drawCount=0,drawWindow=0,lastFrame=huntInput(),lastEventTick=-1;
 let message='Practice is running. No online opponents or rankings.';
-let calloutUntil=0,calloutText='',selectedGamepadIndex=-1;
+let calloutUntil=0,calloutText='',selectedGamepadIndex=-1,lastPadLabel='';
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const status=text=>{$('status').textContent=text;message=text;};
@@ -35,10 +35,12 @@ function choosePad(){
  const selected=connected.find(p=>p.index===selectedGamepadIndex)||connected[0];
  if(selected)selectedGamepadIndex=selected.index;
  else selectedGamepadIndex=-1;
- $('input-device').textContent=selected?
+ const label=selected?
   'Mapped controller: '+String(selected.id).slice(0,100)+' · gamepad index '+selected.index+
   ' · 60Hz input sampling.':
   'No standard-mapped gamepad / arcade / leverless device detected. The fighter receives neutral input.';
+ // Never mutate the DOM 60 times/s for an unchanged controller connection.
+ if(label!==lastPadLabel){$('input-device').textContent=label;lastPadLabel=label;}
  return selected;
 }
 function sampleInput(){
@@ -177,7 +179,7 @@ function animate(now){
 function setControlFamily(){
  const next=$('input-family').value;
  if(!browserLayouts.has(next)||!HUNT_DEVICE_LAYOUTS.includes(next))return;
- layout=next;adapter=createHuntInputAdapter(huntDeviceProfile(next));
+ layout=next;adapter=createHuntInputAdapter(huntDeviceProfile(next));lastPadLabel='';
  clearInput();status('Input profile: '+next+'. SOCD neutral; real controller support depends on hardware mapping.');
  if(next==='keyboard-mouse'){
   $('input-device').textContent='Keyboard and mouse active.';
