@@ -150,6 +150,7 @@ void output(const State&s){
  std::cout<<'\n';
 }
 }
+#ifndef SF_NO_CLI_MAIN
 int main(){
  using namespace sf;
  State s;
@@ -178,3 +179,5 @@ int main(){
  std::cerr<<"NATIVE_LOCAL_ROLLBACK_RESIM_PASSED checkpoints="<<rewinds_verified<<'\n';
  return 0;
 }
+
+#endif // SF_NO_CLI_MAIN: keep standalone CLI parity unmodified by Godot binding.
