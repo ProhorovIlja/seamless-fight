@@ -165,7 +165,7 @@ export function createSideHub(expectedOrigin,{maxRooms=64}={}){
    setTimeout(()=>{for(const c of ws.clients)c.terminate();},1500).unref();
   },
   stats(){return {rooms:rooms.size,clients:ws.clients.size,
-   duels:[...rooms.values()].filter(r=>r.peers.length===2).length,
+   duels:[...rooms.values()].filter(r=>r.peers.length===2&&!r.s.over).length,
    fighters:[...rooms.values()].reduce((n,r)=>n+r.peers.length,0),
    spectators:[...rooms.values()].reduce((n,r)=>n+r.viewers.size,0),
    publicGalleries:galleries.size};},
