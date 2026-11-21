@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/stage.gd" id="1_stage"]
 [ext_resource type="Script" path="res://scripts/native_controls.gd" id="2_controls"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://scripts/native_graphics_settings.gd" id="10_graphics"]
 [ext_resource type="Script" path="res://scripts/native_frame_pacing.gd" id="11_frame"]
 [ext_resource type="Script" path="res://scripts/rig_socket.gd" id="12_rig"]
+[ext_resource type="Script" path="res://scripts/native_court_status.gd" id="13_court"]
 
 [node name="Stage" type="Node3D"]
 script = ExtResource("1_stage")
@@ -47,6 +48,9 @@ script = ExtResource("6_online")
 
 [node name="CombatHud" type="CanvasLayer" parent="."]
 script = ExtResource("7_hud")
+
+[node name="CourtStatus" type="Node" parent="."]
+script = ExtResource("13_court")
 
 [node name="NativeMenu" type="CanvasLayer" parent="."]
 script = ExtResource("8_menu")
