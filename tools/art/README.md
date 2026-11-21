@@ -46,3 +46,13 @@ CC0 and permissively licensed motion **candidates** to review and retarget into 
 - [CMU Motion Capture Database](https://mocap.cs.cmu.edu/): official site explicitly states free for **research**. Do not treat that as blanket approval for distributing a commercial game.
 
 Use [Godot's official humanoid retargeting workflow](https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/retargeting_3d_skeletons.html) with compatible humanoid rest poses and SkeletonProfileHumanoid, then art-direct every active attack/recovery and test foot plants, weapon-hand IK, cloth and eyelines. Do not ship generic identical attack clips for two different weapons simply because the clips have the required filenames.
+
+## Exact-frame two-form weapon animation shot list (research tool)
+
+The current experimental `sf-trick-lab/3` ruleset can export the **actual frame data for both Mournweave and Thornwake** as a stable JSON production shot list:
+
+```sh
+node tools/art/export-trick-animation-brief.mjs > artifacts/trick-animations-v3.json
+```
+
+Create `artifacts/` first. The generator documents every authored move's startup/active/recovery, world-space reach and vertical hit envelope, initial/final form, deterministic form-switch age, and separate full-body/grip/foot/cloth QA flags. The 60 Hz combat simulation remains authoritative; imported 3D clips must align with these windows rather than control physics. `test/trick-animation-brief.test.mjs` checks completeness and timing across both original weapons. This export is **not** an animated GLB, does not make the present native runtime support trick-lab v3, and does not establish that a single premium hunter or transformation clip already exists. Real authored Blender rigs, animation QA, licenses, native visual integration and hardware testing are still required.
