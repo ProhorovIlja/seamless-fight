@@ -195,6 +195,22 @@ func _verify() -> void:
 			_fail("Native firearm parry timing diverged at heavy age "+str(age))
 			return
 		game.step_encoded(0,0,0,0,0,0,0,0)
+	# A genuine missed R2 leaves a small, hittable arm only in recovery.
+	# Not the entire sword; no extra limb after startup/active or in neutral.
+	game.reset()
+	for tick in range(90):game.step_encoded(0,0,0,0,0,0,0,0)
+	if not game.step_encoded(0,0,2,0,0,0,0,0):
+		_fail("Cannot start real missed R2 for whiff recovery evidence")
+		return
+	for age in range(1,47):
+		var meter: Dictionary=game.get_move_frame_data(0)
+		var exposed: bool=age>=23 and age<46
+		if int(meter.get("age",-1))!=age or \
+		 bool(meter.get("whiffRecoveryArmExposed",false))!=exposed or \
+		 int(meter.get("whiffRecoveryArmUnits",-1))!=(22 if exposed else 0):
+			_fail("Native whiff arm source mismatch at heavy age "+str(age))
+			return
+		game.step_encoded(0,0,0,0,0,0,0,0)
 	game.reset()
 	print("NATIVE_HUNT_GODOT_V3_PARITY=PASS ticks=",frames.size(),
 	 " checkedSourceFields=",checked," checkpoint=500")
