@@ -129,6 +129,39 @@ func _verify() -> void:
 	if game.get_tick()!=0 or game.get_state()["p"][1]["weapon"]!="thornwake":
 		_fail("Reset lost original weapon selection")
 		return
+	# Every newly appended portable action needs an actual exposed Godot name.
+	# Exercise its legal input path; do not inject a fake action id into state.
+	for mode in range(2):
+		game.reset()
+		for tick in range(90):
+			if not game.step_encoded(0,0,0,0,0,0,0,0):
+				_fail("Unable to complete ready phase before backstep check")
+				return
+		if mode==1:
+			if not game.step_encoded(0,0,4,0,0,0,0,0):
+				_fail("Neutral trick request rejected")
+				return
+			for tick in range(22):game.step_encoded(0,0,0,0,0,0,0,0)
+			if game.get_state()["p"][0]["form"]!="unfurled":
+				_fail("Unable to prepare unfurled backstep test")
+				return
+		if not game.step_encoded(0,0,6,0,0,0,0,0):
+			_fail("Actual neutral input backstep rejected")
+			return
+		if game.get_state()["p"][0]["act"]!="backstep" or \
+			game.get_move_frame_data(0)["action"]!="backstep":
+			_fail("Native Godot action label for real backstep missing")
+			return
+		for tick in range(4):game.step_encoded(0,0,0,0,0,0,0,0)
+		if not game.step_encoded(0,0,1,0,0,0,0,0):
+			_fail("Actual backstep R1 request rejected")
+			return
+		var label: String="unfurledBackstepLight" if mode==1 else "foldedBackstepLight"
+		if game.get_state()["p"][0]["act"]!=label or \
+			game.get_move_frame_data(0)["action"]!=label:
+			_fail("Native Godot missing action label for "+label)
+			return
+	game.reset()
 	print("NATIVE_HUNT_GODOT_V3_PARITY=PASS ticks=",frames.size(),
 	 " checkedSourceFields=",checked," checkpoint=500")
 	quit(0)
