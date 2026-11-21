@@ -49,9 +49,9 @@ int main(int argc,char**argv){
    const Spec victim=spec(s.p[1].weapon,UNFURLED_HEAVY);
    s.p[1].age=victim.startup+victim.active;
   }else if(scenario=="--face-cross-p0"||scenario=="--face-cross-p1"){
-   // Directed parity: at almost zero spacing an idle hunter moves through
-   // the other before the body solver separates them. Both fighters must
-   // re-face after final coordinates settle, independent of slot order.
+   // Directed parity: at almost zero spacing a neutral hunter TRIES
+   // to walk through the opponent, but the solid body solver must preserve
+   // the original order and leave both facing inward, for either slot.
    s.ready=0;
    const bool second=scenario=="--face-cross-p1";
    s.p[0].x=second?480.5:479.5;
