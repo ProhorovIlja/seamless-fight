@@ -23,6 +23,9 @@ try{
  const started=performance.now();
  await page.goto(base+'/index.html');
  await page.waitForFunction(()=>document.getElementById('gpu-canvas')?.dataset.engineReady==='true',null,{timeout:35000});
+ // WebGL2/WebGPU uploads and shader compilation may occur after JS startup.
+ // Compare actual painted frames only after the renderer has produced them.
+ await page.waitForTimeout(1600);
  await page.locator('#gpu-canvas').screenshot({path:'artifacts/playcanvas-stage-browser-capture.png'});
  const screenshot=await stat('artifacts/playcanvas-stage-browser-capture.png');
  const metrics=await page.evaluate(()=>({gpu:window.__rendererQA?.gpu,ms:window.__rendererQA?.initMs,
@@ -33,6 +36,7 @@ try{
    })}));
  assert(['webgl2','webgpu'].includes(metrics.gpu));
  assert.equal(metrics.valid,true);assert.equal(metrics.invalid,false);
+ console.log('STAGE_SCREENSHOT_BYTES='+screenshot.size+'; backend='+metrics.gpu);
  assert(screenshot.size>45000,'Original painting must actually fill the GPU viewport');
  assert.deepEqual(errors,[]);
  console.log(JSON.stringify({result:'PLAYCANVAS_GPU_BROWSER_RENDER_PASSED',
