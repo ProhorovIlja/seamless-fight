@@ -33,6 +33,9 @@ test('native animation manifest requires authored performances for all 56 weapon
   }
  }
  assert.equal(total,56);
+ assert(artifact.shared.includes('retreat'));
+ assert(!artifact.shared.includes('crouch'),
+  'the original Hunt PvP rules have no crouch or high/low blocking');
  assert(!artifact.shared.includes('guard'));
  assert(!artifact.shared.includes('airStep'));
  assert(!artifact.shared.includes('doubleJump'));
