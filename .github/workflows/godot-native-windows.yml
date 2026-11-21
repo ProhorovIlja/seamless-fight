@@ -1,0 +1,60 @@
+name: Native Godot Forward+ Windows x64 Baseline
+on:
+  push:
+    branches: [feat/lantern-court]
+    paths:
+      - 'experiments/godot-native-4.7/**'
+      - '.github/workflows/godot-native-windows.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-windows:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official 4.7.2 editor and matching native Windows export
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=https://github.com/godotengine/godot/releases/download/4.7.2-stable
+          curl -fL --retry 2 --max-time 150 --silent --show-error "$BASE/Godot_v4.7.2-stable_linux.x86_64.zip" -o "${RUNNER_TEMP}/godot.zip"
+          curl -fL --retry 2 --max-time 240 --silent --show-error "$BASE/Godot_v4.7.2-stable_export_templates.tpz" -o "${RUNNER_TEMP}/templates.tpz"
+          unzip -q "${RUNNER_TEMP}/godot.zip" -d "${RUNNER_TEMP}"
+          chmod +x "${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          TARGET="${HOME}/.local/share/godot/export_templates/4.7.2.stable"
+          mkdir -p "$TARGET"
+          unzip -p "${RUNNER_TEMP}/templates.tpz" templates/windows_release_x86_64.exe > "$TARGET/windows_release_x86_64.exe"
+          unzip -p "${RUNNER_TEMP}/templates.tpz" templates/version.txt > "$TARGET/version.txt"
+          test -s "$TARGET/windows_release_x86_64.exe"
+      - name: Real Godot native project parse and graphics tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          G="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_graphics.gd --quit-after 240
+      - name: Cross-build native x86-64 Windows PE and resource pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          G="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          mkdir -p artifacts/native-windows
+          "$G" --headless --path experiments/godot-native-4.7 --export-release "Windows Desktop"             "$PWD/artifacts/native-windows/SeamlessFight-NativeRenderer.exe"
+          test -s artifacts/native-windows/SeamlessFight-NativeRenderer.exe
+          test -s artifacts/native-windows/SeamlessFight-NativeRenderer.pck
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('artifacts/native-windows/SeamlessFight-NativeRenderer.exe')
+          assert p.open('rb').read(2)==b'MZ' and p.stat().st_size>1000000
+          print('NATIVE_WIN64_PE_EXPORT_VERIFIED',p.stat().st_size)
+          PY
+          echo 'Built native Forward+ PE executable (Windows GPU playtest pending)' >> "${GITHUB_STEP_SUMMARY}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: seamless-fight-godot-forwardplus-native-windows-x64
+          path: artifacts/native-windows/
+          if-no-files-found: warn
+          retention-days: 14
