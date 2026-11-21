@@ -214,6 +214,21 @@ func apply_hunt_snapshot(snapshot: Dictionary,frame_meter: Dictionary) -> bool:
 		 str(frame_meter.get("phase","idle")).to_upper(),
 		 int(frame_meter.get("age",0)),int(frame_meter.get("startup",0)),
 		 int(frame_meter.get("active",0)),int(frame_meter.get("recovery",0))])
+		# These flags come from the actual native 60 Hz state, not a guessed UI timer.
+		# Training only: never leak the opponent's vulnerability windows in ranked.
+		var windows: Array[String]=[]
+		if bool(frame_meter.get("quickstepIframes",false)):
+			windows.append("DODGE I-FRAMES")
+		if bool(frame_meter.get("quickstepVulnerableTail",false)):
+			windows.append("DODGE VULNERABLE TAIL")
+		if bool(frame_meter.get("quickstepRecoveryPunishable",false)):
+			windows.append("DODGE RECOVERY: %dF" % [int(frame_meter.get("quickstepRemainingRecovery",0))])
+		if bool(frame_meter.get("firearmCounterWindowOpen",false)):
+			windows.append("VULNERABLE TO GUN PARRY")
+		if bool(frame_meter.get("groundedHitstunEscapeReady",false)):
+			windows.append("HITSTUN QUICKSTEP READY")
+		if not windows.is_empty():
+			move_label.text+="\n"+"  |  ".join(windows)
 	last_tick=tick
 	return true
 
