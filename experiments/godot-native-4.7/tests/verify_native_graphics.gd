@@ -34,6 +34,16 @@ func _verify() -> void:
 	if not shafts.material_override is ShaderMaterial:
 		_fail("GPU-only moon shafts missing low-cost atmospheric shader")
 		return
+	var air: MeshInstance3D=site.get_node_or_null("NightAir")
+	if air==null or air.position.z>=-1.0 or air.get_child_count()!=0:
+		_fail("Original night-air effect must remain a GPU-only decorative draw behind gameplay")
+		return
+	if not air.material_override is ShaderMaterial:
+		_fail("Night-air fragment shader missing")
+		return
+	if air.mesh==null or air.mesh.get_surface_count()!=1:
+		_fail("Atmosphere must be one low-cost presentation-only primitive")
+		return
 	if stage.get_node("OriginalPaintedReliquary").visible:
 		_fail("Two stage artworks rendered on top of each other")
 		return
