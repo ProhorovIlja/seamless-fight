@@ -8,7 +8,7 @@
     "run",
     "jump",
     "land",
-    "crouch",
+    "retreat",
     "intro",
     "outro",
     "victory",
