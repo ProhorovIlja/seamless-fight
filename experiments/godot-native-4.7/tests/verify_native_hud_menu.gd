@@ -20,6 +20,32 @@ func _verify() -> void:
 		if menu.get_node_or_null(path)==null and menu.get_node_or_null("MenuShade")==null:
 			_fail("Native premium menu controls missing")
 			return
+	var court: Node=stage.get_node("CourtStatus")
+	if menu.court_activity==null or not menu.court_activity.text.contains("unavailable"):
+		_fail("Native launcher must not fabricate player population before real server fetch")
+		return
+	var activity := {"schema":"sf-public-activity/1","language":"en",
+		"gameMode":"1v1","service":"legacy-duel-preview",
+		"uniqueAuthenticatedPlayers":null,
+		"ranked":{"available":false},"friends":{"available":false},
+		"connectedClients":7.0,"duels":2.0,"spectators":1.0,
+		"publicGalleryCount":1.0}
+	if not court.accept_activity(activity):
+		_fail("Real server activity schema refused by native launcher")
+		return
+	if not menu.court_activity.text.contains("7 connections") or not menu.court_activity.text.contains("2 duels"):
+		_fail("Native launcher activity does not render actual validated connection counts")
+		return
+	var fake: Dictionary=activity.duplicate(true)
+	fake["language"]="ru"
+	if court.accept_activity(fake) or not menu.court_activity.text.contains("7 connections"):
+		_fail("Russian or unsupported locale overwrote English-only native Court status")
+		return
+	fake=activity.duplicate(true)
+	fake["uniqueAuthenticatedPlayers"]=7
+	if court.accept_activity(fake):
+		_fail("Native launcher accepted invented distinct player count")
+		return
 	var text: LineEdit=menu.endpoint
 	if text.max_length>256 or menu.clipboard_button.disabled==false:
 		_fail("Unsafe endpoint length or copy button enabled without actual invitation")
