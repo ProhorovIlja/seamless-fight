@@ -19,6 +19,12 @@ var moonlit: CheckButton
 var invite: Label
 var resume_button: Button
 var clipboard_button: Button
+var spectator_code: LineEdit
+var gallery_button: Button
+var gallery_clipboard: Button
+var gallery_label: Label
+var gallery_code := ""
+var gallery_host_slot := -1
 var active_mode := ""
 var room_code := ""
 var panel: PanelContainer
@@ -29,6 +35,8 @@ func _ready() -> void:
 	var online: Node=get_parent().get_node("Online")
 	online.room_code_ready.connect(_on_room)
 	online.connection_state.connect(_on_notice)
+	online.gallery_ready.connect(_on_gallery)
+	online.audience_changed.connect(_on_audience)
 	get_parent().get_node("Practice").practice_stopped.connect(_on_practice_stopped)
 	var live: Node=get_parent().get_node("CourtStatus")
 	live.activity_changed.connect(_on_court_activity)
@@ -197,6 +205,27 @@ func _build() -> void:
 	clipboard_button.disabled=true
 	clipboard_button.pressed.connect(_copy_invite)
 	column.add_child(clipboard_button)
+	column.add_child(_label("PUBLIC 1V1 SPECTATOR GALLERY",18,GOLD))
+	gallery_button=_button("Open public spectator gallery")
+	gallery_button.name="ToggleGallery"
+	gallery_button.disabled=true
+	gallery_button.pressed.connect(_toggle_gallery)
+	gallery_clipboard=_button("Copy public watch link")
+	gallery_clipboard.name="CopyWatchLink"
+	gallery_clipboard.disabled=true
+	gallery_clipboard.pressed.connect(_copy_watch_link)
+	_action_row(column,[gallery_button,gallery_clipboard])
+	gallery_label=_label("Host opt-in only · up to 6 read-only spectators · separate from private room invitation",13,MUTED)
+	gallery_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(gallery_label)
+	spectator_code=_field("12-character public spectator code")
+	spectator_code.name="SpectatorCode"
+	spectator_code.max_length=12
+	_line(column,"Watch code",spectator_code)
+	var watch := _button("Spectate live 1v1")
+	watch.name="WatchDuel"
+	watch.pressed.connect(_spectate_live)
+	_action_row(column,[watch])
 	moonlit=CheckButton.new()
 	moonlit.name="SiteScenery"
 	moonlit.text="Use animated Seamless Hunt moonlit city artwork"
@@ -356,10 +385,53 @@ func _join_private() -> void:
 	_connect_private(join_code.text.strip_edges())
 
 func _on_room(code: String,slot: int) -> void:
+	gallery_host_slot=slot
+	gallery_button.disabled=slot!=0
 	room_code=code
 	invite.text="Invitation: "+code+"   ·   Player "+str(slot+1)
 	clipboard_button.disabled=false
 	status.text="Share the invitation privately. Game begins when both hunters join."
+
+func _toggle_gallery() -> void:
+	if gallery_host_slot!=0 or active_mode!="online":
+		return
+	if not get_parent().get_node("Online").open_gallery(gallery_code.is_empty()):
+		status.text="Cannot change public gallery; private host connection required."
+
+func _on_gallery(code: String) -> void:
+	gallery_code=code
+	gallery_button.text="Close public spectator gallery" if not code.is_empty() else "Open public spectator gallery"
+	gallery_clipboard.disabled=code.is_empty()
+	gallery_label.text="Spectator code: "+code+" · 0 / 6 watching" if not code.is_empty() else "Public spectator gallery closed."
+
+func _on_audience(viewers: int) -> void:
+	if gallery_code.is_empty():
+		return
+	gallery_label.text="Spectator code: "+gallery_code+" · "+str(viewers)+" / 6 watching"
+
+func _copy_watch_link() -> void:
+	if gallery_code.length()!=12:
+		return
+	var base: String=origin.text.strip_edges().trim_suffix("/")
+	DisplayServer.clipboard_set(base+"/fight/side/?watch="+gallery_code)
+	status.text="Public 1v1 watch URL copied; fighter invitation remains private."
+
+func _spectate_live() -> void:
+	if active_mode=="training" or get_parent().get_node("Practice").active:
+		status.text="Leave training before watching a public duel."
+		return
+	if spectator_code.text.length()!=12:
+		status.text="Enter a valid 12-character public spectator code."
+		return
+	if endpoint.text.strip_edges().is_empty() or origin.text.strip_edges().is_empty():
+		status.text="Set a matching server endpoint and origin first."
+		return
+	if not get_parent().spectate_public_1v1(endpoint.text.strip_edges(),origin.text.strip_edges(),spectator_code.text.strip_edges()):
+		status.text="Watch code, server origin or 1v1 endpoint rejected."
+		return
+	active_mode="spectate"
+	resume_button.disabled=false
+	status.text="Connecting to read-only 1v1 spectator gallery…"
 
 func _on_notice(message: String) -> void:
 	status.text=message.left(140)
@@ -374,7 +446,7 @@ func _resume() -> void:
 		var practice: Node=get_parent().get_node("Practice")
 		if practice.active:
 			practice.resume_training()
-	elif active_mode=="online":
+	elif active_mode in ["online","spectate"]:
 		if not get_parent().get_node("Online").online:
 			status.text="Private room has disconnected."
 			return
@@ -387,6 +459,12 @@ func _leave() -> void:
 	get_parent().disconnect_private_1v1()
 	active_mode=""
 	room_code=""
+	gallery_code=""
+	gallery_host_slot=-1
+	gallery_button.disabled=true
+	gallery_clipboard.disabled=true
+	gallery_button.text="Open public spectator gallery"
+	gallery_label.text="No public gallery. Only a room host may open spectating."
 	resume_button.disabled=true
 	clipboard_button.disabled=true
 	invite.text="No active room. Create one or enter an invitation."
