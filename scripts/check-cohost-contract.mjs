@@ -47,7 +47,7 @@ export function inspectCohostContract({caddy,unit}){
   errors.push('MemoryHigh must be below MemoryMax');
  if(!/StartLimitBurst=5/.test(head)||!/StartLimitIntervalSec=60/.test(head))
   errors.push('Restart throttling must be inside Unit section');
- if(/\b(?:bbsc-|shadnet|gameserver|caddy\.service|registration)\b/i.test(u))
+ if(/\b(?:bbsc-|shadnet|gameserver|caddy\.service|registration)\b/i.test(u+'\n'+head))
   errors.push('Game must not mutate or depend on existing BBSC units');
  return errors;
 }
