@@ -43,9 +43,13 @@ test('genuine missed shot is actually vulnerable to melee during firearm recover
  }
 });
 
-test('a gunshot hitting the opponent never earns fake shot-whiff-punish credit',()=>{
+test('a real gun parry or bullet hit is NOT a gun whiff and earns zero punish score',()=>{
  const {events}=exchange({gunFacingRight:false});
- assert(events.some(e=>e.kind==='bulletHit'&&e.actor===1));
+ // This incoming shot intersects a committed folded R1 windup and therefore
+ // correctly PARRIES it; treating the same event as ordinary bullet chip
+ // would contradict our Bloodborne-style counter timing rules.
+ assert(events.some(e=>e.kind==='gunParry'&&e.actor===1&&e.target===0),
+  'correctly timed firearm against melee windup must parry, not merely chip');
  assert(!events.some(e=>e.kind==='whiff'&&e.actor===1&&e.move==='shot'));
  const grade=evaluateHuntTrainingGoal('gun-whiff-punish',events);
  assert.equal(grade.attempts,0);
