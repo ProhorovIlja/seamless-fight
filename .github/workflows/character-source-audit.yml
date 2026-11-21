@@ -6,6 +6,7 @@ on:
       - feat/lantern-court
     paths:
       - .github/workflows/character-source-audit.yml
+      - scripts/audit-character-source.py
 permissions:
   contents: read
 jobs:
