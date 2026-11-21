@@ -57,6 +57,33 @@ test('committed attack direction is not retroactively flipped by neutral facing 
  assert.equal(s.p[1].dir,s.p[0].x>=s.p[1].x?1:-1,
   'non-committed hunter must auto-face the settled target');
 });
+test('simultaneous point-blank movement cannot reverse a newly started heavy in either slot',()=>{
+ for(const attacker of [0,1])for(const mirror of [false,true]){
+  const s=huntMatch();s.ready=0;
+  const left=mirror?1:0,right=1-left;
+  s.p[left].x=479.5;s.p[right].x=480.5;
+  s.p[0].vx=0;s.p[1].vx=0;
+  s.p[0].act='';s.p[1].act='';
+  const movingSlot=1-attacker;
+  const walking=mirror?-1:1;
+  // Movement crosses a one-unit starting gap within this same tick,
+  // but collision must prevent phasing and heavy retains initial facing.
+  const inputs=[huntInput(),huntInput()];
+  inputs[movingSlot]={...huntInput(),x:attacker===1?walking:-walking};
+  inputs[attacker]={...huntInput(),act:'heavy'};
+  const expected=s.p[movingSlot].x>s.p[attacker].x?1:-1;
+  huntStep(s,inputs);
+  const move=s.p[attacker];
+  assert.equal(move.act,'foldedHeavy','real heavy began this frame');
+  assert.equal(move.dir,expected,
+   'new R2 aims at opponent START position, not slot-ordered intermediate x');
+  const other=s.p[movingSlot];
+  assert.equal(other.dir,move.x>=other.x?1:-1,
+   'neutral walker may re-face after resolving final solid collision');
+  assert.equal(Math.abs(move.x-other.x)>=38-1e-8,true,
+   'movement cannot slip across solid hunter to create a free cross-up');
+ }
+});
 test('identical neutral crossing snapshots deterministically replay',()=>{
  for(const swap of [false,true]){
   assert.deepEqual(pointBlank(swap),pointBlank(swap));
