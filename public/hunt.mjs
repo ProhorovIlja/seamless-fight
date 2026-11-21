@@ -80,7 +80,12 @@ function showMeter(slot){
   label+' · '+f.phase+' · '+f.age+' / '+f.total+'F\n'+
   f.startup+' startup / '+f.active+' active / '+f.recovery+' recovery\n'+
   f.remaining+'F remaining · '+d.form+' · '+d.weapon+'\n'+
-  'Visceral window '+d.visceralWindow+'F · Pursuit '+d.focus;
+  'Visceral window '+d.visceralWindow+'F · Pursuit '+d.focus+'\\n'+
+  (d.firearmCounterWindowOpen?'GUN COUNTER VULNERABLE · TIMED WINDOW OPEN':
+   'Gun counter window: closed')+'\\n'+
+  (d.groundedHitstunEscapeReady?'HITSTUN DODGE READY · COST 25 STAMINA':'Hitstun dodge: not yet ready');
+ $('meter-'+slot).parentElement.classList.toggle('counter-open',d.firearmCounterWindowOpen);
+ $('meter-'+slot).parentElement.classList.toggle('escape-open',d.groundedHitstunEscapeReady);
 }
 function updateHud(){
  const s=practice.inspect();after=s;
