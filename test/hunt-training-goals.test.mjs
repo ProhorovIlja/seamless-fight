@@ -10,8 +10,8 @@ function run(session,actions={},count=95){
   assert.equal(session.append(actions[tick]||cmd()),true,'source append tick '+tick);
  return session;
 }
-test('all eighteen source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,18);
+test('all twenty source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,20);
  const categories=new Set();
  for(const scenario of HUNT_PRACTICE_DRILLS){
   assert(Object.hasOwn(HUNT_TRAINING_GOALS,scenario.id));
@@ -268,6 +268,57 @@ test('rewind erases observed timing and verified import rebuilds proof',()=>{
  assert.equal(p.goal().intervalSamples,1);
 });
 
+
+test('both wall counterpoke drills actually interrupt R2 startup without guard or firearm',()=>{
+ for(const side of ['left','right']){
+  const drill='corner-interrupt-'+side;
+  const s=huntPracticeSession({drill});
+  const initial=s.inspect();
+  assert.equal(initial.p[0].x,side==='left'?65:895);
+  assert.equal(initial.p[1].x,side==='left'?107:853);
+  run(s,{48:cmd('light')},90);
+  const actions=s.eventHistory(160);
+  assert(actions.some(e=>e.kind==='action'&&e.actor===1&&e.move==='foldedHeavy'));
+  const hit=actions.find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
+  assert(hit,drill+' requires a real successful melee counter');
+  assert.equal(hit.move,'foldedLight');
+  assert.equal(hit.hitDuringStartup,true);
+  assert.equal(hit.interruptedMove,'foldedHeavy');
+  assert(hit.remainingStartup>0);
+  assert.equal(actions.some(e=>e.kind==='gunParry'),false);
+  const grade=s.goal();
+  assert.equal(grade.attempts,1);
+  assert.equal(grade.successes,1);
+  assert.equal(grade.completed,true);
+  assert.equal(grade.lastIntervalFrames,hit.tick-46);
+  const passive=run(huntPracticeSession({drill}),{},90);
+  assert.equal(passive.goal().attempts,1);
+  assert.equal(passive.goal().successes,0);
+ }
+});
+
+test('corner counterhit score requires the actual designated wall, heavy startup and melee hit',()=>{
+ for(const [side,opposite] of [['left','right'],['right','left']]){
+  const goal='corner-interrupt-'+side;
+  const source=[
+   {tick:46,kind:'action',actor:1,move:'foldedHeavy',playerWall:side},
+   {tick:54,kind:'hit',actor:0,target:1,move:'foldedLight',
+    hitDuringStartup:true,interruptedMove:'foldedHeavy',remainingStartup:8}
+  ];
+  assert.equal(evaluateHuntTrainingGoal(goal,source).successes,1);
+  assert.equal(evaluateHuntTrainingGoal(goal,[
+   {...source[0],playerWall:opposite},source[1]
+  ]).successes,0,'no mirrored wall mismatch can earn success');
+  assert.equal(evaluateHuntTrainingGoal(goal,[
+   source[0],{...source[1],hitDuringStartup:false,remainingStartup:0}
+  ]).successes,0,'late recovery strike is NOT a startup interrupt');
+  assert.equal(evaluateHuntTrainingGoal(goal,[
+   source[0],{...source[1],move:'shot'}
+  ]).successes,0,'bullet parry is a separate skill, not a melee startup interrupt');
+  assert.equal(evaluateHuntTrainingGoal(goal,[source[0]]).attempts,1);
+  assert.equal(evaluateHuntTrainingGoal(goal,[source[0]]).successes,0);
+ }
+});
 
 test('corner goal cannot be earned by a button press without actual source crossing',()=>{
  const empty=evaluateHuntTrainingGoal('corner-escape',[
