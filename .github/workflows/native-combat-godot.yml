@@ -41,6 +41,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -ffp-contract=off -fno-fast-math native/combat/side_state_codec_test.cpp -o "$RUNNER_TEMP/sf-native-codec-test"
+          "$RUNNER_TEMP/sf-native-codec-test"
           python3 -m pip install --user scons
           git clone --depth 1 https://github.com/godotengine/godot-cpp.git experiments/godot-native-4.7/extension/godot-cpp
           cd experiments/godot-native-4.7/extension

@@ -61,12 +61,15 @@ func _verify() -> void:
 		_fail("Reference trace was truncated")
 		return
 	var fields_checked := 0
+	var checkpoint: PackedByteArray = PackedByteArray()
 	for frame in trace:
 		var input: Array = frame["i"]
 		if not native.step_encoded(input[0],input[1],input[2],input[3],
 		 input[4],input[5],input[6],input[7]):
 			_fail("Legitimate input rejected")
 			return
+		if native.get_tick()==500:
+			checkpoint=native.save_checkpoint()
 		var actual: Array = _encode(native.get_state())
 		var expected: Array = frame["s"]
 		if actual.size() != 41 or expected.size() != 41:
@@ -81,6 +84,30 @@ func _verify() -> void:
 				_fail("Mismatch tick " + str(native.get_tick()) + " field " + str(k))
 				return
 			fields_checked += 1
+	if checkpoint.size()!=228:
+		_fail("Missing canonical 228-byte tick-500 native checkpoint")
+		return
+	var final_bytes: PackedByteArray=native.save_checkpoint()
+	if final_bytes.size()!=228 or not native.load_checkpoint(checkpoint):
+		_fail("Native snapshot was not saved or failed to load")
+		return
+	if native.get_tick()!=500:
+		_fail("Loaded checkpoint did not restore the simulation frame")
+		return
+	for k in range(500,trace.size()):
+		var inputs: Array=trace[k]["i"]
+		if not native.step_encoded(inputs[0],inputs[1],inputs[2],inputs[3],
+		 inputs[4],inputs[5],inputs[6],inputs[7]):
+			_fail("Resimulation rejected a valid historical input frame")
+			return
+	if native.save_checkpoint()!=final_bytes:
+		_fail("Native checkpoint rewind and exact input replay diverged")
+		return
+	var corrupted: PackedByteArray=checkpoint.duplicate()
+	corrupted[64] = corrupted[64] ^ 1
+	if native.load_checkpoint(corrupted) or native.save_checkpoint()!=final_bytes:
+		_fail("Invalid checkpoint mutated native combat or skipped checksum")
+		return
 	native.reset()
 	if native.get_tick() != 0 or native.get_state()["p"][0]["hp"] != 100.0:
 		_fail("Reset did not restore initial simulation state")
