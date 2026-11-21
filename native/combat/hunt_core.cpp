@@ -19,6 +19,20 @@ int main(int argc,char**argv){
    s.p[0].x=65;s.p[1].x=107;s.ready=0;
   }else if(scenario=="--corner-right"){
    s.p[0].x=895;s.p[1].x=853;s.ready=0;
+  }else if(scenario=="--trade"||scenario=="--trade-rally"){
+   // CLI parity ONLY: both real melee hitboxes are active on the same
+   // input tick. Tests both neutral HP and legitimate previous Rally.
+   s.ready=0;
+   s.p[0].x=430;s.p[1].x=500;
+   s.p[0].dir=1;s.p[1].dir=-1;
+   const bool existing_rally=scenario=="--trade-rally";
+   for(Fighter&p:s.p){
+    p.act=FOLDED_LIGHT;
+    p.age=spec(p.weapon,p.act).startup;
+    p.hp=existing_rally?80:100;
+    p.rally=existing_rally?10:0;
+    p.rallyLife=existing_rally?50:0;
+   }
   }else return 7;
  }
  std::vector<State> checkpoints;
