@@ -1,0 +1,35 @@
+# Hunter character-production pipeline — editable free base, not release art
+
+This is **studio tooling**, not a fake character creator UI or a completed fighter. The 2.5D native project has empty optional `veil.glb` and `cinder.glb` sockets. Until genuinely authored, fully licensed fighters are available, the sockets must remain empty rather than show crude primitives.
+
+## Why MakeHuman for Blender (MPFB2)
+
+[MPFB2 2.0.18](https://extensions.blender.org/add-ons/mpfb/) runs in Blender 4.2 LTS+ and is maintained by MakeHuman Community. It provides adjustable human body proportions, facial detail sources, skinned body and hair/eye/clothing art, and a game-engine-friendly rig. [Official license](https://github.com/makehumancommunity/mpfb2/blob/master/LICENSE.md) separates **GPLv3 application code** from **CC0 core art/output**. Third-party asset packs retain their own licenses. No GPL MPFB add-on is bundled in the standalone game.
+
+Example preset `presets/veil_studio_base.json` is deliberately an editable basic human studio starting point: approved CC0 system assets, game-engine rig, skin, eyes, eyebrows, lashes, tongue, teeth, hair and a sample **casual suit**. That outfit is NOT final Gothic wardrobe and this output contains NO authored attack animations or weapon transforms.
+
+## Studio reproduction
+
+1. Install Blender 4.2 LTS or newer and MPFB 2.0.18. Install and audit the official `makehuman_system_assets` pack and set its path inside MPFB.
+2. Modify `presets/veil_studio_base.json`: bounded macro properties `gender`, `age`, `muscle`, `weight`, `height`, `proportions` in [0,1]. Eye, skin, hair, face and clothing references must be verified actual `.mhclo` or `.mhmat` filenames under the **same** approved asset root.
+3. Validate without Blender: `python3 tools/art/hunter_preset.py tools/art/presets/veil_studio_base.json`.
+4. Generate with MPFB enabled inside Blender. Supply the explicit, independently audited official CC0 system-assets directory:
+
+```sh
+blender -b --python tools/art/build_hunter_base.py -- \
+  tools/art/presets/veil_studio_base.json \
+  artifacts/studio-human/veil_base \
+  /absolute/path/to/audited/official_makehuman_system_assets_root
+```
+
+5. Review the editable `.blend`, `_UNANIMATED_STUDIO_BASE.glb`, and `.provenance.json` with SHA-256 per source file. The manifest deliberately does not store the local machine's private directory path. A GLB without authored combat clips must FAIL the native runtime's animation contract.
+6. Author original premium Gothic coats, boots, hair cards and materials, weapons with two genuine mechanical forms, hand-IK, faces/eyes and expressions, bespoke startup-active-recovery attacks, trick transform attacks, aerial actions and parry responses. Retarget only legally usable motion and refine frame-by-frame for the side-on viewpoint. Evaluate PBR/skin quality and actual Windows GPU/VRAM cost.
+7. Only after professional art review, rig deformation, complete animation protocol, GLB skin/clip QA and license review can it become `assets/characters/veil.glb` or `cinder.glb`. Current native runtime names refer to `seamless-side/1`; trick-lab v2 animations require their own explicit migration.
+
+## Validation and legal boundaries
+
+- Official sources: [MPFB scripting examples](https://github.com/makehumancommunity/mpfb2/tree/master/script_samples), [HumanObjectProperties](https://github.com/makehumancommunity/mpfb2/blob/master/docs/entities/objectproperties.md), [MakeHuman asset packs](https://static.makehumancommunity.org/assets/assetpacks.html).
+- `test/python/test_hunter_preset.py` tests source configuration with Python standard library only. CI does **not** run Blender/MPFB or generate a game-ready GLB. MPFB licensing of core assets does not grant rights over unrelated third-party add-ons.
+- A preset's license acknowledgement is not independent commercial legal clearance. Preserve pack version, source URLs, exact file hashes, creator rights and public redistribution permissions before public release.
+- MPFB is a serious zero-cost human base and customization pipeline, not a shortcut to AAA-ready Gothic characters. No professionally authored finished fighter art, weapon animation, performance facial rigs or mastered voices are claimed.
+- Production Windows builds must not bundle the Blender MPFB application, its GPL scripts, research game assets or unfinished body preview meshes.

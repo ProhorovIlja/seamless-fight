@@ -9,6 +9,8 @@ const REQUIRED_CLIPS := [
 	"cut", "hew", "shot", "stun", "feint", "guard_break"
 ]
 const MIN_SKELETON_BONES := 24
+const MIN_SKINNED_VERTICES := 1800
+const MIN_POSE_KEYS := 2
 var model_root: Node3D = null
 var animator: AnimationPlayer = null
 var current_clip := ""
@@ -47,8 +49,18 @@ func validate_visual_rig(source: Node3D) -> Array[String]:
 	var skeleton := _find_skeleton(source)
 	if skeleton==null or skeleton.get_bone_count()<MIN_SKELETON_BONES:
 		problems.append("A real articulated character skeleton with at least 24 bones is required")
-	if _find_mesh(source)==null:
+	var skinned: MeshInstance3D=_find_mesh(source)
+	if skinned==null:
 		problems.append("Imported character requires skinned mesh geometry with at least 24 bone bindings")
+	else:
+		# Vertex count only rejects obvious dummy spheres; it does not
+		# certify quality. Author art review and material QA are separate.
+		var vertices := 0
+		for surface in range(skinned.mesh.get_surface_count()):
+			var arrays: Array=skinned.mesh.surface_get_arrays(surface)
+			vertices+=int((arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size())
+		if vertices<MIN_SKINNED_VERTICES:
+			problems.append("Character's skinned geometry is a low-detail placeholder")
 	var player := _find_animation_player(source)
 	if player==null:
 		problems.append("Imported character requires an AnimationPlayer")
@@ -56,6 +68,21 @@ func validate_visual_rig(source: Node3D) -> Array[String]:
 		for clip in REQUIRED_CLIPS:
 			if not player.has_animation(clip):
 				problems.append("Missing authored animation: "+clip)
+				continue
+			# A 2-second EMPTY Animation object is not an animation.
+			# Require at least one actual changing skeletal pose track.
+			var anim: Animation=player.get_animation(clip)
+			var has_articulated_motion := false
+			for track in range(anim.get_track_count()):
+				var t: int=anim.track_get_type(track)
+				if t not in [Animation.TYPE_POSITION_3D,Animation.TYPE_ROTATION_3D,Animation.TYPE_SCALE_3D]:
+					continue
+				var bone_path := str(anim.track_get_path(track))
+				if ":" in bone_path and anim.track_get_key_count(track)>=MIN_POSE_KEYS:
+					has_articulated_motion=true
+					break
+			if not has_articulated_motion:
+				problems.append("Named animation lacks actual articulated pose keyframes: "+clip)
 	return problems
 
 func install_original_rig(path: String) -> bool:

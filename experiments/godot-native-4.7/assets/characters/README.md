@@ -6,8 +6,8 @@ Expected filename and scope: `veil.glb` for local Hunter 1 and `cinder.glb` for 
 
 ## Mandatory technical format
 
-- GLB / glTF 2.0 `PackedScene`, root Node3D; at least one MeshInstance3D using a real Skin with at least 24 bind bones, one Skeleton3D with at least 24 bones, and a reachable AnimationPlayer.
-- Twelve independently authored AnimationPlayer clips named exactly `idle`, `run`, `jump`, `crouch`, `guard`, `step`, `cut`, `hew`, `shot`, `stun`, `feint`, `guard_break`. A model that is static, missing attacks, or has no articulated skin is rejected. All clips must remain spatially coherent with the fixed orthographic 2.5D combat projection.
+- GLB / glTF 2.0 `PackedScene`, root Node3D; at least one MeshInstance3D using a real Skin with at least 24 bind bones and 1,800 skinned geometry vertices, one Skeleton3D with at least 24 bones, and a reachable AnimationPlayer. Geometry minimum is only a cheap-filler rejection threshold, not a quality metric.
+- Twelve independently authored AnimationPlayer clips named exactly `idle`, `run`, `jump`, `crouch`, `guard`, `step`, `cut`, `hew`, `shot`, `stun`, `feint`, `guard_break`. Every required clip must include at least one articulated skeletal position/rotation/scale track with **two actual keyframes or more**. Merely naming twelve empty Animation resources does not pass. A model that is static, missing attacks, or has no articulated skin is rejected. All clips must remain spatially coherent with the fixed orthographic 2.5D combat projection.
 - Root origin at the fighter's feet. Face+weapon gestures should read in profile with weapon arcs matching transparent startup/active/recovery windows. Animation pose is driven from the authoritative 60Hz state age; the imported GLB **never** changes collision, parry, damage, server authority, or round clock.
 - Ship self-contained verified original or appropriately licensed textures/materials and audio as applicable. No PS4 Bloodborne assets, Devil May Cry/Sekiro/Tekken/Umbral Core/Guilty Gear models or rip-derived motion. Licenses need explicit permission to redistribute inside the Windows package. User's private research Drive is not a rights grant.
 
@@ -18,3 +18,7 @@ An accepted GLB proves technical compatibility, **not** premium visual quality. 
 Optional authored clips for later systems: `walk`, `land`, `reload`, `parry`, `counter`, `knockdown`, `victory`, `defeat`, `transform`, `emote`, `voice_breath`, and facial/eye animation. The deterministic combat kernel must gain corresponding real rules before new active-hit mechanics are advertised.
 
 Current source acceptance test: `tests/verify_native_rig_contract.gd` constructs a test-only technical skeleton/mesh/animation set in memory; **no test primitive is bundled or rendered to players**. Full product art, source BLEND, glTF animation metadata and provenance will be required for commercial production.
+
+## Source-art generator (offline, not a character release)
+
+The fully open-source **MakeHuman for Blender** add-on can produce licensed CC0 body/face/skin/hair bases with editable proportions through [tools/art/README.md](../../../../tools/art/README.md). Its GPLv3 tool runs **only in Blender**, not within the Windows executable; the generated GLB has **no original gameplay animations** and is intentionally rejected by this strict runtime gateway. The artist must author real Gothic costumes, morphing weapons and all actual battle clips before game use. The present minimum vertex and keyed-track tests are a technical rejection filter, not evidence of AAA quality or commercial art clearance.

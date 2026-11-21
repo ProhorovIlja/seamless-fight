@@ -36,7 +36,10 @@ func _verify() -> void:
 		skeleton.add_bone("Bone_"+str(i))
 	model.add_child(skeleton)
 	var mesh := MeshInstance3D.new()
-	mesh.mesh=SphereMesh.new()
+	var sphere := SphereMesh.new()
+	sphere.radial_segments=72
+	sphere.rings=48
+	mesh.mesh=sphere
 	var skin := Skin.new()
 	for i in range(24):
 		skin.add_bind(i,Transform3D.IDENTITY)
@@ -51,8 +54,19 @@ func _verify() -> void:
 		animation.length=2.0
 		library.add_animation(clip,animation)
 	animator.add_animation_library("",library)
+	if rig.validate_visual_rig(model).is_empty():
+		_fail("A fake rig with 12 EMPTY animation clips must fail quality acceptance")
+		return
+	# Test-only keyed skeleton posing proves the gate rejects named empty clips
+	# and still accepts technically articulated, sufficiently detailed rigs.
+	for clip in Rig.REQUIRED_CLIPS:
+		var animation: Animation=library.get_animation(clip)
+		var track: int=animation.add_track(Animation.TYPE_ROTATION_3D)
+		animation.track_set_path(track,NodePath("Skeleton3D:Bone_0"))
+		animation.track_insert_key(track,0.0,Quaternion.IDENTITY)
+		animation.track_insert_key(track,0.2,Quaternion(Vector3.UP,0.15))
 	if not rig.validate_visual_rig(model).is_empty():
-		_fail("Minimal technical rig with complete named motion phases was rejected")
+		_fail("Technical 24-bone skinned rig with actual keyed skeleton poses was rejected")
 		return
 	rig.animator=animator
 	var hew := {"act":"hew","age":23,"y":436.0,"vx":0.0,"crouch":false,"guardAge":0}
@@ -89,5 +103,5 @@ func _verify() -> void:
 	stage.queue_free()
 	await process_frame
 	await process_frame
-	print("NATIVE_AUTHORING_RIG_CONTRACT_PASSED: 24-bone skinned gateway, twelve authored clips, exact server-age animation sampling and no fake fallback hunters")
+	print("NATIVE_AUTHORING_RIG_CONTRACT_PASSED: real skinned geometry, 24 bones, twelve keyed pose clips, exact server-age animation sampling and no fake fallback hunters")
 	quit(0)
