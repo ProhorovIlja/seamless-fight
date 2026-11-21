@@ -27,6 +27,18 @@ func _verify() -> void:
 	if passive["tick"]<240 or passive["p"][0]["hp"]!=100.0 or passive["p"][1]["x"]!=705.0:
 		_fail("Passive 60Hz training altered health or enemy spacing")
 		return
+	var trace: Array=practice.get_input_trace(3)
+	var frame_meter: Dictionary=practice.get_frame_meter(0)
+	if trace.size()!=3 or int(trace.back()["tick"])!=240:
+		_fail("Native 60Hz input trace did not retain most recent actual inputs")
+		return
+	if frame_meter.get("rules","")!="seamless-side/1" or frame_meter.get("source","")!="legacy-C++-frame-table-not-Hunt-v3":
+		_fail("Legacy native frame meter mislabeled rule source")
+		return
+	var menu: CanvasLayer=stage.get_node("NativeMenu")
+	if not menu._inspect_training() or not menu.practice_details.text.contains("LEGACY C++ TRAINING"):
+		_fail("Native frame-data menu did not present real active practice data")
+		return
 	if not stage.reset_local_practice() or practice.last_state["tick"]!=0:
 		_fail("Native training reset did not restore the exact round start")
 		return
