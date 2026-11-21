@@ -66,10 +66,10 @@ export function buildHuntAnimationBrief(){
           footContactReview:true,
           faceAndClothSecondaryMotionReview:true,
           animationNeverDefinesCollisions:true,
-          groundedUtility:name==='heal'||name==='blood',
-          readableFirearmMuzzleAndCounterTiming:name==='shot'||name==='airShot',
-          facialStaggerAndHitReaction:name==='stagger'||name==='visceralVictim',
-          authored3DVisceralPartnerChoreography:name==='visceral'||name==='visceralVictim'
+          groundedUtility:m.name==='heal'||m.name==='blood',
+          readableFirearmMuzzleAndCounterTiming:m.name==='shot'||m.name==='airShot',
+          facialStaggerAndHitReaction:m.name==='stagger'||m.name==='visceralVictim',
+          authored3DVisceralPartnerChoreography:m.name==='visceral'||m.name==='visceralVictim'
         }
       };
       if(total<1||transform&&m.startup<1)
