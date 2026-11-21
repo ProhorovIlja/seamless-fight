@@ -11,8 +11,22 @@ EnvironmentFile=/etc/seamless-fight.env
 ExecStartPre=/opt/seamless-fight/runtime/bin/node /opt/seamless-fight/current/scripts/validate-runtime.mjs
 ExecStart=/opt/seamless-fight/runtime/bin/node /opt/seamless-fight/current/server.mjs
 Restart=on-failure
-RestartSec=3s
-TimeoutStopSec=10s
+RestartSec=5s
+StartLimitIntervalSec=60
+StartLimitBurst=5
+TimeoutStopSec=15s
+# Compete at lower priority than the existing BBSC/Caddy services.
+# MemoryMax is the last-resort safety cap, not a verified capacity claim.
+CPUAccounting=yes
+CPUWeight=40
+IOAccounting=yes
+IOWeight=50
+MemoryAccounting=yes
+MemoryHigh=384M
+MemoryMax=768M
+TasksMax=96
+LimitNOFILE=8192
+OOMScoreAdjust=300
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
