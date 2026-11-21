@@ -34,7 +34,8 @@ export const HUNT_PRACTICE_DRILLS=Object.freeze([
  Object.freeze({id:'blood-economy',label:'Resources: Blood Rounds',spacing:150,action:'',startAt:55}),
  Object.freeze({id:'timing-read',label:'Timing Read: Heavy or Feint',spacing:115,action:'heavy',startAt:55}),
  Object.freeze({id:'visceral-followup',label:'Offense: Visceral Conversion',spacing:76,action:'heavy',startAt:55}),
- Object.freeze({id:'corner-escape',label:'Defense: Escape Corner Pressure',spacing:42,action:'heavy',startAt:45}),
+ Object.freeze({id:'corner-escape',label:'Defense: Escape Left Corner',spacing:42,action:'heavy',startAt:45}),
+ Object.freeze({id:'corner-escape-right',label:'Defense: Escape Right Corner',spacing:42,action:'heavy',startAt:45}),
  Object.freeze({id:'corner-interrupt-left',label:'Defense: Left Wall Startup Interrupt',spacing:42,action:'heavy',startAt:45}),
  Object.freeze({id:'corner-interrupt-right',label:'Defense: Right Wall Startup Interrupt',spacing:42,action:'heavy',startAt:45})
 ]);
@@ -116,7 +117,7 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   if(drill==='corner-escape'||drill==='corner-interrupt-left'){
    // Both drills start from a legitimate left wall situation.
    start.p[0].x=65;start.p[1].x=107;
-  }else if(drill==='corner-interrupt-right'){
+  }else if(drill==='corner-interrupt-right'||drill==='corner-escape-right'){
    // Mirror the corner with the same real move/stamina restrictions.
    start.p[0].x=895;start.p[1].x=853;
    start.p[0].dir=-1;start.p[1].dir=1;
