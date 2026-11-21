@@ -70,6 +70,10 @@ func _verify() -> void:
 		quit(1)
 		return
 	g.set_physics_process(false)
+	# A visible native menu must send neutral input without a GDScript
+	# Array[int]/Array conversion error. Production also calls this path.
+	h._physics_process(1.0/60.0)
+	g._physics_process(1.0/60.0)
 	t=Time.get_ticks_msec()
 	while (not host_started or not guest_started) and Time.get_ticks_msec()-t<4000:
 		await create_timer(0.02).timeout

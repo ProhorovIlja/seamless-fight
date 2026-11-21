@@ -124,7 +124,7 @@ func begin_dummy_recording() -> bool:
 	return true
 
 func finish_dummy_recording() -> int:
-	if not active or not dummy_recording:
+	if not active or dummy_tape.is_empty():
 		return 0
 	dummy_recording=false
 	return dummy_tape.size()
@@ -194,8 +194,13 @@ func advance_one_frame() -> bool:
 	# deterministic bot. No hidden F1/menu key is consumed by combat.
 	return _advance_state([0,0,0,0])
 
-func _advance_state(command: Array[int]) -> bool:
+func _advance_state(command: Array) -> bool:
 	if command.size()!=4 or _combat==null:
+		return false
+	for value in command:
+		if typeof(value)!=TYPE_INT:
+			return false
+	if int(command[0]) not in [-1,0,1] or int(command[1]) not in [-1,0,1] or int(command[2])<0 or int(command[2])>5 or int(command[3]) not in [0,1]:
 		return false
 	var foe: Array[int]=_bot_input(last_state)
 	if not _combat.step_encoded(command[0],command[1],command[2],command[3],
@@ -230,6 +235,6 @@ func _physics_process(_delta: float) -> void:
 	var controls_panel: CanvasLayer=get_parent().get_node("InputSettings")
 	var menu: CanvasLayer=get_parent().get_node_or_null("NativeMenu")
 	var blocked := controls_panel.visible or (menu != null and menu.visible)
-	var command: Array[int] = [0,0,0,0] if blocked else get_parent().get_node("NativeControls").encoded_input()
+	var command: Array = [0,0,0,0] if blocked else get_parent().get_node("NativeControls").encoded_input()
 	if command.size()!=4 or not _advance_state(command):
 		stop_training()
