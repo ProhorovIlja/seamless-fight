@@ -186,7 +186,12 @@ function showMeter(slot){
   'Visceral window '+d.visceralWindow+'F · Pursuit '+d.focus+'\n'+
   (d.firearmCounterWindowOpen?'GUN COUNTER VULNERABLE · TIMED WINDOW OPEN':
    'Gun counter window: closed')+'\n'+
-  (d.groundedHitstunEscapeReady?'HITSTUN DODGE READY · COST 25 STAMINA':'Hitstun dodge: not yet ready');
+  (d.groundedHitstunEscapeReady?'HITSTUN DODGE READY · COST 25 STAMINA':'Hitstun dodge: not yet ready')+'\n'+
+  (d.quickstepIframes?'DODGE I-FRAMES · CONTACT INVULNERABLE':
+   d.quickstepVulnerableTail?'DODGE VULNERABLE TAIL · I-FRAMES ENDED':
+   d.quickstepRecoveryPunishable?
+    'DODGE RECOVERY · '+d.quickstepRemainingRecovery+'F REMAINING · PUNISHABLE':
+    'Dodge: no active quickstep window');
  $('meter-'+slot).parentElement.classList.toggle('counter-open',d.firearmCounterWindowOpen);
  $('meter-'+slot).parentElement.classList.toggle('escape-open',d.groundedHitstunEscapeReady);
 }
