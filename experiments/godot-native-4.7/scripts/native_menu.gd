@@ -10,6 +10,7 @@ const PANEL := Color(0.055,0.063,0.080,0.98)
 const BORDER := Color("#6c583b")
 var status: Label
 var practice_details: Label
+var court_activity: Label
 var join_code: LineEdit
 var endpoint: LineEdit
 var origin: LineEdit
@@ -29,7 +30,16 @@ func _ready() -> void:
 	online.room_code_ready.connect(_on_room)
 	online.connection_state.connect(_on_notice)
 	get_parent().get_node("Practice").practice_stopped.connect(_on_practice_stopped)
+	var live: Node=get_parent().get_node("CourtStatus")
+	live.activity_changed.connect(_on_court_activity)
 	visible=true
+	if DisplayServer.get_name()!="headless":
+		live.refresh()
+		var polling := Timer.new()
+		polling.wait_time=15.0
+		polling.autostart=true
+		polling.timeout.connect(func(): if visible: live.refresh())
+		add_child(polling)
 
 func _style(color: Color, margin: int=12) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
@@ -116,6 +126,13 @@ func _build() -> void:
 	var subtitle := _label("THE HUNTER'S COURT   ·   NATIVE WINDOWS EXPERIMENT",13,MUTED)
 	subtitle.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(subtitle)
+	court_activity=_label("Live connections: unavailable · Friends / Ranked: not connected",14,GOLD)
+	court_activity.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	court_activity.name="CourtActivity"
+	column.add_child(court_activity)
+	var disclaimer := _label("Counts show actual connections, never verified unique players. Only 1v1 is supported.",12,MUTED)
+	disclaimer.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(disclaimer)
 	var divider := TextureRect.new()
 	divider.texture=load("res://assets/site/divider.webp") as Texture2D
 	divider.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
@@ -226,6 +243,10 @@ func _build() -> void:
 	status=_label("Local training requires the compiled C++ combat extension. F1 toggles this menu.",14,MUTED)
 	status.name="Status"
 	column.add_child(status)
+
+func _on_court_activity(_snapshot: Dictionary) -> void:
+	if court_activity!=null:
+		court_activity.text=get_parent().get_node("CourtStatus").display_text()
 
 func _toggle_scenery(yes: bool) -> void:
 	var ok: bool=get_parent().set_visual_stage("moonlit" if yes else "reliquary")
