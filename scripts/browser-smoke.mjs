@@ -414,13 +414,13 @@ try{
  await hunt.goto(url+'hunt/');
  assert.equal(await hunt.locator('html').getAttribute('lang'),'en');
  assert.match(await hunt.locator('.topbar .chip').textContent(),/1V1 · ENGLISH ONLY/);
- await until(async()=>Number((await hunt.locator('#tick').textContent()).replace(/\\D/g,''))>=10,'Hunt v3 60Hz simulation advances');
+ await until(async()=>Number((await hunt.locator('#tick').textContent()).replace(/\D/g,''))>=10,'Hunt v3 60Hz simulation advances');
  assert.match(await hunt.locator('#meter-0').textContent(),/startup \/ /);
  await hunt.locator('#pause').click();
  assert.equal(await hunt.locator('#pause').textContent(),'Resume');
- const initial=Number((await hunt.locator('#tick').textContent()).replace(/\\D/g,''));
+ const initial=Number((await hunt.locator('#tick').textContent()).replace(/\D/g,''));
  await hunt.locator('#step').click();
- await until(async()=>Number((await hunt.locator('#tick').textContent()).replace(/\\D/g,''))===initial+1,'paused Hunt advances exactly one frame');
+ await until(async()=>Number((await hunt.locator('#tick').textContent()).replace(/\D/g,''))===initial+1,'paused Hunt advances exactly one frame');
  await hunt.locator('#my-weapon').selectOption('thornwake');
  assert.match(await hunt.locator('#p0-weapon').textContent(),/THORNWAKE/);
  await hunt.locator('#dummy-slot').selectOption('2');
