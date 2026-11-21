@@ -1,6 +1,6 @@
 # Seamless Fight — weapon-expression combat system (separate 60 Hz research ruleset)
 
-Status: **isolated research module, not integrated into current browser online, Godot C++ combat, rated matchmaking or Windows release**. File: `public/side-trick-lab.mjs`, ruleset `sf-trick-lab/2`. Regression suite: `test/side-trick-lab.test.mjs`. Existing `seamless-side/1` remains unchanged, and existing save data and replay protocols are not assumed compatible.
+Status: **isolated research module, not integrated into current browser online, Godot C++ combat, rated matchmaking or Windows release**. File: `public/side-trick-lab.mjs`, ruleset `sf-trick-lab/3`. Regression suite: `test/side-trick-lab.test.mjs`. Existing `seamless-side/1` remains unchanged, and existing save data and replay protocols are not assumed compatible.
 
 ## Design target
 
@@ -43,4 +43,11 @@ All simulated fighter state is plain serializable data for future checkpoint/rol
 Do not reuse copyrighted Bloodborne PS4/BBSC 1.5.0 research assets, ripped fighting-game media, music, voices, animations or unlicensed assets in the separate original standalone release. User-provided website visuals are a style reference; their underlying redistribution rights remain to be verified. The separate site should retain the same premium visual identity.
 
 
-**Revision note:** The standalone trick-lab moved from experimental protocol `sf-trick-lab/1` to `sf-trick-lab/2` when weapon-specific timings and persistent match loadouts were introduced. Neither version speaks the existing `seamless-side/1` network protocol; old in-memory state and replay captures are not silently migrated. This is a *combat research milestone*, not a second playable native character/animation release.
+**Revision note:** The standalone trick-lab moved from experimental protocol `sf-trick-lab/1` to `sf-trick-lab/3` when weapon-specific timings and persistent match loadouts were introduced. Neither version speaks the existing `seamless-side/1` network protocol; old in-memory state and replay captures are not silently migrated. This is a *combat research milestone*, not a second playable native character/animation release.
+
+
+### v3 verified design delta: paid pursuit cancels (research only)
+
+The `sf-trick-lab/3` prototype adds **hit-confirmed Pursuit**: a grounded `step` or air `airStep` may cancel the recovery of an actual damaging attack (including a transformation strike) only after contact has been confirmed and the authored attack window has elapsed. It costs the existing step stamina cost **plus 25 focus**, retains the preexisting four-action chain cap, and respects one air-step per airtime. Whiffs, early cancel attempts, insufficient meter and overlong chains are rejected. These rules permit meaningful attack → transformation → chase → follow-up experiments without making free, endlessly repeatable safe dashes. Added deterministic combat and rejection regression tests. The cancel is currently a **rules-layer research mechanic**, not a shipped native Windows animation, hit-confirm visual or live online protocol. No old `sf-trick-lab/2` replay is auto-upgraded to v3.
+
+Additional art-engine verification from official Godot 4.7 documentation: Skeleton3D retargeting can adjust imported bone animations; AnimationTree can blend authored clips, but neither produces professionally authored transformation weapons or fighter silhouettes by itself. Poly Haven's official license is CC0, suitable for researched scenery sourcing after visual and performance acceptance. NVIDIA DLSS 5 currently depends on developer integration through its supported SDK/Streamline path; no such SDK is included or advertised as an implemented Seamless Fight option. Source links: https://docs.godotengine.org/en/4.7/tutorials/assets_pipeline/retargeting_3d_skeletons.html ; https://docs.godotengine.org/en/4.7/tutorials/animation/animation_tree.html ; https://polyhaven.com/license ; https://developer.nvidia.com/blog/whats-new-for-game-developers-dlss-5-with-3d-guided-neural-rendering-nvidia-ace-updates-and-new-rtx-kit-capabilities/ .
