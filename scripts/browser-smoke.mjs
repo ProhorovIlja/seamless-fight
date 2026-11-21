@@ -406,6 +406,43 @@ try{
  assert(await c1.locator('#rematch').isHidden());
  assert(await c2.locator('#rematch').isHidden());
  assert(await c1.locator('#queue-stop').isHidden());
+ // The new research combat is NOT the legacy online engine: exercise its
+ // real 60Hz practice runtime and original source on an actual Chromium page.
+ const hunt=await browser.newPage({viewport:{width:1440,height:900}});
+ hunt.on('pageerror',err=>errors.push('hunt-v3: '+err.message));
+ hunt.on('response',res=>{if(res.url().startsWith(url)&&res.status()>=400)errors.push(res.status()+' '+res.url());});
+ await hunt.goto(url+'hunt/');
+ assert.equal(await hunt.locator('html').getAttribute('lang'),'en');
+ assert.match(await hunt.locator('.topbar .chip').textContent(),/1V1 · ENGLISH ONLY/);
+ await until(async()=>Number((await hunt.locator('#tick').textContent()).replace(/\\D/g,''))>=10,'Hunt v3 60Hz simulation advances');
+ assert.match(await hunt.locator('#meter-0').textContent(),/startup \/ /);
+ await hunt.locator('#pause').click();
+ assert.equal(await hunt.locator('#pause').textContent(),'Resume');
+ const initial=Number((await hunt.locator('#tick').textContent()).replace(/\\D/g,''));
+ await hunt.locator('#step').click();
+ await until(async()=>Number((await hunt.locator('#tick').textContent()).replace(/\\D/g,''))===initial+1,'paused Hunt advances exactly one frame');
+ await hunt.locator('#my-weapon').selectOption('thornwake');
+ assert.match(await hunt.locator('#p0-weapon').textContent(),/THORNWAKE/);
+ await hunt.locator('#dummy-slot').selectOption('2');
+ await hunt.locator('#record').click();
+ await hunt.locator('#canvas-wrap').click();
+ await hunt.keyboard.down('d');
+ await sleep(220);
+ await hunt.keyboard.up('d');
+ await hunt.locator('#stop-record').click();
+ await until(async()=>/Slot 3: [1-9]\\d* \/ 600 frames/.test(await hunt.locator('#record-frames').textContent()),'actual Hunt recorded dummy inputs');
+ await hunt.locator('#dummy-mode').selectOption('loop');
+ assert.match(await hunt.locator('#status').textContent(),/loop/);
+ await hunt.locator('#toggle-boxes').click();
+ assert.equal(await hunt.locator('#toggle-boxes').getAttribute('aria-pressed'),'true');
+ await hunt.locator('#pause').click();
+ assert.equal(await hunt.locator('#pause').textContent(),'Pause');
+ await sleep(180);
+ await hunt.locator('#pause').click();
+ await hunt.locator('#metrics').click();
+ assert.match(await hunt.locator('#status').textContent(),/UNRATED 1v1/);
+ assert.match(await hunt.locator('#input-guide').textContent(),/gun|firearm/i);
+ await hunt.screenshot({path:'artifacts/hunt-v3-offline-practice.png'});
  assert.deepEqual(errors,[]);
- console.log('Chromium passed: training, browser invites, asymmetric delayed movement, read-only gallery, 2x canvas and disconnect.');
+ console.log('Chromium passed: legacy duels + authentic Hunt v3 60Hz English-only practice, dummy, frame meter and source-verified replay analysis.');
 }finally{try{await browser?.close();}finally{server.kill();}}
