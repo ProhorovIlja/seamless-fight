@@ -19,6 +19,32 @@ int main(int argc,char**argv){
    s.p[0].x=65;s.p[1].x=107;s.ready=0;
   }else if(scenario=="--corner-right"){
    s.p[0].x=895;s.p[1].x=853;s.ready=0;
+  }else if(scenario.rfind("--morph-p0-",0)==0||
+           scenario.rfind("--morph-p1-",0)==0){
+   // Directed exact JS/native parity for a MISSED heavy's vulnerable
+   // recovery before a Bloodborne-like paid trick attack is allowed.
+   // Both weapons are encoded in stdin; both player slots & two forms
+   // are explicitly mirrored in the scenario name.
+   const int slot=scenario.rfind("--morph-p1-",0)==0?1:0;
+   const bool unfolded=scenario.find("-unfurled-")!=std::string::npos;
+   const bool early=scenario.find("-heavy-early")!=std::string::npos;
+   const bool late=scenario.find("-heavy-late")!=std::string::npos;
+   const bool hit=scenario.find("-heavy-hit")!=std::string::npos;
+   const bool light_whiff=scenario.find("-light-whiff")!=std::string::npos;
+   if(!early&&!late&&!hit&&!light_whiff)return 7;
+   s.ready=0;
+   s.p[0].x=360;s.p[1].x=800;
+   s.p[0].vx=0;s.p[1].vx=0;
+   s.p[0].dir=1;s.p[1].dir=-1;
+   Fighter&p=s.p[slot];
+   p.form=unfolded?UNFURLED:FOLDED;
+   p.act=light_whiff?(unfolded?UNFURLED_LIGHT:FOLDED_LIGHT):
+                      (unfolded?UNFURLED_HEAVY:FOLDED_HEAVY);
+   const Spec m=spec(p.weapon,p.act);
+   p.age=early?m.startup+m.active+3:
+         late?m.startup+m.active+WHIFF_HEAVY_TRANSFORM_RECOVERY:
+         hit?m.startup+m.active-1:m.startup+1;
+   p.spent=hit;p.hitConfirmed=hit;p.st=100;p.chain=1;
   }else if(scenario=="--trade"||scenario=="--trade-rally"){
    // CLI parity ONLY: both real melee hitboxes are active on the same
    // input tick. Tests both neutral HP and legitimate previous Rally.
