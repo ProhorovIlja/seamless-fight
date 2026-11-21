@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {huntMatch,huntStep,HUNT_RULESET} from '../public/side-hunt-lab.mjs';
 import {huntReplayFingerprint} from '../public/side-hunt-replay.mjs';
-import {createHuntRollback,HUNT_ROLLBACK_SCHEMA} from '../public/hunt-rollback.mjs';
+import {createHuntRollback,HUNT_ROLLBACK_SCHEMA,HUNT_ROLLBACK_EVENT_BUFFER} from '../public/hunt-rollback.mjs';
 const neutral=()=>({x:0,y:0,act:'',guard:false});
 function scripted(t,slot){
  return {x:(t+slot*11)%39<19?1:-1,y:t%73===27?-1:0,
@@ -118,4 +118,75 @@ test('HP-cost temporary blood rounds survive deterministic delayed remote reconc
  assert.equal(r.getState().p[0].bloodAmmo,4);
  assert.equal(r.getState().p[0].ammo,7);
  assert.equal(r.getStats().pending,0);
+});
+
+test('only contiguous confirmed frames emit source actions: no duplicate SFX after rollback',()=>{
+ const initial=huntMatch();initial.ready=0;
+ initial.p[0].x=442;initial.p[1].x=518;
+ const reference=structuredClone(initial),r=createHuntRollback({initialState:initial,maxRollback:12});
+ const deliveries=[],expected=[],received=[];
+ for(let tick=1;tick<=120;tick++){
+  const a={...neutral(),act:tick===59?'shot':tick===97?'visceral':''};
+  const b={...neutral(),act:tick===56?'heavy':''};
+  const events=[];
+  huntStep(reference,[a,b],events);
+  for(let i=0;i<events.length;i++)expected.push({...events[i],
+   eventId:HUNT_RULESET+':'+(tick-1)+':'+i});
+  r.advance(a);
+  deliveries.push({tick:tick-1,remote:b,due:tick+3});
+  for(const item of deliveries.filter(x=>x.due===tick))
+   r.confirm(item.tick,item.remote);
+  const drained=r.drainConfirmedEvents();
+  if(tick===68)assert(![...received,...drained].some(e=>e.kind==='gunParry'),
+   'rollback must not play gun-parry effects from an unconfirmed source tick');
+  received.push(...drained);
+ }
+ for(const item of deliveries.filter(x=>x.due>120))
+  r.confirm(item.tick,item.remote);
+ received.push(...r.drainConfirmedEvents(2048));
+ assert.deepEqual(received,expected,'every real source event exactly once, in tick order');
+ assert(received.some(e=>e.kind==='gunParry'&&e.tick===68));
+ assert(received.some(e=>e.kind==='visceral'&&e.tick===103));
+ assert.equal(new Set(received.map(e=>e.eventId)).size,received.length);
+ assert.equal(r.drainConfirmedEvents().length,0,'repeated drain must not replay SFX');
+ assert.equal(r.getStats().confirmedThrough,120);
+ assert.equal(r.getStats().queuedEvents,0);
+ assert.equal(r.getStats().droppedEvents,0);
+});
+test('discarded speculative impact never leaks into confirmed combat event stream',()=>{
+ const initial=huntMatch();initial.ready=0;
+ initial.p[0].x=442;initial.p[1].x=518;
+ const reference=structuredClone(initial),r=createHuntRollback({initialState:initial,maxRollback:20});
+ const commands=[],expected=[],received=[];
+ for(let tick=1;tick<=14;tick++){
+  const a={...neutral(),act:tick===1?'shot':''};
+  const b={...neutral(),act:tick===4?'step':'',x:tick===4?1:0};
+  const events=[];
+  huntStep(reference,[a,b],events);
+  expected.push(...events);
+  commands.push(b);
+  r.advance(a);
+ }
+ assert.equal(r.getStats().confirmedThrough,0);
+ assert.deepEqual(r.drainConfirmedEvents(),[],'speculative audiovisual events cannot commit');
+ // Deliberately reconcile a late evasive step BEFORE filling earlier missing frames.
+ r.confirm(3,commands[3]);
+ for(let tick=0;tick<14;tick++)if(tick!==3)r.confirm(tick,commands[tick]);
+ received.push(...r.drainConfirmedEvents(2048));
+ assert.deepEqual(r.getState(),reference);
+ assert.deepEqual(received.map(({eventId,...event})=>event),expected);
+ assert.equal(r.getStats().confirmedThrough,14);
+ assert.equal(r.getStats().droppedEvents,0);
+});
+test('confirmed event drain validates bounds and returns defensive copies',()=>{
+ const r=createHuntRollback({initialState:(()=>{const s=huntMatch();s.ready=0;return s;})()});
+ assert.throws(()=>r.drainConfirmedEvents(0),/1..2048/);
+ assert.throws(()=>r.drainConfirmedEvents(2049),/1..2048/);
+ r.confirm(0,{...neutral(),act:'shot'});
+ r.advance(neutral());
+ const events=r.drainConfirmedEvents();
+ assert(events.some(e=>e.kind==='action'&&e.actor===1&&e.move==='shot'));
+ events[0].kind='injected';
+ assert.deepEqual(r.drainConfirmedEvents(),[]);
+ assert.equal(r.getStats().droppedEvents,0);
 });

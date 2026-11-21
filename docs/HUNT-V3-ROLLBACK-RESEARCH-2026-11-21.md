@@ -13,3 +13,11 @@ This file is NOT networked rollback. No public match server, GGPO adapter, autho
 The working seamlesshunt.com VPS is not touched. No Bloodborne-owned graphics/sounds/assets were added.
 
 Additional source-driven regression: remote heavy at tick 56, player legal shot at tick 59 and authentic firearm parry on tick 68, conversion to real visceral at tick 103 (42 damage) despite delayed heavy packet delivery. HP-sacrifice bullet ritual and later shot stay correct through speculative opponent quicksteps and reconciliation. All source mechanics remain unmodified.
+
+## Confirmed source events for presentation, not speculative duplicates
+
+The experimental rollback coordinator now captures **actual** fixed-tick Hunt combat events during both ordinary advance and corrective resimulation. A separate `drainConfirmedEvents(limit)` queue releases each event only when all earlier remote input ticks are confirmed. Each emitted event includes the stable `sf-hunt-lab/3:<pre-step-tick>:<event-index>` identifier to deduplicate presentation callbacks. Pure simulation and mutable speculative states remain independent; any discarded speculative action is NOT emitted as an irreversible impact, firearm report or audio cue.
+
+This queue is explicitly **presentation-only**. "Confirmed" means both frame inputs arrived, NOT authorized server settlement, anti-cheat verification or public ranked evidence. Queue capacity is `HUNT_ROLLBACK_EVENT_BUFFER=2048`; presentation overflow is counted by `droppedEvents` rather than silently described as delivered. Consumers must drain frequently. Confirmed events can incur a few frames of delay in exchange for avoiding duplicate sound, particles and UI feedback. Immediate local response effects require a distinct cancellation/idempotency policy and are not implemented here.
+
+New tests in `test/hunt-rollback.test.mjs` compare every emitted event (including firearm counter and visceral conversion) against a real source simulation, verify a rolled-back predicted impact never leaks into committed events, and test once-only consumption. Reference: GGPO developer guide https://github.com/pond3r/ggpo/blob/master/doc/DeveloperGuide.md and SnapNet rollback audio/visual analysis https://snapnet.dev/blog/netcode-architectures-part-2-rollback/ .
