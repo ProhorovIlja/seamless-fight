@@ -94,6 +94,11 @@ public:
    p.age>=recovery_start&&p.age<recovery_end;
   result["whiffRecoveryArmExposed"]=whiff_arm;
   result["whiffRecoveryArmUnits"]=whiff_arm?std::min(24,timing.reach/5):0;
+  const bool heavy_whiff=(sf_hunt::heavy(p.act)||sf_hunt::charged(p.act))&&
+   !p.hitConfirmed&&p.age>=recovery_start&&
+   p.age<recovery_start+sf_hunt::WHIFF_HEAVY_TRANSFORM_RECOVERY;
+  result["whiffHeavyMorphLockFrames"]=heavy_whiff?
+   recovery_start+sf_hunt::WHIFF_HEAVY_TRANSFORM_RECOVERY-p.age:0;
   result["quickstepIframes"]=stepping&&p.age>=1&&p.age<7;
   result["quickstepVulnerableTail"]=stepping&&p.age>=7&&p.age<recovery_start;
   result["quickstepRecoveryPunishable"]=step_recovery;
