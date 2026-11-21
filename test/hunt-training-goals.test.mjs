@@ -10,8 +10,8 @@ function run(session,actions={},count=95){
   assert.equal(session.append(actions[tick]||cmd()),true,'source append tick '+tick);
  return session;
 }
-test('all fifteen source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,15);
+test('all sixteen source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,16);
  const categories=new Set();
  for(const scenario of HUNT_PRACTICE_DRILLS){
   assert(Object.hasOwn(HUNT_TRAINING_GOALS,scenario.id));
@@ -247,4 +247,19 @@ test('rewind erases observed timing and verified import rebuilds proof',()=>{
  assert(p.load(capture));
  assert.equal(p.goal().lastIntervalFrames,frames);
  assert.equal(p.goal().intervalSamples,1);
+});
+
+
+test('corner goal cannot be earned by a button press without actual source crossing',()=>{
+ const empty=evaluateHuntTrainingGoal('corner-escape',[
+  {tick:46,kind:'action',actor:1,move:'foldedHeavy'},
+  {tick:48,kind:'action',actor:0,move:'step'}]);
+ assert.equal(empty.attempts,1);
+ assert.equal(empty.completed,false);
+ const confirmed=evaluateHuntTrainingGoal('corner-escape',[
+  {tick:46,kind:'action',actor:1,move:'foldedHeavy'},
+  {tick:48,kind:'action',actor:0,move:'step'},
+  {tick:53,kind:'cornerEscape',actor:0,target:1,side:'left'}]);
+ assert.equal(confirmed.completed,true);
+ assert.equal(confirmed.lastIntervalFrames,7);
 });

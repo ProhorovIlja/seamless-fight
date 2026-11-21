@@ -19,7 +19,8 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'rally-reclaim':{category:'Resources',goal:'Take a real melee hit, then reclaim health through a confirmed melee strike.',trigger:'hit',success:'rally'},
  'blood-economy':{category:'Resources',goal:'Create five temporary rounds at an HP cost and fire one afterward.',trigger:'bloodBullets',success:'bloodShot'},
  'timing-read':{category:'Reads & Footsies',goal:'Read a committed heavy or a genuine feint, then retaliate when a safe opening appears.',trigger:'heavy',success:'timingPunish'},
- 'visceral-followup':{category:'Offense',goal:'Convert a successful firearm counter into a real timed visceral strike.',trigger:'gunParry',success:'visceral'}
+ 'visceral-followup':{category:'Offense',goal:'Convert a successful firearm counter into a real timed visceral strike.',trigger:'gunParry',success:'visceral'},
+ 'corner-escape':{category:'Defense',goal:'Escape real wall pressure by quickstepping forward THROUGH the opponent during i-frames. A mistimed dodge is punishable.',trigger:'heavy',success:'cornerEscape'}
 });
 const is=(e,kind,actor,move)=>e.kind===kind&&e.actor===actor&&
  (move===undefined||e.move===move);
@@ -73,7 +74,8 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    drill==='rally-reclaim'&&is(e,'hit',1)||
    drill==='blood-economy'&&is(e,'bloodBullets',0)||
    drill==='timing-read'&&is(e,'action',1,'foldedHeavy')||
-   drill==='visceral-followup'&&is(e,'gunParry',0)){
+   drill==='visceral-followup'&&is(e,'gunParry',0)||
+   drill==='corner-escape'&&is(e,'action',1,'foldedHeavy')){
    attempts++;
    lastAttemptTick=e.tick;
   }
@@ -127,6 +129,11 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
       earlier(entries,i,p=>is(p,'action',1,'feint'),0,50)||
       earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),0,25)
      ))success(e);
+    break;
+   case 'corner-escape':
+    if(is(e,'cornerEscape',0)&&
+       earlier(entries,i,p=>is(p,'action',1,'foldedHeavy'),0,48))
+     success(e);
     break;
    case 'visceral-followup':
     if(is(e,'visceral',0)&&

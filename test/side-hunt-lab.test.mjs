@@ -460,3 +460,15 @@ test('quickstep i-frames end before its recovery, so corner escape can be punish
  huntStep(s);
  assert(a.hp<health);
 });
+
+
+test('corner escape event requires actual wall-adjacent movement through an opponent',()=>{
+ const s=huntMatch();s.ready=0;s.p[0].x=65;s.p[1].x=107;
+ const evidence=[];
+ huntStep(s,[{x:1,y:0,act:'step',guard:false},huntInput()],evidence);
+ for(let i=0;i<10;i++)huntStep(s,[huntInput(),huntInput()],evidence);
+ const escaped=evidence.filter(e=>e.kind==='cornerEscape');
+ assert.equal(escaped.length,1,'only one true physical side-crossing is scored');
+ assert.equal(escaped[0].actor,0);
+ assert.equal(escaped[0].side,'left');
+});

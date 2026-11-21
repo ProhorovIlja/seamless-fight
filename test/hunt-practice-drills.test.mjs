@@ -11,12 +11,12 @@ const run=(session,{shootTick=-1,stepTick=-1,frames=85}={})=>{
  }
  return {state:session.inspect(),events:session.eventHistory(400)};
 };
-test('15 English-only 1v1 scenarios all use original source actions, never guard/throws',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,15);
+test('16 English-only 1v1 scenarios all use original source actions, never guard/throws',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,16);
  assert.deepEqual(HUNT_PRACTICE_DRILLS.map(x=>x.id),[
   'free','parry-heavy','parry-heal','parry-blood','escape-stun','dodge-shot',
   'anti-air','air-parry','whiff-punish','hit-confirm','transform-pressure',
-  'rally-reclaim','blood-economy','timing-read','visceral-followup']);
+  'rally-reclaim','blood-economy','timing-read','visceral-followup','corner-escape']);
  for(const scenario of HUNT_PRACTICE_DRILLS){
   const session=huntPracticeSession({drill:scenario.id,weapons:['thornwake','mournweave']});
   const state=session.inspect();
@@ -135,4 +135,27 @@ test('frame inspector announces only genuine frame-specific parry windows and pa
  }
  assert(readyAt>55,'source hit must happen before the escape window appears');
  assert.equal(escape.frame(0).firearmCounterWindowOpen,false);
+});
+
+
+test('corner escape drill requires real opponent pressure and physical side switch',()=>{
+ const s=huntPracticeSession({drill:'corner-escape'});
+ const initial=s.inspect();
+ assert.equal(initial.p[0].x,65);
+ assert.equal(initial.p[1].x,107);
+ for(let frame=1;frame<=66;frame++){
+  const move=frame===48?cmd('step',1):cmd();
+  assert(s.append(move));
+ }
+ const events=s.eventHistory(400),score=s.goal();
+ assert(events.some(e=>e.kind==='action'&&e.actor===1&&e.move==='foldedHeavy'));
+ const escape=events.find(e=>e.kind==='cornerEscape'&&e.actor===0);
+ assert(escape,'real source step crossed the pressured opponent');
+ assert.equal(escape.side,'left');
+ assert.equal(score.completed,true,'scoring is derived from confirmed source position swap');
+ assert.equal(score.successes,1);
+ assert(s.inspect().p[0].x>s.inspect().p[1].x);
+ const failed=huntPracticeSession({drill:'corner-escape'});
+ for(let frame=1;frame<=66;frame++)failed.append(cmd());
+ assert.equal(failed.goal().completed,false,'merely waiting for pressure is not escape');
 });

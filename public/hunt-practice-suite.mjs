@@ -31,7 +31,8 @@ export const HUNT_PRACTICE_DRILLS=Object.freeze([
  Object.freeze({id:'rally-reclaim',label:'Resources: Rally Recovery',spacing:95,action:'light',startAt:55}),
  Object.freeze({id:'blood-economy',label:'Resources: Blood Rounds',spacing:150,action:'',startAt:55}),
  Object.freeze({id:'timing-read',label:'Timing Read: Heavy or Feint',spacing:115,action:'heavy',startAt:55}),
- Object.freeze({id:'visceral-followup',label:'Offense: Visceral Conversion',spacing:76,action:'heavy',startAt:55})
+ Object.freeze({id:'visceral-followup',label:'Offense: Visceral Conversion',spacing:76,action:'heavy',startAt:55}),
+ Object.freeze({id:'corner-escape',label:'Defense: Escape Corner Pressure',spacing:42,action:'heavy',startAt:45})
 ]);
 const clone=x=>structuredClone(x);
 const neutral=()=>huntInput();
@@ -96,6 +97,11 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   start.p[0].x=480-scenario.spacing/2;
   start.p[1].x=480+scenario.spacing/2;
   if(drill==='parry-heal')start.p[1].hp=60;
+  if(drill==='corner-escape'){
+   // Real body collision at stage wall; pressure is from opponent's real moves.
+   // Nothing teleports the hunter during combat or grants free stamina.
+   start.p[0].x=65;start.p[1].x=107;
+  }
  }
  let replay=createHuntReplay({initialState:start,maxFrames:MAX_FRAMES,checkpointEvery:30});
  let state=clone(start),paused=false,mode='passive',activeSlot=0;

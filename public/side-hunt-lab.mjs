@@ -368,6 +368,7 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  }
  if(s.ready){s.ready--;return s;}
  const a=s.p[0],b=s.p[1];
+ const beforeX=[a.x,b.x];
  drive(a,b,commands[0],events,s.tick,0);
  drive(b,a,commands[1],events,s.tick,1);
  // During paid forward quickstep i-frames, pass the opponent's body to exit
@@ -377,6 +378,16 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  if(!forwardStep(a)&&!forwardStep(b)&&Math.abs(a.y-b.y)<55&&Math.abs(a.x-b.x)<38){
   const dir=a.x<=b.x?-1:1,d=(38-Math.abs(a.x-b.x))/2;
   a.x=clamp(a.x+dir*d,65,HUNT_W-65);b.x=clamp(b.x-dir*d,65,HUNT_W-65);
+ }
+ // Training may observe a real physical position reversal near the wall.
+ // This is read-only event evidence, not a scripted escape or hitbox override.
+ for(let slot=0;slot<2;slot++){
+  const me=s.p[slot],other=s.p[1-slot],old=beforeX[slot];
+  const crossed=(old-beforeX[1-slot])*(me.x-other.x)<0;
+  if(crossed&&forwardStep(me)&&
+   ((old<=140&&me.vx>0)||(old>=HUNT_W-140&&me.vx<0)))
+   events?.push({tick:s.tick,kind:'cornerEscape',actor:slot,target:1-slot,
+    stamina:me.st,side:old<=140?'left':'right'});
  }
  // Gun counters resolve before utility payoffs; melee trades remain simultaneous.
  const gunHits=[['shot','airShot'].includes(a.act)&&canStrike(a,b),
