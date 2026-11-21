@@ -442,6 +442,23 @@ try{
  await hunt.locator('#metrics').click();
  assert.match(await hunt.locator('#status').textContent(),/UNRATED 1v1/);
  assert.match(await hunt.locator('#input-guide').textContent(),/gun|firearm/i);
+ // Drill scenarios must cause real source actions, not preset combat results.
+ await hunt.locator('#drill').selectOption('parry-heavy');
+ assert.equal(await hunt.locator('#dummy-mode').inputValue(),'loop');
+ assert.match(await hunt.locator('#record-frames').textContent(),/150 \/ 600 frames/);
+ await until(async()=>/foldedHeavy/.test(await hunt.locator('#events').textContent()),
+   'source scripted heavy windup actually starts in Hunt v3');
+ const dummyExport=hunt.waitForEvent('download');
+ await hunt.locator('#export-dummy').click();
+ const dummyFile=await dummyExport;
+ assert.match(dummyFile.suggestedFilename(),/dummy-8-slots\.json$/);
+ await hunt.locator('#import-dummy').setInputFiles(await dummyFile.path());
+ await until(async()=>/Eight dummy slots imported/.test(await hunt.locator('#status').textContent()),
+   'real source-validated eight-slot dummy import');
+ assert.equal(await hunt.locator('#dummy-mode').inputValue(),'passive');
+ await hunt.locator('#drill').selectOption('parry-heal');
+ assert.equal(await hunt.locator('#p1-health').getAttribute('style'),'width: 60%;');
+ assert.match(await hunt.locator('#drill-help').textContent(),/Counter Vial Healing/);
  await hunt.screenshot({path:'artifacts/hunt-v3-offline-practice.png'});
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: legacy duels + authentic Hunt v3 60Hz English-only practice, dummy, frame meter and source-verified replay analysis.');
