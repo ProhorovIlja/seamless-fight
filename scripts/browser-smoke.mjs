@@ -430,7 +430,7 @@ try{
  await sleep(220);
  await hunt.keyboard.up('d');
  await hunt.locator('#stop-record').click();
- await until(async()=>/Slot 3: [1-9]\\d* \/ 600 frames/.test(await hunt.locator('#record-frames').textContent()),'actual Hunt recorded dummy inputs');
+ await until(async()=>/Slot 3: [1-9]\d* \/ 600 frames/.test(await hunt.locator('#record-frames').textContent()),'actual Hunt recorded dummy inputs');
  await hunt.locator('#dummy-mode').selectOption('loop');
  assert.match(await hunt.locator('#status').textContent(),/loop/);
  await hunt.locator('#toggle-boxes').click();
