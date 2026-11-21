@@ -432,13 +432,70 @@ try{
   simultaneousFacingTicks+=inputs.length;
  }
  assert.equal(simultaneousFacingScenarios,4);
+ // A pre-existing gun parry produces an exposed victim. Native and JS must
+ // agree on the FINAL opening tick and the 76U visceral reach, regardless
+ // of which slot is driven first or whether the target moves that tick.
+ let visceralOpeningScenarios=0,visceralOpeningTicks=0;
+ for(const attacker of [0,1])
+  for(const variation of ['outside','inside','expiry','expired']){
+   const source=huntMatch();source.ready=0;
+   const target=1-attacker;
+   const outside=variation==='outside',inside=variation==='inside';
+   source.p[attacker].x=500;
+   source.p[target].x=500-(outside?77:74);
+   source.p[attacker].vx=0;
+   source.p[target].vx=outside?6:inside?-6:0;
+   source.p[attacker].act='';
+   source.p[target].act='stagger';
+   source.p[target].age=1;
+   source.p[target].exposed=variation==='expired'?0:variation==='expiry'?1:15;
+   const inputs=Array.from({length:24},(_,t)=>{
+    const pair=[huntInput(),huntInput()];
+    if(t===0)pair[attacker]={...huntInput(),act:'visceral'};
+    return pair;
+   });
+   const mode='--visceral-p'+attacker+'-'+variation;
+   const packet='0 0\n'+inputs.map(pair=>pair.flatMap(
+    p=>[p.x,p.y,REQUEST[p.act],Number(p.guard)]).join(' ')).join('\n')+'\n';
+   const run=spawnSync(exe,[mode],{input:packet,encoding:'utf8',
+    timeout:90000,maxBuffer:4*1024*1024});
+   assert.equal(run.status,0,'Native visceral fixture failed: '+run.stderr);
+   const lines=run.stdout.trim().split('\n');
+   assert.equal(lines.length,inputs.length);
+   for(let t=0;t<inputs.length;t++){
+    huntStep(source,inputs[t]);
+    if(t===0){
+     const allowed=variation==='inside'||variation==='expiry';
+     assert.equal(source.p[attacker].act==='visceral',allowed,
+      'Source start-of-tick visceral eligibility '+mode);
+    }
+    const values=lines[t].trim().split(/\s+/).map(Number);
+    assert.equal(values.length,totalFields);
+    let k=0;
+    const compare=(field,value)=>{
+     const actual=values[k++],expected=number(field,value);
+     if(!Number.isFinite(actual)||!Number.isFinite(expected)||
+       Math.abs(expected-actual)>1e-8)
+      throw Error('Native parry opening mismatch '+mode+' t='+t+
+       ' field='+field+' JS='+expected+' CPP='+actual);
+     checks++;maxError=Math.max(maxError,Math.abs(expected-actual));
+    };
+    for(const field of GLOBAL)compare(field,source[field]);
+    compare('score0',source.score[0]);compare('score1',source.score[1]);
+    for(const fighter of source.p)for(const field of FIELDS)compare(field,fighter[field]);
+   }
+   visceralOpeningScenarios++;
+   visceralOpeningTicks+=inputs.length;
+  }
+ assert.equal(visceralOpeningScenarios,8);
  assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0&&eventsSeen.visceral>0,
   'Trace missed core Hunt gameplay situations');
  console.log(JSON.stringify({result:'HUNT_V3_NATIVE_CPP_JS_PARITY_PASS',
-  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks+simultaneousFacingTicks,
+  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks+simultaneousFacingTicks+visceralOpeningTicks,
   directedTradeScenarios,directedTradeTicks,limbScenarios,limbTicks,
   neutralFaceScenarios,neutralFaceTicks,
   simultaneousFacingScenarios,simultaneousFacingTicks,
+  visceralOpeningScenarios,visceralOpeningTicks,
   directedVisceral:true,directedTicks:trace.length,cornerCrossings:verifiedCornerCrossings,
   weaponPairs:PAIRS.length,fieldsPerTick:totalFields,fieldComparisons:checks,
   maxAbsoluteDifference:maxError,nativeRollbackChecks:rewinds,
