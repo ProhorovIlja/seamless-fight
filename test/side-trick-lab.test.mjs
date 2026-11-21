@@ -156,7 +156,7 @@ test('hit-confirm pursuit costs focus and stamina, advances inertia and respects
 });
 test('pursuit rejects whiff, insufficient meter, early window and infinite chains',()=>{
  function attempt({hit=true,focus=40,age=12,chain=1}={}){
-  const s=live(100),p=s.p[0];
+  const s=live(220),p=s.p[0];
   p.act='foldedLight';p.age=age;p.hitConfirmed=hit;p.chain=chain;p.focus=focus;
   trickStep(s,[cmd('step'),trickInput()]);
   return p;
