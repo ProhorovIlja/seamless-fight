@@ -102,6 +102,7 @@ export function huntFrameMeter(state,slot=0){
   firearmCounterWindowOpen:p.firearmCounterWindowOpen,
   whiffRecoveryArmExposed:p.whiffRecoveryArmExposed,
   whiffRecoveryArmUnits:p.whiffRecoveryArmUnits,
+  whiffHeavyMorphLockFrames:p.whiffHeavyMorphLockFrames,
   quickstepIframes:p.quickstepIframes,
   quickstepVulnerableTail:p.quickstepVulnerableTail,
   quickstepRecoveryPunishable:p.quickstepRecoveryPunishable,
