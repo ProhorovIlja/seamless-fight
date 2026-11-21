@@ -16,8 +16,14 @@ static constexpr const char* HUNT_ACTION_LABELS[]={
  "unfurledHeavy","unfurledCharged","airFoldedLight","airFoldedHeavy",
  "airUnfurledLight","airUnfurledHeavy","unfurl","refold","shiftOut",
  "shiftIn","shot","airShot","visceral","heal","blood","stagger",
- "visceralVictim","step","feint","sync","stun"
+ "visceralVictim","step","feint","sync","stun",
+ "backstep","foldedBackstepLight","unfurledBackstepLight"
 };
+// The portable source appends actions during development. A missing Godot
+// label would otherwise index past this array, silently corrupting the
+// training HUD or crashing exact native/JS state comparisons.
+static_assert(sizeof(HUNT_ACTION_LABELS)/sizeof(HUNT_ACTION_LABELS[0]) == sf_hunt::COUNT,
+ "Every portable Hunt action must have a Godot-facing label");
 static constexpr const char* HUNT_INPUT_LABELS[]={
  "","light","heavy","charge","trick","shot","step","feint",
  "sync","visceral","heal","blood"
