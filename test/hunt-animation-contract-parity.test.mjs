@@ -21,6 +21,10 @@ test('original 3D rig contract contains exactly every playable Hunt action',()=>
  assert.deepEqual(Object.keys(manifest.weapons).sort(),[...HUNT_WEAPONS].sort());
  assert.equal(new Set(manifest.shared).size,manifest.shared.length);
  assert.equal(manifest.shared.length,18);
+ assert(manifest.shared.includes('retreat'),
+  'backward footsies require their own animation, not a forward run played backwards');
+ assert.equal(manifest.shared.includes('crouch'),false,
+  'no-guard Hunt v3 has no crouch gameplay animation');
  for(const weapon of HUNT_WEAPONS){
   const spec=HUNT_WEAPON_SPECS[weapon];
   const records=manifest.weapons[weapon];
