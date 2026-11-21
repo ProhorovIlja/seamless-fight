@@ -517,6 +517,28 @@ try{
  assert.equal(await hunt.locator('#dummy-mode').inputValue(),'random');
  assert.match(await hunt.locator('#goal-category').textContent(),/READS & FOOTSIES/);
  assert.match(await hunt.locator('#drill-help').textContent(),/real feint/);
+ // Exact replay import must reconstruct the real source events and enable
+ // rewind/takeover, rather than merely dumping a verified end-state.
+ await hunt.locator('#drill').selectOption('parry-heavy');
+ await until(async()=>Number((await hunt.locator('#tick').textContent()).replace(/\D/g,''))>=88,
+  'live Hunt drill accumulates enough source frames for replay takeover');
+ const replayExport=hunt.waitForEvent('download');
+ await hunt.locator('#export').click();
+ const replayFile=await replayExport;
+ assert.match(replayFile.suggestedFilename(),/hunt-v3.*\.json$/);
+ await hunt.locator('#restart').click();
+ await hunt.locator('#import').setInputFiles(await replayFile.path());
+ await until(async()=>/imported and verified/.test(await hunt.locator('#status').textContent()),
+  'verified offline Hunt v3 replay restored into editable practice session');
+ assert.equal(await hunt.locator('#pause').textContent(),'Resume');
+ const importedTick=Number((await hunt.locator('#tick').textContent()).replace(/\D/g,''));
+ assert(importedTick>=88);
+ assert.equal(await hunt.locator('#rewind').isEnabled(),true);
+ await hunt.locator('#rewind').click();
+ assert.equal(Number((await hunt.locator('#tick').textContent()).replace(/\D/g,'')),importedTick-60);
+ await hunt.locator('#step').click();
+ assert.equal(Number((await hunt.locator('#tick').textContent()).replace(/\D/g,'')),importedTick-59);
+ assert.match(await hunt.locator('#status').textContent(),/one authoritative 60Hz/);
  await hunt.screenshot({path:'artifacts/hunt-v3-offline-practice.png'});
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: legacy duels + authentic Hunt v3 60Hz English-only practice, dummy, frame meter and source-verified replay analysis.');
