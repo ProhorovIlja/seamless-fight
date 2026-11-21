@@ -91,6 +91,16 @@
     <label>Display frame cap<select id="display-cap"><option value="0">Uncapped (display-limited)</option><option value="60">60 FPS</option><option value="80">80 FPS</option><option value="90">90 FPS</option><option value="120">120 FPS</option><option value="144">144 FPS</option><option value="240">240 FPS</option></select></label>
    </div>
    <p id="input-device" class="device-status">Keyboard and mouse active.</p>
+   <div class="binding-editor" aria-label="Custom controller bindings">
+    <div class="field-grid">
+     <label>Action to customize<select id="rebind-action"></select></label>
+     <label>Physical key or button<select id="rebind-token"></select></label>
+    </div>
+    <div class="button-row"><button id="apply-binding" type="button">Apply Binding</button>
+     <button id="reset-bindings" type="button">Restore Default Bindings</button>
+     <span id="binding-message" role="status" aria-live="polite">Device bindings are local to this browser.</span></div>
+    <output id="active-bindings" class="binding-summary" aria-label="Current physical input bindings"></output>
+   </div>
    <p id="input-guide" class="controls">A/D move · Space jump · S crouch · Left click light · Right click heavy · H charge · Q transform · E firearm · Shift dodge · F visceral · R heal · B blood rounds · T feint · G follow-up</p>
    <p class="tiny-note">Input is sampled on every fixed 60 Hz gameplay tick. SOCD neutral resolves simultaneous opposite directions. Pad/arcade support uses the browser's detected standard Gamepad mapping; real USB hardware compatibility requires Windows testing. Browser rendering is interpolated and can run faster than simulation. Selecting one controller locks the local fighter to that device; a disconnected pad will not switch control to another gamepad.</p>
    <h3 class="subhead">Current simulated input</h3><output id="input-readout">X 0 · Y 0 · Neutral</output>
