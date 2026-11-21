@@ -16,6 +16,11 @@ export function validateRuntime(env,nodeVersion,osRelease){
    if(url.protocol!=='https:'||url.origin!==env.PUBLIC_ORIGIN||url.username||url.password||url.pathname!=='/'||url.search||url.hash)errors.push('PUBLIC_ORIGIN must be an exact HTTPS origin.');
  }catch{errors.push('PUBLIC_ORIGIN must be an exact HTTPS origin.');}
  if(env.SITE_ART!==undefined&&!['0','1'].includes(env.SITE_ART))errors.push('SITE_ART must be 0 or 1.');
+ for(const [name,max] of [['SF_MAX_MAIN_ROOMS',96],['SF_MAX_SIDE_ROOMS',64]]){
+   if(env[name]!==undefined&&(!/^[1-9][0-9]*$/.test(env[name])||
+      Number(env[name])>max))errors.push(name+' must be an integer from 1 to '+max+'.');
+ }
+
  return errors;
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
