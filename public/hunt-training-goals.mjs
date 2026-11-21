@@ -22,7 +22,9 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'blood-economy':{category:'Resources',goal:'Create five temporary rounds at an HP cost and fire one afterward.',trigger:'bloodBullets',success:'bloodShot'},
  'timing-read':{category:'Reads & Footsies',goal:'Read a committed heavy or a genuine feint, then retaliate when a safe opening appears.',trigger:'heavy',success:'timingPunish'},
  'visceral-followup':{category:'Offense',goal:'Convert a successful firearm counter into a real timed visceral strike.',trigger:'gunParry',success:'visceral'},
- 'corner-escape':{category:'Defense',goal:'Escape real wall pressure by quickstepping forward THROUGH the opponent during i-frames. A mistimed dodge is punishable.',trigger:'heavy',success:'cornerEscape'}
+ 'corner-escape':{category:'Defense',goal:'Escape real wall pressure by quickstepping forward THROUGH the opponent during i-frames. A mistimed dodge is punishable.',trigger:'heavy',success:'cornerEscape'},
+ 'corner-interrupt-left':{category:'Defense',goal:'At the LEFT wall, interrupt a real incoming R2 windup using a grounded R1 before its active hitbox.',trigger:'heavy',success:'cornerCounterHit'},
+ 'corner-interrupt-right':{category:'Defense',goal:'At the RIGHT wall, interrupt a real incoming R2 windup using a grounded R1 before its active hitbox.',trigger:'heavy',success:'cornerCounterHit'}
 });
 const is=(e,kind,actor,move)=>e.kind===kind&&e.actor===actor&&
  (move===undefined||e.move===move);
@@ -79,7 +81,9 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    drill==='blood-economy'&&is(e,'bloodBullets',0)||
    drill==='timing-read'&&is(e,'action',1,'foldedHeavy')||
    drill==='visceral-followup'&&is(e,'gunParry',0)||
-   drill==='corner-escape'&&is(e,'action',1,'foldedHeavy')){
+   drill==='corner-escape'&&is(e,'action',1,'foldedHeavy')||
+   drill==='corner-interrupt-left'&&is(e,'action',1,'foldedHeavy')&&e.playerWall==='left'||
+   drill==='corner-interrupt-right'&&is(e,'action',1,'foldedHeavy')&&e.playerWall==='right'){
    attempts++;
    lastAttemptTick=e.tick;
   }
@@ -153,6 +157,19 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
        earlier(entries,i,p=>is(p,'action',1,'foldedHeavy'),0,48))
      success(e);
     break;
+   case 'corner-interrupt-left':
+   case 'corner-interrupt-right':{
+    const side=drill.endsWith('left')?'left':'right';
+    const trigger=earlier(entries,i,p=>is(p,'action',1,'foldedHeavy')&&
+      p.playerWall===side,0,25);
+    // The R1 must physically connect before the opponent's heavy hitbox
+    // starts. A gun shot, a late R1, or the wrong-wall drill earns nothing.
+    if(is(e,'hit',0)&&e.move==='foldedLight'&&
+       e.hitDuringStartup===true&&
+       e.interruptedMove==='foldedHeavy'&&e.remainingStartup>0&&trigger)
+      success(e,trigger.tick);
+    break;
+   }
    case 'visceral-followup':
     if(is(e,'visceral',0)&&
        earlier(entries,i,p=>is(p,'gunParry',0),0,40))success(e);
