@@ -201,7 +201,10 @@ inline void drive(Fighter&p,Fighter&q,const Input&i,
   p.vy=-12.6;p.y-=.01;++p.jumps;p.st-=6;p.regen=15;p.crouch=false;
  }
  p.jumpHeld=jump;
- buffer(p,i.act);
+ // Both player slots must clear the victim's input buffer after a
+ // visceral lock, never enqueue a phantom shot while in the cinematic.
+ if(p.act==VISCERAL_VICTIM){p.queue=NOTHING;p.queueLife=0;}
+ else buffer(p,i.act);
  if(p.queue!=NOTHING){
   const Action req=requested(p,p.queue,i);
   if(start(p,q,req,i,opponent_start_x,opponent_start_exposed)){
