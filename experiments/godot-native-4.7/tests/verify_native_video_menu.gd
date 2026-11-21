@@ -40,6 +40,28 @@ func _verify() -> void:
 	if gfx.controller.load_profile().get("fps_cap")!=60:
 		_fail("Video settings failed to persist to user directory")
 		return
+	# Fixed 60 Hz combat/physics is not coupled to arbitrary presentation caps.
+	if int(ProjectSettings.get_setting("physics/common/physics_ticks_per_second",0))!=60:
+		_fail("Render settings changed the fixed 60 Hz gameplay tick")
+		return
+	var has_80 := false
+	var has_uncapped := false
+	for i in range(gfx.fps_cap.item_count):
+		if gfx.fps_cap.get_item_metadata(i)==80:
+			has_80=true
+			gfx.fps_cap.select(i)
+		if gfx.fps_cap.get_item_metadata(i)==0:
+			has_uncapped=true
+	if not has_80 or not has_uncapped or not gfx.apply_settings() or Engine.max_fps!=80:
+		_fail("80 FPS option is not actually applied")
+		return
+	for i in range(gfx.fps_cap.item_count):
+		if gfx.fps_cap.get_item_metadata(i)==0:
+			gfx.fps_cap.select(i)
+			break
+	if not gfx.apply_settings() or Engine.max_fps!=0:
+		_fail("Uncapped rendering must set the actual Godot Engine.max_fps to 0")
+		return
 	gfx._restore_defaults()
 	if Engine.max_fps!=120 or absf(root.scaling_3d_scale-1.0)>0.001:
 		_fail("Restoring defaults did not reverse real Godot settings")
