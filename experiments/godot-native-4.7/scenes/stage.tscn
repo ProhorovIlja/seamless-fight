@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/stage.gd" id="1_stage"]
 [ext_resource type="Script" path="res://scripts/native_controls.gd" id="2_controls"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/native_practice.gd" id="4_practice"]
 [ext_resource type="Script" path="res://scripts/native_input_settings.gd" id="5_settings"]
 [ext_resource type="Script" path="res://scripts/native_online_session.gd" id="6_online"]
+[ext_resource type="Script" path="res://scripts/native_hud.gd" id="7_hud"]
 
 [node name="Stage" type="Node3D"]
 script = ExtResource("1_stage")
@@ -36,3 +37,6 @@ script = ExtResource("5_settings")
 
 [node name="Online" type="Node" parent="."]
 script = ExtResource("6_online")
+
+[node name="CombatHud" type="CanvasLayer" parent="."]
+script = ExtResource("7_hud")

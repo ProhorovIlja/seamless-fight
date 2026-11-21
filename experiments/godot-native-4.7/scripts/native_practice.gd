@@ -15,7 +15,7 @@ func _ready() -> void:
 	set_physics_process(false)
 
 func start_training(profile: String = "normal") -> bool:
-	if profile not in ALLOWED_BOTS or not ClassDB.class_exists("SFCombat"):
+	if profile not in ALLOWED_BOTS or not ClassDB.class_exists("SFCombat") or get_parent().get_node("Online").online:
 		return false
 	var instance: Object = ClassDB.instantiate("SFCombat")
 	if instance == null:
@@ -24,6 +24,7 @@ func start_training(profile: String = "normal") -> bool:
 	bot=profile
 	active=true
 	last_state=_combat.get_state()
+	get_parent().get_node("CombatHud").reset_mode("TRAINING",true)
 	get_parent().last_confirmed_tick=-1
 	get_parent().apply_authoritative_state(last_state)
 	set_physics_process(true)
@@ -35,6 +36,7 @@ func stop_training() -> void:
 	set_physics_process(false)
 	_combat=null
 	last_state={}
+	get_parent().get_node("CombatHud").clear()
 	practice_stopped.emit()
 
 func reset_rounds() -> bool:
@@ -79,7 +81,10 @@ func _bot_input(state: Dictionary) -> Array[int]:
 func _physics_process(_delta: float) -> void:
 	if not active or _combat == null:
 		return
-	var command: Array[int] = get_parent().get_node("NativeControls").encoded_input()
+	var controls_panel: CanvasLayer=get_parent().get_node("InputSettings")
+	var menu: CanvasLayer=get_parent().get_node_or_null("NativeMenu")
+	var blocked := controls_panel.visible or (menu != null and menu.visible)
+	var command: Array[int] = [0,0,0,0] if blocked else get_parent().get_node("NativeControls").encoded_input()
 	if command.size()!=4:
 		stop_training()
 		return

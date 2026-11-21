@@ -38,6 +38,7 @@ func _on_room(code: String, slot: int) -> void:
 
 func _on_match_start(snapshot: Dictionary) -> void:
 	started=true
+	get_parent().get_node("CombatHud").reset_mode("PRIVATE 1V1",false)
 	get_parent().last_confirmed_tick=-1
 	if not get_parent().apply_authoritative_state(snapshot):
 		_on_notice("Invalid server match starting state")
@@ -70,6 +71,7 @@ func close_room() -> void:
 	set_physics_process(false)
 	online=false
 	started=false
+	get_parent().get_node("CombatHud").clear()
 	latest_ack=0
 	if transport!=null:
 		transport.close()

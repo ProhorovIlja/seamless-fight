@@ -82,6 +82,8 @@ func apply_authoritative_state(snapshot: Dictionary) -> bool:
 		visual.position = world_position(float(fighter["x"]), float(fighter["y"]))
 		visual.rotation.y = PI if int(fighter["dir"]) < 0 else 0.0
 	last_confirmed_tick = tick
+	if $CombatHud.visible:
+		$CombatHud.apply_snapshot(snapshot)
 	return true
 
 func set_visual_stage(requested: String) -> bool:
