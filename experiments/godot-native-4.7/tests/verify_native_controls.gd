@@ -63,9 +63,40 @@ func _verify() -> void:
 	if int(hardware["connected"])!=devices.size() or not str(hardware["mappingEngine"]).contains("SDL"):
 		_fail("Native control adapter invented device availability")
 		return
-	if str(hardware["deviceLocking"])=="implemented":
-		_fail("Input wrongly advertises unavailable device-to-player locking")
+	if not str(hardware["deviceLocking"]).begins_with("implemented"):
+		_fail("Input settings must support explicit controller or keyboard lock")
 		return
+	if c.select_input_device(2147483647):
+		_fail("Disconnected or untrusted controller ID was accepted")
+		return
+	if not c.select_input_device(c.DEVICE_KBM):
+		_fail("Keyboard and mouse input lock could not be selected")
+		return
+	if c.active_device_id!=c.DEVICE_KBM or c.encoded_input()!=[0,0,0,0]:
+		_fail("Headless locked keyboard input was not neutral")
+		return
+	if c.resolve_directions(true,true,false,false)!=Vector2i.ZERO:
+		_fail("Leverless simultaneous left/right must resolve to neutral")
+		return
+	if c.resolve_directions(false,false,true,true)!=Vector2i.ZERO:
+		_fail("Leverless simultaneous jump/crouch must resolve to neutral")
+		return
+	if c.resolve_directions(false,true,true,false)!=Vector2i(1,-1):
+		_fail("Independent jump and right must remain simultaneous")
+		return
+	for item in devices:
+		if not c.select_input_device(int(item["id"])):
+			_fail("Detected controller could not be selected as exclusive combat input")
+			return
+	if not c.select_input_device(c.DEVICE_AUTO):
+		_fail("Automatic legacy control mode unavailable")
+		return
+	c.select_input_device(c.DEVICE_KBM)
+	c._device_connection_changed(999,false)
+	if c.active_device_id!=c.DEVICE_KBM:
+		_fail("Unrelated pad disconnection must not revoke keyboard-only lock")
+		return
+	c.select_input_device(c.DEVICE_AUTO)
 	for item in devices:
 		if not item.has("id") or not item.has("name") or not item.has("guid") or not item.has("mapped"):
 			_fail("Detected SDL controller diagnostics incomplete")
@@ -75,7 +106,7 @@ func _verify() -> void:
 	await process_frame
 	var settings: CanvasLayer=stage.get_node("InputSettings")
 	settings.open_settings()
-	if not settings.visible or settings.buttons.size()<20 or settings.device_info==null:
+	if not settings.visible or settings.buttons.size()<20 or settings.device_info==null or settings.device_selector==null or settings.device_selector.item_count<2:
 		_fail("Native user-facing KBM/gamepad menu did not open")
 		return
 	settings.close_settings()
