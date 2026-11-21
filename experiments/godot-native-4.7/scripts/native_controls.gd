@@ -71,7 +71,7 @@ func validate_profile(profile: Variant) -> Array[String]:
 			var safe := false
 			match kind:
 				"key":
-					safe = item.size()==2 and code>=32 and code<=4194319 and code not in [KEY_ESCAPE,KEY_ENTER,KEY_KP_ENTER]
+					safe = item.size()==2 and code>=32 and code<=4194500 and code not in [KEY_ESCAPE,KEY_ENTER,KEY_KP_ENTER]
 				"mouse":
 					safe = item.size()==2 and code in [MOUSE_BUTTON_LEFT,MOUSE_BUTTON_RIGHT,MOUSE_BUTTON_MIDDLE,MOUSE_BUTTON_XBUTTON1,MOUSE_BUTTON_XBUTTON2]
 				"pad_button":
