@@ -137,9 +137,10 @@ test('versioned replay import restores source-confirmed input history, rewind an
  assert(imported.rewind(20),'verified imported replay should support timeline takeover');
  assert.equal(imported.inspect().tick,36);
  assert.equal(imported.stats().paused,true);
- for(let i=0;i<20;i++)assert(imported.step(cmd()));
+ for(let tick=37;tick<=56;tick++)
+  assert(imported.step(t.inputHistory()[tick-1].input[0]));
  assert.deepEqual(imported.inspect(),t.inspect(),
-  'resimulated native replay must reproduce identical original outcome');
+  'original verified input tape must reproduce the same outcome after takeover');
  assert.throws(()=>imported.load({...saved,rules:'sf-hunt-lab/2'}),/Invalid|incompatible/);
  assert.throws(()=>t.inputHistory(121),/1..120/);
  assert.throws(()=>t.eventHistory(401),/1..400/);
