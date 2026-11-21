@@ -517,9 +517,9 @@ try{
  assert.match(await hunt.locator('#goal-progress').textContent(),/0 confirmed · 1 observed/);
  await hunt.locator('#drill').selectOption('whiff-punish');
  await hunt.locator('#drill').selectOption('dodge-punish');
+ assert.match(await hunt.locator('#drill option:checked').textContent(),/Punish Quickstep Recovery/);
  await hunt.locator('#drill').selectOption('counter-hit');
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Interrupt Heavy Startup/);
- assert.match(await hunt.locator('#drill option:checked').textContent(),/Punish Quickstep Recovery/);
  await hunt.locator('#drill').selectOption('whiff-punish');
  await until(async()=>/0 confirmed · 1 observed/.test(await hunt.locator('#goal-progress').textContent()),
    'source whiff punish drill observes one actually missed heavy');
