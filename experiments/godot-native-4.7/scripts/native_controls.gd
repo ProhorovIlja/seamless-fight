@@ -5,11 +5,17 @@ const VERSION := 1
 const SAVE_PATH := "user://sf_native_controls_v1.json"
 const MAX_BYTES := 16384
 const DEADZONE := 0.25
+const DEVICE_AUTO := -1
+const DEVICE_KBM := -2
+var active_device_id := DEVICE_AUTO
+var active_profile: Dictionary={}
+var previous_pressed: Dictionary={}
 const ACTIONS := ["sf_left","sf_right","sf_jump","sf_crouch","sf_guard",
 	"sf_cut","sf_hew","sf_shot","sf_step","sf_feint"]
 
 func _ready() -> void:
 	apply_profile(load_profile())
+	Input.joy_connection_changed.connect(_device_connection_changed)
 
 func _key(code: int) -> Dictionary:
 	return {"kind":"key","code":code}
@@ -115,6 +121,8 @@ func _to_event(binding: Dictionary) -> InputEvent:
 func apply_profile(profile: Dictionary) -> bool:
 	if not validate_profile(profile).is_empty():
 		return false
+	active_profile=profile.duplicate(true)
+	previous_pressed.clear()
 	for action in ACTIONS:
 		if not InputMap.has_action(action):
 			InputMap.add_action(action,DEADZONE)
@@ -187,23 +195,86 @@ func controller_diagnostics() -> Dictionary:
 	return {"connected":devices.size(),"devices":devices,
 		"mappingEngine":"Godot SDL-compatible joypad mapping",
 		"leverless":"Use D-pad/buttons; opposing directions neutralize in encoded input",
-		"deviceLocking":"not yet implemented; local multiplayer device arbitration required"}
+		"deviceLocking":"implemented (explicit selection, disconnected-device failover to keyboard and mouse)",
+		"activeDevice":active_device_id,
+		"activeDeviceLabel":device_label()}
+
+## One controller (or keyboard/mouse) drives the local fighter. Default AUTO
+## retains the existing all-device InputMap behavior for backward compatibility.
+## Godot joypad IDs are transient and deliberately not persisted in a profile.
+func select_input_device(device: int) -> bool:
+	if device!=DEVICE_AUTO and device!=DEVICE_KBM and device not in Input.get_connected_joypads():
+		return false
+	active_device_id=device
+	previous_pressed.clear()
+	return true
+
+func _device_connection_changed(device: int, connected: bool) -> void:
+	if not connected and active_device_id==device:
+		# Fail closed to local keyboard/mouse, not to another unattended pad.
+		active_device_id=DEVICE_KBM
+		previous_pressed.clear()
+
+func device_label() -> String:
+	if active_device_id==DEVICE_AUTO:
+		return "Automatic: all mapped devices"
+	if active_device_id==DEVICE_KBM:
+		return "Keyboard and mouse only"
+	if active_device_id not in Input.get_connected_joypads():
+		return "Disconnected controller"
+	return Input.get_joy_name(active_device_id).left(100)+" (#"+str(active_device_id)+")"
+
+func _locked_pressed(action: String) -> bool:
+	if not active_profile.has("actions") or not active_profile["actions"].has(action):
+		return false
+	for binding in active_profile["actions"][action]:
+		var code: int=int(binding["code"])
+		match str(binding["kind"]):
+			"key":
+				if active_device_id==DEVICE_KBM and Input.is_physical_key_pressed(code):
+					return true
+			"mouse":
+				if active_device_id==DEVICE_KBM and Input.is_mouse_button_pressed(code):
+					return true
+			"pad_button":
+				if active_device_id>=0 and Input.is_joy_button_pressed(active_device_id,code):
+					return true
+			"pad_axis":
+				if active_device_id>=0:
+					var value: float=Input.get_joy_axis(active_device_id,code)
+					if value*int(binding["direction"])>=0.5:
+						return true
+	return false
+
+## SOCD neutral cleaning: L+R => neutral, Jump+Crouch => neutral.
+## Software never introduces extra jumps, up-priority, macro actions or inputs.
+func resolve_directions(left: bool,right: bool,jump: bool,crouch: bool) -> Vector2i:
+	return Vector2i(int(right)-int(left),int(crouch)-int(jump))
 
 func encoded_input() -> Array[int]:
-	var x := int(Input.is_action_pressed("sf_right"))-int(Input.is_action_pressed("sf_left"))
-	var y := int(Input.is_action_pressed("sf_crouch"))-int(Input.is_action_pressed("sf_jump"))
+	if active_device_id==DEVICE_AUTO:
+		var direction: Vector2i=resolve_directions(
+			Input.is_action_pressed("sf_left"),Input.is_action_pressed("sf_right"),
+			Input.is_action_pressed("sf_jump"),Input.is_action_pressed("sf_crouch"))
+		var action := 0
+		for index in range(5):
+			if Input.is_action_just_pressed(["sf_cut","sf_hew","sf_shot","sf_step","sf_feint"][index]):
+				action=index+1
+				break
+		return [direction.x,direction.y,action,1 if Input.is_action_pressed("sf_guard") else 0]
+	var now: Dictionary={}
+	for key in ACTIONS:
+		now[key]=_locked_pressed(key)
+	var movement: Vector2i=resolve_directions(
+		bool(now["sf_left"]),bool(now["sf_right"]),bool(now["sf_jump"]),bool(now["sf_crouch"]))
 	var action := 0
-	if Input.is_action_just_pressed("sf_cut"):
-		action=1
-	elif Input.is_action_just_pressed("sf_hew"):
-		action=2
-	elif Input.is_action_just_pressed("sf_shot"):
-		action=3
-	elif Input.is_action_just_pressed("sf_step"):
-		action=4
-	elif Input.is_action_just_pressed("sf_feint"):
-		action=5
-	return [x,y,action,1 if Input.is_action_pressed("sf_guard") else 0]
+	for index in range(5):
+		var key: String=["sf_cut","sf_hew","sf_shot","sf_step","sf_feint"][index]
+		if now[key] and not previous_pressed.get(key,false):
+			action=index+1
+			break
+	previous_pressed=now
+	return [movement.x,movement.y,action,1 if now["sf_guard"] else 0]
 
 func with_device_rebinding(profile: Dictionary, action: String, entry: Dictionary, device_family: String) -> Dictionary:
 	if action not in ACTIONS or device_family not in ["kbm","pad"]:
