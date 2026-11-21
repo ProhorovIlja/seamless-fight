@@ -185,12 +185,14 @@ inline bool start(Fighter&p,Fighter&q,Action r,const Input&i){
  if(r==BACKSTEP)p.vx=-7.8*p.dir;
  return true;
 }
-inline void drive(Fighter&p,Fighter&q,const Input&i){
+inline void drive(Fighter&p,Fighter&q,const Input&i,double opponent_start_x){
  const bool ground=p.y>=FLOOR;
  if(p.exposed>0)--p.exposed;
  if(p.rallyLife>0)--p.rallyLife;else p.rally=0;
  if(can_act(p)){p.act=NONE;p.age=0;p.chain=0;p.hitConfirmed=false;}
- if(p.act==NONE)p.dir=q.x>=p.x?1:-1;
+ // Both slots select new-attack facing from the same pre-drive
+ // snapshot, never the opponent's partially advanced frame.
+ if(p.act==NONE)p.dir=opponent_start_x>=p.x?1:-1;
  const bool jump=i.y==-1;
  p.crouch=false; // Legacy snapshot slot only; no low stance or ducking.
  if(jump&&!p.jumpHeld&&p.jumps<1&&p.act==NONE&&p.st>=6){
@@ -318,7 +320,7 @@ inline void step(State&s,const Input&aa,const Input&bb){
  if(s.ready){--s.ready;return;}
  Fighter&a=s.p[0],&b=s.p[1];
  const double before_a=a.x,before_b=b.x;
- drive(a,b,aa);drive(b,a,bb);
+ drive(a,b,aa,before_b);drive(b,a,bb,before_a);
  // Only forward quickstep i-frames allow body crossing; recovery is solid.
  const auto forward_step=[](const Fighter&p){
   return p.act==STEP&&p.age>=1&&p.age<7&&p.vx*p.dir>0;
