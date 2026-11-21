@@ -137,7 +137,16 @@ const motion=(p,input,direction=0)=>{
  return input;
 };
 export function huntHurtbox(p){
- return {left:p.x-18,right:p.x+18,top:p.y-111,bottom:p.y-8};
+ // During a missed committed melee attack, the recovering weapon arm is
+ // still reachable. Expose only a small original-authoring arm span, not
+ // the entire blade/hitbox. This gives true whiff punishment meaningful
+ // spatial counterplay against long pokes without block or grabs.
+ const spec=huntMoveSpec(p);
+ const recoveringMelee=ORDINARY.has(p.act)&&p.age>=spec.startup+spec.active&&
+  p.age<total(spec);
+ const arm=recoveringMelee?Math.min(24,Math.floor(spec.reach/5)):0;
+ return {left:p.x-18-(p.dir<0?arm:0),
+  right:p.x+18+(p.dir>0?arm:0),top:p.y-111,bottom:p.y-8};
 }
 export function huntAttackbox(p){
  const m=huntMoveSpec(p);
