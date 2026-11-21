@@ -488,14 +488,77 @@ try{
    visceralOpeningTicks+=inputs.length;
   }
  assert.equal(visceralOpeningScenarios,8);
+ // Prove the victim never secretly buffers a shot or dodge when its
+ // lock is established BEFORE its drive() (slot 0) versus AFTER
+ // its drive() (slot 1). Compare the entire rollback state, not just
+ // queue fields, for both input types across 24 successive 60Hz ticks.
+ let visceralLockScenarios=0,visceralLockTicks=0;
+ for(const attacker of [0,1])for(const victimCommand of ['shot','step']){
+  const target=1-attacker;
+  const source=huntMatch();source.ready=0;
+  source.p[attacker].x=500;source.p[attacker].vx=0;
+  source.p[attacker].act='';
+  source.p[target].x=426;source.p[target].vx=6;
+  source.p[target].act='stagger';source.p[target].age=20;
+  source.p[target].exposed=20;
+  source.p[target].queue='';source.p[target].queueLife=0;
+  const beforeAmmo=source.p[target].ammo,beforeSt=source.p[target].st;
+  const inputs=Array.from({length:24},(_,t)=>{
+   const pair=[huntInput(),huntInput()];
+   if(t===0)pair[attacker]={...huntInput(),act:'visceral'};
+   pair[target]={...huntInput(),act:victimCommand,x:victimCommand==='step'?1:0};
+   return pair;
+  });
+  const mode='--visceral-lock-p'+attacker+'-'+victimCommand;
+  const packet='0 0\n'+inputs.map(pair=>pair.flatMap(
+   p=>[p.x,p.y,REQUEST[p.act],Number(p.guard)]).join(' ')).join('\n')+'\n';
+  const run=spawnSync(exe,[mode],{input:packet,encoding:'utf8',
+   timeout:90000,maxBuffer:4*1024*1024});
+  assert.equal(run.status,0,'Native visceral lock fixture: '+run.stderr);
+  const lines=run.stdout.trim().split('\n');
+  assert.equal(lines.length,inputs.length);
+  for(let t=0;t<inputs.length;t++){
+   const events=[];
+   huntStep(source,inputs[t],events);
+   const victim=source.p[target];
+   if(t===0){
+    assert.equal(source.p[attacker].act,'visceral');
+    assert.equal(victim.act,'visceralVictim');
+    assert.equal(victim.age,1);
+   }
+   assert.equal(victim.queue,'','No ghost victim action allowed '+mode);
+   assert.equal(victim.queueLife,0);
+   assert.equal(victim.ammo,beforeAmmo,'no ghost Quicksilver bullet spend');
+   assert.equal(victim.st,beforeSt,'no ghost stamina spend');
+   assert.equal(events.some(e=>e.kind==='action'&&e.actor===target),false);
+   const values=lines[t].trim().split(/\s+/).map(Number);
+   assert.equal(values.length,totalFields);
+   let k=0;
+   const compare=(field,value)=>{
+    const actual=values[k++],expected=number(field,value);
+    if(!Number.isFinite(actual)||!Number.isFinite(expected)||
+      Math.abs(expected-actual)>1e-8)
+     throw Error('Native visceral lock mismatch '+mode+' t='+t+
+      ' field='+field+' JS='+expected+' CPP='+actual);
+    checks++;maxError=Math.max(maxError,Math.abs(expected-actual));
+   };
+   for(const field of GLOBAL)compare(field,source[field]);
+   compare('score0',source.score[0]);compare('score1',source.score[1]);
+   for(const fighter of source.p)for(const field of FIELDS)compare(field,fighter[field]);
+  }
+  visceralLockScenarios++;
+  visceralLockTicks+=inputs.length;
+ }
+ assert.equal(visceralLockScenarios,4);
  assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0&&eventsSeen.visceral>0,
   'Trace missed core Hunt gameplay situations');
  console.log(JSON.stringify({result:'HUNT_V3_NATIVE_CPP_JS_PARITY_PASS',
-  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks+simultaneousFacingTicks+visceralOpeningTicks,
+  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks+simultaneousFacingTicks+visceralOpeningTicks+visceralLockTicks,
   directedTradeScenarios,directedTradeTicks,limbScenarios,limbTicks,
   neutralFaceScenarios,neutralFaceTicks,
   simultaneousFacingScenarios,simultaneousFacingTicks,
   visceralOpeningScenarios,visceralOpeningTicks,
+  visceralLockScenarios,visceralLockTicks,
   directedVisceral:true,directedTicks:trace.length,cornerCrossings:verifiedCornerCrossings,
   weaponPairs:PAIRS.length,fieldsPerTick:totalFields,fieldComparisons:checks,
   maxAbsoluteDifference:maxError,nativeRollbackChecks:rewinds,
