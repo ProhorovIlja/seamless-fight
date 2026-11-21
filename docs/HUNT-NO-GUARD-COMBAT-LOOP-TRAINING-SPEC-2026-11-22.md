@@ -174,3 +174,26 @@ Bloodborne's weapon-specific super/hyperarmor and stagger behavior can distingui
 **Potential original adaptation:** some clearly telegraphed heavy weapon-specific startup/active frames may resist stagger from *specific light melee hits*. The armored fighter must still lose real HP, gain only normally valid Rally, pay stamina and continue toward a punishable recovery. Correctly timed firearm parry, genuine dodge/whiff punish and position counterplay remain effective. Do not use a generic poise stat, auto-win armor on all heavies, free trade damage reduction or hidden immunity to visceral. Armor must be visually conveyed by the action's weight and sound, not invisible after-the-fact results.
 
 **Evidence before acceptance:** 60Hz deterministic source/native field parity; early/late light interruption experiments; gun parry through armored frames; simultaneous contact trade policy; mirrored corner cases; no armored 100-to-0 loop; replay and practice clips. This is a *balance candidate*, not live gameplay or a promise that a particular weapon must receive it.
+
+## 2026-11-22 — Real source/native frame-window training evidence
+
+**Implemented (research practice, not online/ranked):** `huntInspector` in `public/side-hunt-lab.mjs` now exposes `quickstepIframes`, `quickstepVulnerableTail`, `quickstepRecoveryPunishable`, `quickstepRemainingRecovery`, and retains `firearmCounterWindowOpen` / `groundedHitstunEscapeReady`. The isolated native `SFHuntCombat.get_move_frame_data` exports the same fields straight from the authoritative C++ action state. The native training-only `CombatHud` presents the exact English indicators: **DODGE I-FRAMES**, **DODGE VULNERABLE TAIL**, **DODGE RECOVERY: nF**, **VULNERABLE TO GUN PARRY**, **HITSTUN QUICKSTEP READY**. Live ranked opponents must never be shown each other's parryable action windows as privileged frame evidence.
+
+The quickstep has a **0 / 9 / 12** startup/active/recovery phase breakdown in this *original prototype*: after first step age 1, **ages 1–6** are invulnerable, **ages 7–8** are vulnerable active tail, and **ages 9–20** are actionable to punish only as recovery; age 21 has completed the recovery span. This does **not** claim to reproduce Bloodborne's exact animation frame counts. Source test `test/hunt-frame-window-inspector.test.mjs` covers every frame and both original weapons' real firearm parry windows. Native Godot tests `verify_native_hunt.gd` and `verify_native_hunt_practice.gd` exercise actual game inputs, native combat states, and visible HUD labels. CI is required before calling the complete native integration verified.
+
+### Current experimental frame choices — not final balance
+
+| Weapon / form / move | Startup | Active | Recovery | Reach | Stamina |
+|---|---:|---:|---:|---:|---:|
+| Mournweave folded R1 | 7 | 4 | 13 | 88 | 10 |
+| Mournweave folded R2 | 17 | 6 | 23 | 113 | 24 |
+| Mournweave unfurled R1 | 11 | 6 | 17 | 160 | 14 |
+| Mournweave unfurled R2 | 23 | 8 | 26 | 193 | 29 |
+| Thornwake folded R1 | 5 | 3 | 15 | 82 | 9 |
+| Thornwake folded R2 | 16 | 4 | 24 | 124 | 21 |
+| Thornwake unfurled R1 | 14 | 5 | 19 | 182 | 16 |
+| Thornwake unfurled R2 | 24 | 8 | 29 | 222 | 34 |
+
+These numbers come from `public/side-hunt-lab.mjs` and `native/combat/hunt_core.hpp`, not from copyrighted Bloodborne frame data. The table illustrates fast short-range interrupts, slower long-range control, and recoverable whiff commitments. They are pending live 1v1 playtests and genuine rollback/human reaction tests; changing them requires cross-language 60Hz parity and frame-aligned original animations.
+
+The rank-safe design rule is that a high-quality practice mode can explain exact training damage while a competitive match exposes only fairly observable animation, sound, effects, and player-confirmed game events. Do not show a live opponent's secret vulnerability flags to the local player outside practice, even if they are technically available in state.
