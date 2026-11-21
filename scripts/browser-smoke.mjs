@@ -536,6 +536,8 @@ try{
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Missed Firearm Recovery/);
  assert.match(await hunt.locator('#goal-category').textContent(),/READS & FOOTSIES/);
  assert.match(await hunt.locator('#goal-description').textContent(),/firearm shot/i);
+ assert.match(await hunt.locator('#drill-help').textContent(),/Quickstep through the live firearm hitbox/);
+ assert.match(await hunt.locator('#drill-help').textContent(),/gun parry or a late hit is not a whiff punish/);
  assert.equal(await hunt.locator('#dummy-mode').inputValue(),'loop');
  await hunt.locator('#drill').selectOption('dodge-punish');
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Punish Quickstep Recovery/);
