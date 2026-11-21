@@ -1,0 +1,122 @@
+name: Native C++ Godot combat integration (isolated)
+on:
+  push:
+    branches: [feat/lantern-court]
+    paths:
+      - 'native/combat/**'
+      - 'native/godot/**'
+      - 'experiments/godot-native-4.7/extension/**'
+      - 'experiments/godot-native-4.7/tests/verify_native_combat.gd'
+      - 'scripts/native-godot-vectors.mjs'
+      - '.github/workflows/native-combat-godot.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux-extension:
+    name: Linux 64 / C++ extension plus JavaScript parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build exact C++ fighting rules with upstream Godot C++ bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user scons
+          git clone --depth 1 https://github.com/godotengine/godot-cpp.git experiments/godot-native-4.7/extension/godot-cpp
+          cd experiments/godot-native-4.7/extension
+          echo "godot-cpp SHA: $(git -C godot-cpp rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          python3 -m SCons platform=linux target=template_release -j 2
+          test -s ../bin/libsf_combat.linux.template_release.x86_64.so
+          cp ../../../native/godot/sf_combat.gdextension ../bin/sf_combat.gdextension
+      - name: Test exact 1350 tick Native Godot parity against JavaScript reference
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=https://github.com/godotengine/godot/releases/download/4.7.2-stable
+          curl -fL --retry 2 --max-time 150 --silent --show-error "$BASE/Godot_v4.7.2-stable_linux.x86_64.zip" -o "$RUNNER_TEMP/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+          chmod +x "$G"
+          node scripts/native-godot-vectors.mjs
+          "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
+          echo 'NATIVE_CPP_60HZ_GODOT_JS_PARITY=PASS (1350 ticks * 41 fields)' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sf-native-combat-linux-x64
+          path: experiments/godot-native-4.7/bin/libsf_combat.linux.template_release.x86_64.so
+          retention-days: 14
+  windows-extension:
+    name: Windows 64 / MSVC combat DLL
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build 64-bit DLL with MSVC
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python -m pip install scons
+          git clone --depth 1 https://github.com/godotengine/godot-cpp.git experiments/godot-native-4.7/extension/godot-cpp
+          Push-Location experiments/godot-native-4.7/extension
+          python -m SCons platform=windows target=template_release -j 2
+          Pop-Location
+          $dll='experiments/godot-native-4.7/bin/sf_combat.windows.template_release.x86_64.dll'
+          if (-not (Test-Path $dll)) { throw 'MSVC combat DLL missing' }
+          $fs=[System.IO.File]::OpenRead((Resolve-Path $dll))
+          try { if ($fs.ReadByte() -ne 77 -or $fs.ReadByte() -ne 90) { throw 'Invalid MZ signature' } } finally { $fs.Close() }
+          'NATIVE_COMBAT_WINDOWS_MSVC_DLL=PASS' | Out-File $env:GITHUB_STEP_SUMMARY -Append
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sf-native-combat-windows-x64
+          path: experiments/godot-native-4.7/bin/sf_combat.windows.template_release.x86_64.dll
+          retention-days: 14
+  integrated-export:
+    name: Windows EXE PCK and C++ DLL integration
+    needs: [linux-extension, windows-extension]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: sf-native-combat-linux-x64
+          path: experiments/godot-native-4.7/bin
+      - uses: actions/download-artifact@v4
+        with:
+          name: sf-native-combat-windows-x64
+          path: experiments/godot-native-4.7/bin
+      - name: Import both libraries and export actual native Windows package
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp native/godot/sf_combat.gdextension experiments/godot-native-4.7/bin/sf_combat.gdextension
+          BASE=https://github.com/godotengine/godot/releases/download/4.7.2-stable
+          curl -fL --retry 2 --max-time 150 --silent --show-error "$BASE/Godot_v4.7.2-stable_linux.x86_64.zip" -o "$RUNNER_TEMP/godot.zip"
+          curl -fL --retry 2 --max-time 240 --silent --show-error "$BASE/Godot_v4.7.2-stable_export_templates.tpz" -o "$RUNNER_TEMP/templates.tpz"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
+          chmod +x "$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+          TARGET="$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          mkdir -p "$TARGET"
+          unzip -p "$RUNNER_TEMP/templates.tpz" templates/windows_release_x86_64.exe > "$TARGET/windows_release_x86_64.exe"
+          unzip -p "$RUNNER_TEMP/templates.tpz" templates/version.txt > "$TARGET/version.txt"
+          G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+          node scripts/native-godot-vectors.mjs
+          "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
+          mkdir -p artifacts/native-cpp-windows
+          "$G" --headless --path experiments/godot-native-4.7 --export-release "Windows Desktop" "$PWD/artifacts/native-cpp-windows/SeamlessFight-NativeCombatResearch.exe"
+          test -s artifacts/native-cpp-windows/SeamlessFight-NativeCombatResearch.exe
+          test -s artifacts/native-cpp-windows/SeamlessFight-NativeCombatResearch.pck
+          find artifacts/native-cpp-windows -type f
+          if ! find artifacts/native-cpp-windows -name 'sf_combat.windows.template_release.x86_64.dll' | grep -q .; then
+            echo 'Native DLL absent from Windows export' >&2; exit 1
+          fi
+          echo 'WINDOWS_NATIVE_CPP_COMBAT_DLL_INCLUDED_IN_EXPORT=PASS' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sf-cpp-native-win64-evaluation-only
+          path: artifacts/native-cpp-windows/
+          retention-days: 14
