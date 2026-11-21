@@ -25,6 +25,9 @@ on:
       - 'scripts/native-godot-vectors.mjs'
       - '.github/workflows/native-combat-godot.yml'
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
