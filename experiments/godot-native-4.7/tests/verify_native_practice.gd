@@ -35,7 +35,7 @@ func _verify() -> void:
 	if frame_meter.get("rules","")!="seamless-side/1" or frame_meter.get("source","")!="legacy-C++-frame-table-not-Hunt-v3":
 		_fail("Legacy native frame meter mislabeled rule source")
 		return
-	var menu: CanvasLayer=stage.get_node("NativeMenu")
+	var menu: Variant=stage.get_node("NativeMenu")
 	if not menu._inspect_training() or not menu.practice_details.text.contains("LEGACY C++ TRAINING"):
 		_fail("Native frame-data menu did not present real active practice data")
 		return
