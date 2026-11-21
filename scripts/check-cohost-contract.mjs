@@ -32,6 +32,8 @@ export function inspectCohostContract({caddy,unit}){
   errors.push('Explicit bounded HTTP transport required');
  if(!/HOST=127\.0\.0\.1 PORT=18080\b/.test(u))
   errors.push('Backend must bind only to loopback port 18080');
+ if(!/SF_MAX_MAIN_ROOMS=8 SF_MAX_SIDE_ROOMS=8\b/.test(u))
+  errors.push('Shared-host pilot must limit each game family to eight rooms');
  if(!/EnvironmentFile=\/etc\/seamless-fight\.env\b/.test(u))
   errors.push('Dedicated external environment required');
  if(!/DynamicUser=yes/.test(u)||!/ProtectSystem=strict/.test(u)||!/NoNewPrivileges=yes/.test(u))
