@@ -59,3 +59,26 @@ test('versioned export/import detects incompatible and modified tapes without ac
  changed.startState.p[0].hp=42; // Guaranteed semantic divergence, not an ignored early input.
  assert.throws(()=>loadHuntReplay(changed),/diverged|integrity/i);
 });
+
+
+test('Hitstun dodge escape reproduces across checkpoints and never contaminates a parry replay',()=>{
+ const initial=huntMatch();initial.ready=0;
+ initial.p[0].x=430;initial.p[1].x=496;
+ initial.p[1].act='stun';initial.p[1].age=8;initial.p[1].hp=70;
+ const r=createHuntReplay({initialState:initial,checkpointEvery:2,maxFrames:20});
+ const direct=structuredClone(initial);
+ const inputs=[ [cmd(''),cmd('step',-1)], [cmd(''),cmd('')], [cmd(''),cmd('')] ];
+ for(const pair of inputs){r.append(pair);huntStep(direct,pair);}
+ assert.equal(direct.p[1].act,'step');
+ assert.equal(direct.p[1].hp,70,'escape never refunds the original damage');
+ assert.equal(direct.p[1].st,75,'escape spends 19 stamina plus six extra');
+ assert.deepEqual(r.getState(),direct);
+ assert.deepEqual(r.stateAt(1),(()=>{const s=structuredClone(initial);huntStep(s,inputs[0]);return s;})());
+ assert.deepEqual(loadHuntReplay(JSON.parse(JSON.stringify(r.capture()))).getState(),direct);
+ const guarded=structuredClone(initial);
+ guarded.p[1].act='stagger';guarded.p[1].age=8;guarded.p[1].exposed=27;
+ const parry=createHuntReplay({initialState:guarded,maxFrames:2});
+ parry.append([cmd(''),cmd('step',-1)]);
+ assert.equal(parry.getState().p[1].act,'stagger');
+ assert.equal(parry.getState().p[1].st,100);
+});
