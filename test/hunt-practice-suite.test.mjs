@@ -123,7 +123,7 @@ test('rewind and branch takeover preserve exact state while allowing alternative
  assert.throws(()=>t.rewind(721),/1..720/);
  assert.throws(()=>t.rewind(0),/1..720/);
 });
-test('versioned capture import/export works, disallows old rules, clears ephemeral event history',()=>{
+test('versioned replay import restores source-confirmed input history, rewind and takeover',()=>{
  const t=huntPracticeSession();
  for(let i=0;i<56;i++)t.append(cmd(i%23===3?'shot':''));
  const saved=JSON.parse(JSON.stringify(t.save()));
@@ -131,7 +131,15 @@ test('versioned capture import/export works, disallows old rules, clears ephemer
  assert(imported.load(saved));
  assert.deepEqual(imported.inspect(),t.inspect());
  assert.equal(imported.stats().paused,true);
- assert.equal(imported.inputHistory().length,0);
+ assert.equal(imported.inputHistory().length,56);
+ assert.deepEqual(imported.inputHistory(),t.inputHistory());
+ assert.deepEqual(imported.eventHistory(),t.eventHistory());
+ assert(imported.rewind(20),'verified imported replay should support timeline takeover');
+ assert.equal(imported.inspect().tick,36);
+ assert.equal(imported.stats().paused,true);
+ for(let i=0;i<20;i++)assert(imported.step(cmd()));
+ assert.deepEqual(imported.inspect(),t.inspect(),
+  'resimulated native replay must reproduce identical original outcome');
  assert.throws(()=>imported.load({...saved,rules:'sf-hunt-lab/2'}),/Invalid|incompatible/);
  assert.throws(()=>t.inputHistory(121),/1..120/);
  assert.throws(()=>t.eventHistory(401),/1..400/);
