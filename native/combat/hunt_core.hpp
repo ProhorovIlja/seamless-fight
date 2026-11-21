@@ -234,7 +234,7 @@ inline bool strike(const Fighter&p,const Fighter&q){
  // hurtbox. Whiff punishment must target exposed limbs, not the full
  // weapon blade; extension is only active in genuine recovery.
  const Spec target=spec(q.weapon,q.act);
- const bool arm_exposed=ordinary(q.act)&&
+ const bool arm_exposed=ordinary(q.act)&&!q.spent&&
    q.age>=target.startup+target.active&&q.age<total(target);
  const int arm=arm_exposed?std::min(24,target.reach/5):0;
  const double hleft=q.x-18-(q.dir<0?arm:0);
