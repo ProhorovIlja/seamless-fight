@@ -529,6 +529,11 @@ try{
  await hunt.locator('#drill').selectOption('whiff-punish');
  await hunt.locator('#drill').selectOption('dodge-punish');
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Punish Quickstep Recovery/);
+ // Actual rendered frame meter must reveal dodge vulnerability based on
+ // authoritative 60Hz action age; showing only static labels is insufficient.
+ await until(async()=>/DODGE I-FRAMES|DODGE VULNERABLE TAIL|DODGE RECOVERY/.test(
+   await hunt.locator('#meter-1').textContent()),
+  'opponent quickstep phase is visibly taught by actual source frames');
  await hunt.locator('#drill').selectOption('counter-hit');
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Interrupt Heavy Startup/);
  await hunt.locator('#drill').selectOption('whiff-punish');
