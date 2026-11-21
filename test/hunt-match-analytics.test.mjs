@@ -93,3 +93,31 @@ test('statistics reproduce exactly across capture JSON serialization and 600 rep
  assert.equal(a.players[0].slot,0);
  assert.equal(a.players[1].slot,1);
 });
+
+test('three different neutral punish counters come only from confirmed replay hit phases',()=>{
+ const setups=[
+  {targetMove:'foldedHeavy',targetAge:24,key:'recoveryPunishes'},
+  {targetMove:'step',targetAge:10,key:'dodgeRecoveryPunishes'},
+  {targetMove:'foldedHeavy',targetAge:9,key:'startupInterrupts'}
+ ];
+ for(const {targetMove,targetAge,key} of setups){
+  const state=fresh();
+  state.p[1].x=463;
+  state.p[0].act='foldedLight';
+  state.p[0].age=HUNT_MOVES.foldedLight.startup;
+  state.p[1].act=targetMove;
+  state.p[1].age=targetAge;
+  const replay=createHuntReplay({initialState:state});
+  replay.append([cmd(),cmd()]);
+  const out=analyzeHuntReplay(replay.capture());
+  assert.equal(out.players[0].meleeHits,1,key+' requires real melee contact');
+  assert.equal(out.players[0][key],1,key+' is derived from opponent phase');
+  for(const other of ['recoveryPunishes','dodgeRecoveryPunishes','startupInterrupts'])
+   if(other!==key)assert.equal(out.players[0][other],0,'three types stay distinct');
+  assert.equal(out.players[1][key],0,'defender never earns fake neutral reads');
+ }
+ const idle=analyzeHuntReplay(createHuntReplay({initialState:fresh()}).capture());
+ assert.equal(idle.players[0].recoveryPunishes,0);
+ assert.equal(idle.players[0].dodgeRecoveryPunishes,0);
+ assert.equal(idle.players[0].startupInterrupts,0);
+});

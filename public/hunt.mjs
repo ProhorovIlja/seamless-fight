@@ -530,7 +530,10 @@ $('metrics').addEventListener('click',()=>{
   $('damage').textContent=String(a.damageFromConfirmedEvents);
   $('escapes').textContent=String(a.dodgeEscapes);
   $('rally').textContent=String(a.rallyHealthReclaimed);
-  status('Analyzed '+data.observedFrames+' verified local simulation frames · UNRATED 1v1.');
+  status('Analyzed '+data.observedFrames+' verified local simulation frames · UNRATED 1v1.'+
+   ' Neutral reads: '+a.recoveryPunishes+' recovery punishes, '+
+   a.dodgeRecoveryPunishes+' dodge punishes, '+
+   a.startupInterrupts+' startup interrupts.');
  }catch(err){status('Local analysis failed: '+err.message);}
 });
 const categories=new Map();

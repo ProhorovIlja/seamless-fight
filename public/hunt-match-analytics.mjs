@@ -11,6 +11,7 @@ const fresh=slot=>({
  viscerals:0,visceralAttempts:0,
  damageFromConfirmedEvents:0,damageTakenFromConfirmedEvents:0,
  dodgeEscapes:0,quicksteps:0,rearStaggers:0,
+ recoveryPunishes:0,dodgeRecoveryPunishes:0,startupInterrupts:0,
  vialsUsed:0,bloodRituals:0,bloodRoundsCreated:0,
  rallyHealthReclaimed:0,maxCombo:0
 });
@@ -49,6 +50,10 @@ export function analyzeHuntReplay(capture){
      }
      break;
     case 'hit':
+     // Confirmed enemy state at impact, never inferred from a keypress.
+     if(ev.punishedRecovery===true)p.recoveryPunishes++;
+     if(ev.punishedDodgeRecovery===true)p.dodgeRecoveryPunishes++;
+     if(ev.hitDuringStartup===true)p.startupInterrupts++;
      p.meleeHits++;
      p.maxCombo=Math.max(p.maxCombo,Number(ev.combo)||1);
      p.damageFromConfirmedEvents+=ev.damage;
