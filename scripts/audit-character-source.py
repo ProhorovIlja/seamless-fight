@@ -30,6 +30,19 @@ def inventory(src, folder):
             raise ValueError("Too many archive entries")
         if sum(entry.file_size for entry in names) > 750_000_000:
             raise ValueError("Archive inflates above 750MB safety bound")
+        # Extract only a tiny, explicitly CC0-listed set of candidate frames
+        # plus Unity slice metadata into the inspection artifact. Never execute
+        # asset files or extract untrusted paths.
+        selected={"Idle","Run","Jump","Block","Crouch","Slash","Attack1","Impact","DrawSword","RunBack","Casting1"}
+        subset=folder/"native-sheets"
+        subset.mkdir(exist_ok=True)
+        for entry in names:
+            fname=Path(entry.filename).name
+            stem=fname[:-9] if fname.endswith(".png.meta") else Path(fname).stem
+            if stem in selected and (fname.endswith(".png") or fname.endswith(".png.meta")) and entry.file_size<3_000_000:
+                with archive.open(entry) as file:
+                    data=file.read(3_000_001)
+                (subset/fname).write_bytes(data)
         for entry in names:
             name = entry.filename
             if name.startswith("/") or ".." in Path(name).parts or chr(0) in name:
