@@ -20,7 +20,7 @@ function finish(s,limit=100){
 test('new experimental ruleset is isolated from existing production protocol and input spoofing',()=>{
  const state=trickMatch();
  assert.equal(state.rules,'sf-trick-lab/2');
- assert.equal(TRICK_RULESET,'sf-trick-lab/1');assert.equal(TRICK_HZ,60);
+ assert.equal(TRICK_RULESET,'sf-trick-lab/2');assert.equal(TRICK_HZ,60);
  assert.notEqual(state.rules,'seamless-side/1');
  assert.equal(trickPhase(state.p[0]),'neutral');
  assert.deepEqual(canonicalTrickInput({}),trickInput());
