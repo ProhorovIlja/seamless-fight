@@ -317,6 +317,7 @@ inline void step(State&s,const Input&aa,const Input&bb){
  }
  if(s.ready){--s.ready;return;}
  Fighter&a=s.p[0],&b=s.p[1];
+ const double before_a=a.x,before_b=b.x;
  drive(a,b,aa);drive(b,a,bb);
  // Only forward quickstep i-frames allow body crossing; recovery is solid.
  const auto forward_step=[](const Fighter&p){
@@ -324,10 +325,14 @@ inline void step(State&s,const Input&aa,const Input&bb){
  };
  if(!forward_step(a)&&!forward_step(b)&&
     std::abs(a.y-b.y)<55&&std::abs(a.x-b.x)<38){
-  const int direction=a.x<=b.x?-1:1;
-  const double d=(38-std::abs(a.x-b.x))/2;
-  a.x=clamp(a.x+direction*d,65.0,double(WIDTH-65));
-  b.x=clamp(b.x-direction*d,65.0,double(WIDTH-65));
+  // The authored body collision remains solid for neutral walking.
+  // Preserve the old left/right order; resolve a full 38-unit gap even
+  // against arena edges. Paid i-frame through-steps remain the exception.
+  const double center=(a.x+b.x)/2;
+  const double left=clamp(center-19,65.0,double(WIDTH-65-38));
+  const double right=left+38;
+  if(before_a<=before_b){a.x=left;b.x=right;}
+  else{a.x=right;b.x=left;}
  }
  // Neutral facing must follow FINAL physical positions, not drive() slot
  // order. A committed attack/dodge retains its authored action facing.
