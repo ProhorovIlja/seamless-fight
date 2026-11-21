@@ -12,7 +12,9 @@ test('Hunt 3D animation shot list is exact to the native-port candidate 60Hz sou
  assert.equal(brief.fps,60);
  assert.equal(HUNT_HZ,60);
  assert.deepEqual(Object.keys(brief.weapons),HUNT_WEAPONS);
- assert.equal(brief.defaultAirStepEnabled,false);
+ assert.equal(brief.aerialDodge,'unavailable');
+ assert(!brief.mandatoryAbilities.includes('airStep'));
+ assert.match(brief.normalHitstunEscape,/grounded quickstep/);
  for(const weapon of HUNT_WEAPONS){
   const table=huntFrameTable(weapon),clips=brief.weapons[weapon].clips;
   assert.deepEqual(Object.keys(clips),table.map(row=>row.name));
@@ -48,7 +50,7 @@ test('firearm/parry, visceral, blood, heal, stagger and charged heavy demand rea
  assert.equal(c.heal.category,'vial-heal');
  assert.equal(c.foldedCharged.category,'ground-charged-heavy');
  assert.equal(c.unfurledCharged.category,'ground-charged-heavy');
- assert.equal(c.airStep.category,'experimental-air-mobility');
+ assert.equal(c.airStep,undefined,'no authored aerial dodge clip');
  assert.equal(c.unfurl.timing.formSwitchAge,c.unfurl.timing.startupFrames-1);
  assert.equal(c.refold.timing.formSwitchAge,c.refold.timing.startupFrames-1);
  assert(!brief.mandatoryAbilities.includes('doubleJump'));
@@ -60,5 +62,5 @@ test('Hunt art timeline export is stable and independent of frame pacing',()=>{
  const a=JSON.stringify(buildHuntAnimationBrief());
  const b=JSON.stringify(buildHuntAnimationBrief());
  assert.equal(a,b);
- assert.equal(JSON.parse(a).ruleset,'sf-hunt-lab/2');
+ assert.equal(JSON.parse(a).ruleset,'sf-hunt-lab/3');
 });
