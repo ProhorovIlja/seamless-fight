@@ -20,8 +20,15 @@ for(let t=0;t<6500;t++){
   y:rnd()<.04?-1:rnd()<.14?1:0,guard:rnd()<.15,act:action()};
  const b={...sideInput(),x:scripted?-1:rnd()<.45?1:rnd()<.84?-1:0,
   y:rnd()<.05?-1:rnd()<.18?1:0,guard:rnd()<.16,act:action()};
- if(t>90&&t<220&&t%43===0){a.act='cut';b.act='';b.guard=false;}
- if(t>220&&t%251===0){a.act='hew';b.act='shot';}
+ // Deterministic approach/hold sequence exercises true block and parry
+ // windows before the random stress corpus starts. Never manipulate state.
+ if(t>=90&&t<250){
+  a.x=t<156?1:0;b.x=t<156?-1:0;
+  a.y=0;b.y=0;
+  a.guard=false;b.guard=t>=160&&t<247;
+  a.act=t===180?'cut':t===215?'hew':'';b.act='';
+ }
+ if(t>=250&&t%251===0){a.act='hew';b.act='shot';}
  traces.push([a,b]);
 }
 let compile;
@@ -59,6 +66,7 @@ try{
    compare(s.p[player][name],fields[k++],`p${player}.${name}`,t);
  }
  assert(observed.hit>0||observed.parry>0,'trace did not exercise actual hit/parry events');
+ assert(observed.block>0,'trace did not exercise actual defended/chip-damage strikes');
  assert(observed.action>0&&observed.round>0,'trace did not exercise move actions and rounds');
  console.log(JSON.stringify({status:'NATIVE_CPP_JS_RULESET_PARITY_PASS',rules:s.rules,
   ticks:traces.length,checkedFields:states,maxDifference,events:observed,round:s.round,score:s.score}));
