@@ -13,6 +13,7 @@
 #define SF_NO_CLI_MAIN 1
 #include "../../../native/combat/side_core.cpp"
 #include "../../../native/combat/side_state_codec.hpp"
+#include "hunt_native_bridge.hpp"
 
 namespace godot {
 static const char *MOVE_LABELS[]={"","cut","hew","shot","step","feint","stun","guardBreak"};
@@ -94,6 +95,7 @@ public:
 void initialize_sf_combat(ModuleInitializationLevel level){
  if(level!=MODULE_INITIALIZATION_LEVEL_SCENE)return;
  GDREGISTER_CLASS(SFCombat);
+ GDREGISTER_CLASS(SFHuntCombat);
 }
 void uninitialize_sf_combat(ModuleInitializationLevel){}
 }
