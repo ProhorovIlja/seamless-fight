@@ -7,9 +7,12 @@
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
+#include <godot_cpp/variant/packed_byte_array.hpp>
+#include <vector>
 
 #define SF_NO_CLI_MAIN 1
 #include "../../../native/combat/side_core.cpp"
+#include "../../../native/combat/side_state_codec.hpp"
 
 namespace godot {
 static const char *MOVE_LABELS[]={"","cut","hew","shot","step","feint","stun","guardBreak"};
@@ -23,10 +26,31 @@ protected:
   ClassDB::bind_method(D_METHOD("step_encoded","ax","ay","aa","ag","bx","by","ba","bg"),&SFCombat::step_encoded);
   ClassDB::bind_method(D_METHOD("get_state"),&SFCombat::get_state);
   ClassDB::bind_method(D_METHOD("get_tick"),&SFCombat::get_tick);
+  ClassDB::bind_method(D_METHOD("save_checkpoint"),&SFCombat::save_checkpoint);
+  ClassDB::bind_method(D_METHOD("load_checkpoint","encoded"),&SFCombat::load_checkpoint);
  }
 public:
  void reset(){current=sf::State{};}
  int get_tick() const{return current.tick;}
+ PackedByteArray save_checkpoint() const{
+  const std::vector<uint8_t> bytes=sf::save_checkpoint(current);
+  PackedByteArray packed;
+  if(bytes.size()!=sf::codec::CHECKPOINT_SIZE)return packed;
+  packed.resize(static_cast<int64_t>(bytes.size()));
+  std::memcpy(packed.ptrw(),bytes.data(),bytes.size());
+  return packed;
+ }
+ bool load_checkpoint(PackedByteArray encoded){
+  if(encoded.size()!=static_cast<int64_t>(sf::codec::CHECKPOINT_SIZE))
+   return false;
+  sf::State candidate;
+  if(!sf::load_checkpoint(encoded.ptr(),
+                         static_cast<std::size_t>(encoded.size()),
+                         candidate))return false;
+  current=candidate;
+  return true;
+ }
+
  // This intentionally accepts the exact wire/CLI action enum. Sanitization
  // rejects engine-only actions 6/7 as player inputs.
  bool step_encoded(int ax,int ay,int aa,int ag,int bx,int by,int ba,int bg){
