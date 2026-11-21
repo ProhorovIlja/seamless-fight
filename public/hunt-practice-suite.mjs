@@ -3,10 +3,11 @@
 // All combat comes from the exact versioned deterministic Hunt rules.
 import {
  HUNT_RULESET,HUNT_HZ,huntInput,huntMatch,huntStep,
- huntInspector,huntFrameTable,canonicalHuntInput,huntCanAct
+ huntInspector,huntFrameTable,canonicalHuntInput,huntCanAct,HUNT_FLOOR
 } from './side-hunt-lab.mjs';
 import {createHuntReplay,loadHuntReplay} from './side-hunt-replay.mjs';
 import {analyzeHuntReplay} from './hunt-match-analytics.mjs';
+import {evaluateHuntTrainingGoal,HUNT_TRAINING_GOALS} from './hunt-training-goals.mjs';
 
 export const HUNT_PRACTICE_SCHEMA='sf-hunt-practice/1';
 export const HUNT_DUMMY_SLOTS=8,HUNT_DUMMY_MAX_FRAMES=600;
@@ -19,12 +20,41 @@ export const HUNT_PRACTICE_DRILLS=Object.freeze([
  Object.freeze({id:'parry-heal',label:'Counter Vial Healing',spacing:106,action:'heal',startAt:55}),
  Object.freeze({id:'parry-blood',label:'Counter Blood Rounds',spacing:106,action:'blood',startAt:55}),
  Object.freeze({id:'escape-stun',label:'Hitstun Quickstep Escape',spacing:100,action:'light',startAt:55}),
- Object.freeze({id:'dodge-shot',label:'Evade Firearm Shot',spacing:140,action:'shot',startAt:55})
+ Object.freeze({id:'dodge-shot',label:'Evade Firearm Shot',spacing:140,action:'shot',startAt:55}),
+ // Extra drills copy useful training concepts, NOT guarding, throws, tag
+ // moves, SF6 high/low mixups, DMC air-dashes or infinite ammunition.
+ Object.freeze({id:'anti-air',label:'Anti-Air: Read the Jump',spacing:132,action:'',startAt:55}),
+ Object.freeze({id:'air-parry',label:'Airborne Firearm Counter',spacing:106,action:'heavy',startAt:55}),
+ Object.freeze({id:'whiff-punish',label:'Whiff Punishment',spacing:182,action:'heavy',startAt:55}),
+ Object.freeze({id:'hit-confirm',label:'Offense: Confirm Follow-up',spacing:83,action:'',startAt:55}),
+ Object.freeze({id:'transform-pressure',label:'Offense: Trick-Weapon Pressure',spacing:95,action:'',startAt:55}),
+ Object.freeze({id:'rally-reclaim',label:'Resources: Rally Recovery',spacing:95,action:'light',startAt:55}),
+ Object.freeze({id:'blood-economy',label:'Resources: Blood Rounds',spacing:150,action:'',startAt:55}),
+ Object.freeze({id:'timing-read',label:'Timing Read: Heavy or Feint',spacing:115,action:'heavy',startAt:55}),
+ Object.freeze({id:'visceral-followup',label:'Offense: Visceral Conversion',spacing:76,action:'heavy',startAt:55})
 ]);
 const clone=x=>structuredClone(x);
 const neutral=()=>huntInput();
 const opposite=input=>({...input,x:-input.x});
 const MAX_FRAMES=7200;
+const GOAL_HISTORY_LIMIT=1200;
+function makeDrillTape(scenario,variation=0){
+ const tape=Array.from({length:150},neutral);
+ tape[scenario.startAt]=canonicalHuntInput({act:scenario.action});
+ if(scenario.id==='anti-air'){
+  // Mirror of the original hunter's inputs: the dummy jumps toward the
+  // player once. Jump is a direction, never an extra invented action.
+  tape[scenario.startAt]=canonicalHuntInput({x:1,y:-1});
+  for(let tick=scenario.startAt+1;tick<scenario.startAt+17;tick++)
+   tape[tick]=canonicalHuntInput({x:1});
+ }
+ if(scenario.id==='timing-read'&&variation===1){
+  // Legitimate feint of an already started heavy, not a fabricated unblockable
+  // high/low/throw. Alternate take retains full committed heavy.
+  tape[scenario.startAt+7]=canonicalHuntInput({act:'feint'});
+ }
+ return tape;
+}
 function validateSlot(slot){
  if(!Number.isInteger(slot)||slot<0||slot>=HUNT_DUMMY_SLOTS)
   throw RangeError('Dummy slot must be 0..7');
@@ -65,15 +95,15 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
  let reversalArmed=false,reversalPlaying=false;
  const tapes=Array.from({length:HUNT_DUMMY_SLOTS},()=>[]);
  if(drill!=='free'){
-  const tape=Array.from({length:150},neutral);
-  // Every dummy action below is legal normal gameplay input, with no synthetic
-  // stagger or parry state forced on either fighter during the match.
-  // Tape is mirrored when played from slot 1 just like user recordings.
-  tape[scenario.startAt]=canonicalHuntInput({act:scenario.action});
-  tapes[0]=tape;
-  mode='loop';
+  // Recorded inputs run through the regular player-2 action graph. We NEVER
+  // force a hit, parry, projectile, throw or training-only source mechanic.
+  tapes[0]=makeDrillTape(scenario);
+  if(drill==='timing-read'){
+   tapes[1]=makeDrillTape(scenario,1);
+   mode='random';
+  }else mode='loop';
  }
- let history=[],events=[];
+ let history=[],events=[],goalEvidence=[];
  function inspect(){return clone(state);}
  function record(slot){validateSlot(slot);recordingSlot=slot;mode='passive';tapes[slot]=[];return true;}
  function recordInput(input){
@@ -154,12 +184,24 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   if(state.over||replay.stats().frames>=MAX_FRAMES)return false;
   const left=canonicalHuntInput(playerInput);
   const right=dummyInput();
+  const beforePlayerAction=state.p[0].act;
   const tickEvents=[];
-  // Dummy tape is prepared from player commands, but never from post-tick positions.
+  // Dummy tape is prepared from player commands, never from an inferred win.
   replay.append([left,right]);
   huntStep(state,[left,right],tickEvents);
+  // Annotation reads only confirmed post-step source state and previous source
+  // action; these fields are NOT injected into combat or persisted as rank.
+  const scoreEvents=tickEvents.map(e=>({...e,
+   playerAirborne:state.p[0].y<HUNT_FLOOR,
+   opponentAirborne:state.p[1].y<HUNT_FLOOR,
+   playerStartedStunned:beforePlayerAction==='stun',
+   distance:Math.abs(state.p[0].x-state.p[1].x)
+  }));
+  goalEvidence.push(...scoreEvents);
+  if(goalEvidence.length>GOAL_HISTORY_LIMIT)
+   goalEvidence=goalEvidence.slice(-GOAL_HISTORY_LIMIT);
   if(recordingSlot>=0)recordInput(left);
-  history.push({tick:state.tick,input:[left,right],events:tickEvents});
+  history.push({tick:state.tick,input:[left,right],events:tickEvents,scoreEvents});
   if(history.length>HUNT_PRACTICE_HISTORY)history.shift();
   events.push(...tickEvents);
   if(events.length>400)events=events.slice(-400);
@@ -178,13 +220,14 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   replay=replay.fork(tick);state=replay.getState();
   history=history.filter(x=>x.tick<=tick);
   events=history.flatMap(x=>x.events);
+  goalEvidence=history.flatMap(x=>x.scoreEvents||[]).slice(-GOAL_HISTORY_LIMIT);
   paused=true;mode='passive';recordingSlot=-1;playStart=state.tick;
   reversalArmed=false;reversalPlaying=false;
   return true;
  }
  function restart(){
   replay=createHuntReplay({initialState:start,maxFrames:MAX_FRAMES,checkpointEvery:30});
-  state=clone(start);history=[];events=[];playStart=0;
+  state=clone(start);history=[];events=[];goalEvidence=[];playStart=0;
   paused=true;mode='passive';recordingSlot=-1;
   reversalArmed=false;reversalPlaying=false;
  }
@@ -212,13 +255,14 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   const writable=createHuntReplay({initialState:capture.startState,
    maxFrames:MAX_FRAMES,checkpointEvery:30});
   for(const inputs of capture.frames)writable.append(inputs);
-  replay=writable;state=replay.getState();history=[];events=[];paused=true;
+  replay=writable;state=replay.getState();history=[];events=[];goalEvidence=[];paused=true;
   mode='passive';recordingSlot=-1;playStart=state.tick;
   return true;
  }
  return Object.freeze({inspect,record,recordInput,finish,setMode,append,step,
   pause,resume,rewind,restart,save,load,frame,stats,
   saveDummyLibrary,loadDummyLibrary,
+  goal:()=>evaluateHuntTrainingGoal(drill,goalEvidence),
   metrics:()=>analyzeHuntReplay(replay.capture()),inputHistory,eventHistory,
   slotData:i=>{validateSlot(i);return clone(tapes[i]);},
   frameTable:weapon=>huntFrameTable(weapon)});
