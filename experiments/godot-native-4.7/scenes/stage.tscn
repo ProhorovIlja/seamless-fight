@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/stage.gd" id="1_stage"]
 [ext_resource type="Script" path="res://scripts/native_controls.gd" id="2_controls"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" path="res://scripts/native_audio.gd" id="9_audio"]
 [ext_resource type="Script" path="res://scripts/native_graphics_settings.gd" id="10_graphics"]
 [ext_resource type="Script" path="res://scripts/native_frame_pacing.gd" id="11_frame"]
+[ext_resource type="Script" path="res://scripts/rig_socket.gd" id="12_rig"]
 
 [node name="Stage" type="Node3D"]
 script = ExtResource("1_stage")
@@ -24,8 +25,10 @@ near = 0.05
 far = 80.0
 
 [node name="Veil" type="Node3D" parent="."]
+script = ExtResource("12_rig")
 
 [node name="Cinder" type="Node3D" parent="."]
+script = ExtResource("12_rig")
 
 [node name="NativeControls" type="Node" parent="."]
 script = ExtResource("2_controls")

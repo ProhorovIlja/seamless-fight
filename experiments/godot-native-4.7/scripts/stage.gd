@@ -28,6 +28,16 @@ func _ready() -> void:
 	_make_original_backdrop()
 	left_visual.position = world_position(255.0, FLOOR_PX)
 	right_visual.position = world_position(705.0, FLOOR_PX)
+	# Professional original model import is opt-in, local and fail-closed.
+	# No unauthorized Bloodborne research assets or low-detail filler actors.
+	var entries := [
+		{"socket":left_visual,"source":"res://assets/characters/veil.glb"},
+		{"socket":right_visual,"source":"res://assets/characters/cinder.glb"}
+	]
+	for entry in entries:
+		if ResourceLoader.exists(entry["source"]):
+			if not entry["socket"].call("install_original_rig",entry["source"]):
+				push_warning("Rejected incomplete original character rig: "+entry["source"])
 
 func _make_original_backdrop() -> void:
 	var painting := load(BACKDROP) as Texture2D
@@ -82,6 +92,8 @@ func apply_authoritative_state(snapshot: Dictionary) -> bool:
 		var fighter: Dictionary = players[i]
 		visual.position = world_position(float(fighter["x"]), float(fighter["y"]))
 		visual.rotation.y = PI if WireNumbers.checked_direction(fighter["dir"]) < 0 else 0.0
+		if visual.has_method("apply_visual_state"):
+			visual.call("apply_visual_state",fighter)
 	last_confirmed_tick = tick
 	if $CombatHud.visible:
 		$CombatHud.apply_snapshot(snapshot)
