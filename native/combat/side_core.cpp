@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <vector>
 
 namespace sf {
 constexpr int W=960, FLOOR=436, HZ=60;
@@ -125,6 +126,20 @@ void step(State&s,const Input&in0,const Input&in1){
   s.end=s.over?0:115;
  }
 }
+bool sameState(const State&a,const State&b){
+ if(a.tick!=b.tick || a.clock!=b.clock || a.ready!=b.ready || a.end!=b.end ||
+    a.round!=b.round || a.score[0]!=b.score[0] || a.score[1]!=b.score[1] ||
+    a.winner!=b.winner || a.over!=b.over)return false;
+ for(int i=0;i<2;i++){
+  const Fighter&p=a.p[i],&q=b.p[i];
+  if(p.x!=q.x||p.y!=q.y||p.vx!=q.vx||p.vy!=q.vy||p.dir!=q.dir||
+     p.hp!=q.hp||p.st!=q.st||p.ammo!=q.ammo||p.act!=q.act||
+     p.age!=q.age||p.spent!=q.spent||p.crouch!=q.crouch||
+     p.jumpHeld!=q.jumpHeld||p.guardAge!=q.guardAge||
+     p.regen!=q.regen||p.combo!=q.combo)return false;
+ }
+ return true;
+}
 void output(const State&s){
  std::cout<<std::setprecision(17)<<s.tick<<' '<<s.clock<<' '<<s.ready<<' '<<s.end<<' '<<s.round<<' '
   <<s.score[0]<<' '<<s.score[1]<<' '<<s.winner<<' '<<s.over;
@@ -139,8 +154,27 @@ int main(){
  using namespace sf;
  State s;
  Input a,b;
+ std::vector<State> checkpoint_history;
+ std::vector<std::array<Input,2>> input_history;
+ std::size_t rewinds_verified=0;
  while(std::cin>>a.x>>a.y>>a.act>>a.guard>>b.x>>b.y>>b.act>>b.guard){
-  step(s,a,b);output(s);
+  step(s,a,b);
+  input_history.push_back({a,b});checkpoint_history.push_back(s);
+  const std::size_t n=checkpoint_history.size();
+  if(n>=9 && n%157==0){
+   // Roll back exactly 8 completed game frames and re-simulate them from a
+   // complete native value-state checkpoint. This is not network rollback.
+   State replay=checkpoint_history[n-9];
+   for(std::size_t i=n-8;i<n;i++)step(replay,input_history[i][0],input_history[i][1]);
+   if(!sameState(replay,s)){
+    std::cerr<<"NATIVE_LOCAL_ROLLBACK_RESIM_MISMATCH tick="<<s.tick<<'\n';
+    return 3;
+   }
+   rewinds_verified++;
+  }
+  output(s);
  }
- return std::cin.eof()?0:2;
+ if(!std::cin.eof())return 2;
+ std::cerr<<"NATIVE_LOCAL_ROLLBACK_RESIM_PASSED checkpoints="<<rewinds_verified<<'\n';
+ return 0;
 }
