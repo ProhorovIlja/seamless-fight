@@ -196,7 +196,10 @@ function showMeter(slot){
     'Dodge: no active quickstep window')+'\n'+
   (d.whiffRecoveryArmExposed?
    'WHIFF RECOVERY · EXPOSED WEAPON ARM +'+d.whiffRecoveryArmUnits+'U':
-   'Whiff arm: no extra exposure');
+   'Whiff arm: no extra exposure')+'\n'+
+  (d.whiffHeavyMorphLockFrames>0?
+   'MISSED R2 · TRICK ATTACK LOCK '+d.whiffHeavyMorphLockFrames+'F':
+   'Whiff R2 morph lock: none');
  $('meter-'+slot).parentElement.classList.toggle('counter-open',d.firearmCounterWindowOpen);
  $('meter-'+slot).parentElement.classList.toggle('escape-open',d.groundedHitstunEscapeReady);
 }
