@@ -3,11 +3,24 @@
 #include <vector>
 #include <sstream>
 #include <array>
-int main(){
+#include <string>
+int main(int argc,char**argv){
  using namespace sf_hunt;
  int first=0,second=0;
  if(!(std::cin>>first>>second)||first<0||first>1||second<0||second>1)return 2;
  State s(static_cast<Weapon>(first),static_cast<Weapon>(second));
+ // Test harness ONLY: no network, gameplay menu or shipped match exposes
+ // direct position overrides. Validated initial corner states prove
+ // BOTH sides of the body-pass-through rule in the same native rules core.
+ if(argc>2)return 7;
+ if(argc==2){
+  const std::string scenario(argv[1]);
+  if(scenario=="--corner-left"){
+   s.p[0].x=65;s.p[1].x=107;s.ready=0;
+  }else if(scenario=="--corner-right"){
+   s.p[0].x=895;s.p[1].x=853;s.ready=0;
+  }else return 7;
+ }
  std::vector<State> checkpoints;
  std::vector<std::array<Input,2>> commands;
  int x0,y0,a0,g0,x1,y1,a1,g1;

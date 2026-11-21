@@ -153,11 +153,59 @@ try{
   for(const fighter of state.p)for(const field of FIELDS)compare(field,fighter[field]);
  }
  rewinds+=Math.floor(trace.length/157);
+ // Native corner proof is not inferred from generic stress frames. We
+ // explicitly reproduce both arena ends from identical validated snapshots.
+ let verifiedCornerCrossings=0,cornerTicks=0;
+ for(const side of ['left','right']){
+  const defender=huntMatch({weapons:['mournweave','thornwake']});
+  defender.ready=0;
+  defender.p[0].x=side==='left'?65:895;
+  defender.p[1].x=side==='left'?107:853;
+  const direction=side==='left'?1:-1;
+  const samples=Array.from({length:24},(_,k)=>[
+   {x:k===0?direction:0,y:0,act:k===0?'step':'',guard:false},
+   huntInput()]);
+  const packet='0 1\n'+samples.map(pair=>pair.flatMap(
+   i=>[i.x,i.y,REQUEST[i.act],Number(i.guard)]).join(' ')).join('\n')+'\n';
+  const nativeCorner=spawnSync(exe,['--corner-'+side],{
+   input:packet,encoding:'utf8',timeout:90000,maxBuffer:4*1024*1024});
+  assert.equal(nativeCorner.status,0,'Native corner test failed: '+nativeCorner.stderr);
+  const lines=nativeCorner.stdout.trim().split('\n');
+  assert.equal(lines.length,samples.length);
+  const sourceCornerEvents=[];
+  for(let tick=0;tick<samples.length;tick++){
+   huntStep(defender,samples[tick],sourceCornerEvents);
+   const actual=lines[tick].trim().split(/\s+/).map(Number);
+   assert.equal(actual.length,totalFields);
+   let k=0;
+   const compare=(field,value)=>{
+    const got=actual[k++],expected=number(field,value);
+    if(!Number.isFinite(got)||!Number.isFinite(expected)||Math.abs(expected-got)>1e-8)
+     throw Error('Native '+side+' corner mismatch tick='+tick+' field='+field+
+      ' C++='+got+' JS='+expected);
+    checks++;maxError=Math.max(maxError,Math.abs(expected-got));
+   };
+   for(const field of GLOBAL)compare(field,defender[field]);
+   compare('score0',defender.score[0]);compare('score1',defender.score[1]);
+   for(const fighter of defender.p)
+    for(const field of FIELDS)compare(field,fighter[field]);
+  }
+  const crossings=sourceCornerEvents.filter(e=>e.kind==='cornerEscape'&&e.actor===0);
+  assert.equal(crossings.length,1,'Source must escape exactly once from '+side);
+  assert.equal(crossings[0].side,side);
+  assert(side==='left'?
+   defender.p[0].x>defender.p[1].x:
+   defender.p[0].x<defender.p[1].x,
+   'Source defender must really swap position at '+side);
+  verifiedCornerCrossings++;
+  cornerTicks+=samples.length;
+ }
+ assert.equal(verifiedCornerCrossings,2);
  assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0&&eventsSeen.visceral>0,
   'Trace missed core Hunt gameplay situations');
  console.log(JSON.stringify({result:'HUNT_V3_NATIVE_CPP_JS_PARITY_PASS',
-  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length,
-  directedVisceral:true,directedTicks:trace.length,
+  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks,
+  directedVisceral:true,directedTicks:trace.length,cornerCrossings:verifiedCornerCrossings,
   weaponPairs:PAIRS.length,fieldsPerTick:totalFields,fieldComparisons:checks,
   maxAbsoluteDifference:maxError,nativeRollbackChecks:rewinds,
   sourceEvents:eventsSeen}));

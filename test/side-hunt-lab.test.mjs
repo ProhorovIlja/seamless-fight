@@ -472,3 +472,16 @@ test('corner escape event requires actual wall-adjacent movement through an oppo
  assert.equal(escaped[0].actor,0);
  assert.equal(escaped[0].side,'left');
 });
+
+
+test('forward body-crossing escape works symmetrically at the RIGHT wall',()=>{
+ const s=huntMatch();s.ready=0;s.p[0].x=895;s.p[1].x=853;
+ const events=[];
+ huntStep(s,[{x:-1,y:0,act:'step',guard:false},huntInput()],events);
+ for(let k=0;k<11;k++)huntStep(s,[huntInput(),huntInput()],events);
+ assert(s.p[0].x<s.p[1].x,'right corner escape should reverse sides');
+ const crossed=events.filter(x=>x.kind==='cornerEscape');
+ assert.equal(crossed.length,1);
+ assert.equal(crossed[0].side,'right');
+ assert.equal(s.p[0].st,81);
+});
