@@ -8,7 +8,7 @@
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 #include <map>
-#include "../../../native/combat/hunt_core.hpp"
+#include "../../../native/combat/hunt_state_codec.hpp"
 
 namespace godot {
 static constexpr const char* HUNT_ACTION_LABELS[]={
@@ -35,6 +35,8 @@ protected:
   ClassDB::bind_method(D_METHOD("select_weapons","left","right"),&SFHuntCombat::select_weapons);
   ClassDB::bind_method(D_METHOD("step_encoded","ax","ay","aa","ag","bx","by","ba","bg"),&SFHuntCombat::step_encoded);
   ClassDB::bind_method(D_METHOD("get_tick"),&SFHuntCombat::get_tick);
+  ClassDB::bind_method(D_METHOD("save_checkpoint"),&SFHuntCombat::save_checkpoint);
+  ClassDB::bind_method(D_METHOD("load_checkpoint","encoded"),&SFHuntCombat::load_checkpoint);
   ClassDB::bind_method(D_METHOD("get_state"),&SFHuntCombat::get_state);
   ClassDB::bind_method(D_METHOD("save_local_checkpoint"),&SFHuntCombat::save_local_checkpoint);
   ClassDB::bind_method(D_METHOD("restore_local_checkpoint","tick"),&SFHuntCombat::restore_local_checkpoint);
@@ -53,6 +55,23 @@ public:
   return true;
  }
  int get_tick() const{return current.tick;}
+ PackedByteArray save_checkpoint() const{
+  const std::vector<uint8_t> bytes=sf_hunt::save_checkpoint(current);
+  PackedByteArray result;
+  if(bytes.size()!=sf_hunt::codec::CHECKPOINT_SIZE)return result;
+  result.resize(static_cast<int64_t>(bytes.size()));
+  std::memcpy(result.ptrw(),bytes.data(),bytes.size());
+  return result;
+ }
+ bool load_checkpoint(PackedByteArray bytes){
+  if(bytes.size()!=static_cast<int64_t>(sf_hunt::codec::CHECKPOINT_SIZE))return false;
+  sf_hunt::State parsed;
+  if(!sf_hunt::load_checkpoint(bytes.ptr(),static_cast<std::size_t>(bytes.size()),parsed))
+   return false;
+  current=parsed;
+  checkpoints.clear(); // Discard speculative alternate timeline after load.
+  return true;
+ }
  bool step_encoded(int ax,int ay,int aa,int ag,int bx,int by,int ba,int bg){
   // This ruleset NEVER accepts conventional guard or a third fighter slot.
   const auto valid=[](int x,int y,int act,int guard){

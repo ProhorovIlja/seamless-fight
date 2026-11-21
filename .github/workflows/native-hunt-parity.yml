@@ -4,12 +4,14 @@ on:
     branches: [feat/lantern-court]
     paths:
       - 'native/combat/hunt_core.*'
+      - 'native/combat/hunt_state_codec*'
       - 'scripts/native-hunt-parity.mjs'
       - 'public/side-hunt-lab.mjs'
       - '.github/workflows/native-hunt-parity.yml'
   pull_request:
     paths:
       - 'native/combat/hunt_core.*'
+      - 'native/combat/hunt_state_codec*'
       - 'scripts/native-hunt-parity.mjs'
       - 'public/side-hunt-lab.mjs'
       - '.github/workflows/native-hunt-parity.yml'
@@ -27,6 +29,10 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/native-hunt-parity.mjs
+      - name: Strict no-exception canonical native Hunt v3 checkpoint integrity tests
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Werror -fno-exceptions -ffp-contract=off -fno-fast-math native/combat/hunt_state_codec_test.cpp -o "$RUNNER_TEMP/hunt-codec"
+          "$RUNNER_TEMP/hunt-codec"
       - run: echo 'Isolated native Hunt v3; legacy Godot & online remain unchanged' >> "$GITHUB_STEP_SUMMARY"
   windows-hunt-v3:
     name: Windows MSVC / Hunt v3 exact rules parity
@@ -47,4 +53,8 @@ jobs:
           $env:SF_HUNT_NATIVE_CORE_EXE=Join-Path $pwd 'sf-hunt-v3-native.exe'
           node scripts/native-hunt-parity.mjs
           if ($LASTEXITCODE -ne 0) {throw 'MSVC Hunt v3 parity failed'}
-          'WINDOWS_MSVC_HUNT_V3_PARITY=PASS (standalone only)' | Out-File $env:GITHUB_STEP_SUMMARY -Append
+          cl /nologo /std:c++17 /O2 /fp:precise /W4 /WX /EHsc /Fe:sf-hunt-v3-codec.exe native/combat/hunt_state_codec_test.cpp
+          if ($LASTEXITCODE -ne 0) {throw 'MSVC Hunt checkpoint codec compilation failed'}
+          .\sf-hunt-v3-codec.exe
+          if ($LASTEXITCODE -ne 0) {throw 'MSVC Hunt checkpoint corruption test failed'}
+          'WINDOWS_MSVC_HUNT_V3_PARITY_AND_CODEC=PASS (standalone)' | Out-File $env:GITHUB_STEP_SUMMARY -Append

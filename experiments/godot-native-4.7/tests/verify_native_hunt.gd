@@ -82,6 +82,21 @@ func _verify() -> void:
 	if not _same(game.get_state(),final_state):
 		_fail("Native Hunt state differed after rollback and resimulation")
 		return
+	var encoded: PackedByteArray=game.save_checkpoint()
+	if encoded.size()!=348:
+		_fail("Canonical Hunt v3 encoded checkpoint must be 348 bytes")
+		return
+	var modified: PackedByteArray=encoded.duplicate()
+	modified[45]=modified[45]^1
+	if game.load_checkpoint(modified) or game.get_tick()!=900:
+		_fail("Corrupt Hunt v3 snapshot changed active state")
+		return
+	if not game.load_checkpoint(encoded) or game.get_tick()!=900:
+		_fail("Valid portable native Hunt v3 snapshot was rejected")
+		return
+	if game.get_local_checkpoint_count()!=0:
+		_fail("Canonical restore retained discarded speculative checkpoints")
+		return
 	game.reset()
 	if game.get_tick()!=0 or game.get_state()["p"][1]["weapon"]!="thornwake":
 		_fail("Reset lost original weapon selection")
