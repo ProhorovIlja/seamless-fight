@@ -414,5 +414,11 @@ export function huntInspector(state,slot=0){
   hitConfirmed:p.hitConfirmed,queued:p.queue,bufferFrames:p.queueLife,
   jumps:p.jumps,focus:p.focus,health:p.hp,stamina:p.st,ammo:p.ammo,
   bloodAmmo:p.bloodAmmo,vials:p.vials,rally:p.rally,rallyLife:p.rallyLife,
-  visceralWindow:p.exposed,exposeCause:p.exposeCause});
+  visceralWindow:p.exposed,exposeCause:p.exposeCause,
+  firearmCounterWindowOpen:huntParryableAction(p),
+  groundedHitstunEscapeReady:p.act==='stun'&&p.y>=HUNT_FLOOR&&
+   p.age>=HUNT_HITSTUN_ESCAPE_START&&
+   p.age<total(huntMoveSpec(p))-5&&
+   p.st>=HUNT_MOVES.step.cost+HUNT_HITSTUN_ESCAPE_EXTRA_STAMINA
+ });
 }
