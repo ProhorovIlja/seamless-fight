@@ -26,7 +26,6 @@ function classify(name){
  if(name==='blood')return 'blood-ammo-ritual';
  if(name==='heal')return 'vial-heal';
  if(name.endsWith('Charged'))return 'ground-charged-heavy';
- if(name==='airStep')return 'experimental-air-mobility';
  if(name==='step')return 'ground-mobility';
  if(name.startsWith('air'))return 'aerial-attack';
  if(name.endsWith('Light')||name.endsWith('Heavy'))return 'ground-attack';
@@ -85,9 +84,10 @@ export function buildHuntAnimationBrief(){
     purpose:'Bloodborne-first original 3D rig/weapon animation shot list, NOT finished game art',
     mandatoryAbilities:['singleJump','firearmParry','airShot','visceral','chargedRearStagger',
       'bloodBullets','vialHeal','rally','neutralTransform','transformStrike'],
-    defaultAirStepEnabled:false,
+    aerialDodge:'unavailable',
+    normalHitstunEscape:'grounded quickstep after 8 committed stun frames; paid stamina',
     quicksilverAmmoPolicy:'limited-per-round; blood bullets +5 at health cost',
-    note:'No blocking, command grabs or double jumps in default duels',
+    note:'No air steps, blocking, command grabs or double jumps in any duel',
     worldPlane:'2.5D side view; native visual animation follows deterministic collision state',
     weapons
   };
