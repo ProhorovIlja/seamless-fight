@@ -192,10 +192,12 @@ func _handle_message(message: Dictionary) -> void:
 		var players: Variant = snapshot.get("p")
 		if not players is Array or players.size() != 2:
 			return
-		latest_tick = tick
 		var ack: int = WireNumbers.checked_nonnegative(message.get("ack",0),2147480000)
 		if ack < 0:
 			return
+		# Do not advance the confirmed render clock for an invalid packet:
+		# otherwise the next real packet at this tick would be discarded.
+		latest_tick = tick
 		var ev: Variant = message.get("events", [])
 		var events: Array = ev if ev is Array else []
 		authoritative_state.emit(snapshot, ack, events)
