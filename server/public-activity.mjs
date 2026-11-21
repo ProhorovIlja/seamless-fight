@@ -15,7 +15,7 @@ export function projectFightActivity({rooms,galleries,queued,mainConnections,sid
  const all=[...rooms.values()];
  const side=sideStats&&typeof sideStats==='object'?sideStats:{};
  if(!Array.isArray(sidePublicGalleries)||sidePublicGalleries.length>64)throw TypeError('Bounded side gallery listing required');
- const activeMain=all.filter(r=>r?.peers?.length===2).length;
+ const activeMain=all.filter(r=>r?.peers?.length===2&&!r?.s?.over).length;
  const activeSide=number(side.duels);
  const waitingMain=all.filter(r=>r?.peers?.length===1).length;
  const viewing=all.reduce((n,r)=>n+number(r?.viewers?.size),0);
