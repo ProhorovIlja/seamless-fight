@@ -10,7 +10,15 @@ const timing=document.querySelector('#gpu-startup');
 try {
  // An explicit preference for WebGPU with engine-managed WebGL2 fallback.
  const device=await pc.createGraphicsDevice(canvas,{deviceTypes:[pc.DEVICETYPE_WEBGPU,pc.DEVICETYPE_WEBGL2]});
- const app=new pc.Application(canvas,{graphicsDevice:device});
+ // AppBase is mandatory when a GraphicsDevice is created explicitly.
+ // pc.Application uses the legacy constructor lifecycle and can silently
+ // leave this standalone scene without render component systems.
+ const options=new pc.AppOptions();
+ options.graphicsDevice=device;
+ options.componentSystems=[pc.RenderComponentSystem,pc.CameraComponentSystem,pc.LightComponentSystem];
+ options.resourceHandlers=[pc.TextureHandler,pc.ContainerHandler];
+ const app=new pc.AppBase(canvas);
+ app.init(options);
  app.setCanvasFillMode(pc.FILLMODE_NONE);
  app.setCanvasResolution(pc.RESOLUTION_AUTO);
  // Cache the 3D stage as a single original painted material, not hundreds of
@@ -32,7 +40,8 @@ try {
  await load;
  if(!asset.resource)throw new Error('Painted cathedral source did not decode');
  const material=new pc.StandardMaterial();
- material.diffuseMap=asset.resource;
+ material.diffuse=new pc.Color(0,0,0);
+ material.emissive=new pc.Color(1,1,1);
  material.emissiveMap=asset.resource;
  material.useLighting=false;
  material.update();
