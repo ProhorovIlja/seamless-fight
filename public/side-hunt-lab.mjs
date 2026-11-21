@@ -527,6 +527,11 @@ export function huntInspector(state,slot=0){
  // additional arm is not an invented target. Training-only disclosure.
  const whiffArmExposed=ORDINARY.has(p.act)&&!p.spent&&
   p.age>=moveInfo.startup+moveInfo.active&&p.age<total(moveInfo);
+ const whiffHeavyMorphLockFrames=
+  (p.act.endsWith('Heavy')||p.act.endsWith('Charged'))&&
+  !p.hitConfirmed&&p.age>=moveInfo.startup+moveInfo.active&&
+  p.age<moveInfo.startup+moveInfo.active+HUNT_WHIFF_HEAVY_TRANSFORM_RECOVERY
+  ?moveInfo.startup+moveInfo.active+HUNT_WHIFF_HEAVY_TRANSFORM_RECOVERY-p.age:0;
  return Object.freeze({tick:state.tick,weapon:p.weapon,form:p.form,action:p.act,
   hitstunEscapeStart:HUNT_HITSTUN_ESCAPE_START,
   phase:huntPhase(p),startup:moveInfo?.startup??0,active:moveInfo?.active??0,
@@ -538,6 +543,7 @@ export function huntInspector(state,slot=0){
   firearmCounterWindowOpen:huntParryableAction(p),
   whiffRecoveryArmExposed:whiffArmExposed,
   whiffRecoveryArmUnits:whiffArmExposed?Math.min(24,Math.floor(moveInfo.reach/5)):0,
+  whiffHeavyMorphLockFrames,
   // These describe source-simulation frames, never speculative network state.
   quickstepIframes:p.act==='step'&&p.age>=1&&p.age<7,
   quickstepVulnerableTail:p.act==='step'&&p.age>=7&&
