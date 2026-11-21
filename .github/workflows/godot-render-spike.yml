@@ -57,6 +57,15 @@ jobs:
           echo "GODOT_WEB_EXPORT_COMPILED=YES" >> "${GITHUB_STEP_SUMMARY}"
           echo "Renderer: Compatibility / WebGL2, threads disabled, original painted asset only" >> "${GITHUB_STEP_SUMMARY}"
           echo "This export is a rendering experiment, not a finished playable PvP client" >> "${GITHUB_STEP_SUMMARY}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Set up real Chromium runtime (GPU software fallback)
+        run: |
+          npm install --ignore-scripts --no-audit --no-save playwright@1.58.2
+          npx --no-install playwright install --with-deps chromium
+      - name: Run the real exported Godot WebGL2 game in Chromium
+        run: node experiments/godot-4.7/tests/web-browser-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
