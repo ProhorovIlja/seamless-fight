@@ -1,0 +1,42 @@
+name: PlayCanvas WebGPU/WebGL2 Browser Renderer Spike
+on:
+  push:
+    branches: [feat/lantern-court]
+    paths:
+      - 'experiments/playcanvas-webgpu/**'
+      - '.github/workflows/playcanvas-gpu-spike.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bundle-and-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned open-source GPU runtime and browser test
+        run: npm install --ignore-scripts --no-audit --no-save playcanvas@2.23.3 esbuild@0.25.12 playwright@1.58.2
+      - run: node --test experiments/playcanvas-webgpu/tests/bridge.test.mjs
+      - name: Bundle GPU experiment (no CDN and no shipping game changes)
+        run: |
+          mkdir -p artifacts/playcanvas-webgpu/art
+          npx --no-install esbuild experiments/playcanvas-webgpu/main.mjs --bundle --format=esm --target=es2022 --minify --outfile=artifacts/playcanvas-webgpu/main.js
+          cp experiments/playcanvas-webgpu/index.html artifacts/playcanvas-webgpu/index.html
+          cp public/art/reliquary-painted.webp artifacts/playcanvas-webgpu/art/reliquary-painted.webp
+          du -h artifacts/playcanvas-webgpu/* artifacts/playcanvas-webgpu/art/*
+      - name: Install headless browser with WebGL2 fallback
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Check actually rendered PlayCanvas stage
+        run: node experiments/playcanvas-webgpu/tests/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playcanvas-webgpu-webgl2-original-stage-comparison
+          path: |
+            artifacts/playcanvas-webgpu/
+            artifacts/playcanvas-stage-browser-capture.png
+          if-no-files-found: warn
+          retention-days: 7

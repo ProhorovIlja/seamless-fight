@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0d0f13"><title>Seamless Fight | PlayCanvas GPU Renderer Comparison</title>
+<style>
+:root{color-scheme:dark;font-family:Georgia,serif;background:#0d0f13;color:#f0e2c2}
+*{box-sizing:border-box}body{margin:0;background:#0d0f13}
+main{width:min(1340px,100% - 24px);margin:auto}
+header{padding:12px 3px;display:flex;gap:12px;align-items:baseline;justify-content:space-between;border-bottom:1px solid #d9b8783b}
+header strong{color:#d9b878;letter-spacing:.11em;font-size:.87rem}
+header small{font:12px system-ui,sans-serif;color:#a99c88}
+.frame{position:relative;width:100%;aspect-ratio:16/9;border:1px solid #b1976b75;background:#0b0e12;overflow:hidden}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+.status{font:12px/1.5 system-ui,sans-serif;background:#141820b8;position:absolute;left:16px;bottom:16px;border:1px solid #c4a57877;padding:9px 13px}
+.status b{color:#d9b878}footer{font:12px/1.65 system-ui,sans-serif;color:#b5a898;padding:12px 3px}
+</style><script type="module" src="./main.js"></script></head>
+<body><main><header><strong>SEAMLESS FIGHT / RENDERER EVALUATION</strong><small>3D GPU viewport · same original painted stage · not a playable match</small></header>
+<div class="frame"><canvas id="gpu-canvas" width="1280" height="720" aria-label="Original painted Gothic arena rendered by the PlayCanvas 3D graphics engine"></canvas>
+<div class="status" role="status" aria-live="polite"><b id="gpu-backend">Checking renderer…</b><span id="gpu-startup"></span></div></div>
+<footer>Render-engine proof only. No authored 3D fighter rig, online PvP, rollback or premium character animation is claimed in this view. Gameplay remains on the existing deterministic server.</footer></main></body></html>
