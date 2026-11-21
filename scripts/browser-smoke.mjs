@@ -530,6 +530,13 @@ try{
    'source airborne practice dummy executes a real single jump');
  assert.match(await hunt.locator('#goal-progress').textContent(),/0 confirmed · 1 observed/);
  await hunt.locator('#drill').selectOption('whiff-punish');
+ // A missed gun is a punishable 60Hz commitment, distinct from an attack
+ // whiff. Practice must teach it without adding guarding or throw tech.
+ await hunt.locator('#drill').selectOption('gun-whiff-punish');
+ assert.match(await hunt.locator('#drill option:checked').textContent(),/Missed Firearm Recovery/);
+ assert.match(await hunt.locator('#goal-category').textContent(),/READS & FOOTSIES/);
+ assert.match(await hunt.locator('#goal-description').textContent(),/firearm shot/i);
+ assert.equal(await hunt.locator('#dummy-mode').inputValue(),'loop');
  await hunt.locator('#drill').selectOption('dodge-punish');
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Punish Quickstep Recovery/);
  // Actual rendered frame meter must reveal dodge vulnerability based on
