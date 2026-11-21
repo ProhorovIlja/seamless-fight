@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
  huntMatch,huntInput,huntStep,huntMoveSpec,HUNT_WEAPONS,
- HUNT_WHIFF_HEAVY_TRANSFORM_RECOVERY
+ HUNT_WHIFF_HEAVY_TRANSFORM_RECOVERY,huntInspector
 } from '../public/side-hunt-lab.mjs';
+import {huntFrameMeter} from '../public/hunt-practice-suite.mjs';
 const trick=()=>({...huntInput(),act:'trick'});
 function seeded({weapon,slot,form='folded',move='heavy',caseType='early'}){
  const s=huntMatch({weapons:[weapon,weapon]});s.ready=0;
@@ -70,5 +71,27 @@ test('confirmed heavy hit still converts into L1, fast whiffed light and paid gr
     assert.equal(p.act,form==='folded'?'unfurl':'refold');
     assert(p.st<before);
    }
+  }
+});
+
+test('training exposes exactly four genuine unconfirmed heavy recovery frames without leaking nonexistent block state',()=>{
+ for(const weapon of HUNT_WEAPONS)for(const form of ['folded','unfurled'])
+  for(const slot of [0,1]){
+   const {s,p}=seeded({weapon,slot,form,caseType:'early'});
+   const m=huntMoveSpec(p);
+   p.age=m.startup+m.active;
+   for(let elapsed=0;elapsed<=5;elapsed++){
+    const expected=Math.max(0,HUNT_WHIFF_HEAVY_TRANSFORM_RECOVERY-elapsed);
+    assert.equal(huntInspector(s,slot).whiffHeavyMorphLockFrames,expected,
+     weapon+' '+form+' '+slot+' recovery +'+elapsed);
+    assert.equal(huntFrameMeter(s,slot).whiffHeavyMorphLockFrames,expected);
+    huntStep(s,[huntInput(),huntInput()]);
+   }
+   p.age=m.startup+m.active;p.hitConfirmed=true;p.spent=true;
+   assert.equal(huntFrameMeter(s,slot).whiffHeavyMorphLockFrames,0,
+    'confirmed contact may morph normally without fictional whiff lock');
+   p.act=form+'Light';p.hitConfirmed=false;p.spent=false;
+   assert.equal(huntInspector(s,slot).whiffHeavyMorphLockFrames,0,
+    'fast R1 still retains its original attack-linked transform route');
   }
 });
