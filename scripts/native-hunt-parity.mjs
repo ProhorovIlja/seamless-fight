@@ -4,7 +4,7 @@ import {spawnSync} from 'node:child_process';
 import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
-import {huntMatch,huntStep,huntInput,HUNT_RULESET,HUNT_HZ} from '../public/side-hunt-lab.mjs';
+import {huntMatch,huntStep,huntInput,huntMoveSpec,HUNT_RULESET,HUNT_HZ} from '../public/side-hunt-lab.mjs';
 const REQUEST={'':0,light:1,heavy:2,charge:3,trick:4,shot:5,step:6,feint:7,sync:8,visceral:9,heal:10,blood:11};
 const MOVES=['','foldedLight','foldedHeavy','foldedCharged','unfurledLight','unfurledHeavy',
  'unfurledCharged','airFoldedLight','airFoldedHeavy','airUnfurledLight',
@@ -202,10 +202,66 @@ try{
   cornerTicks+=samples.length;
  }
  assert.equal(verifiedCornerCrossings,2);
+ // Purpose-built native/JS parity for THE competitive slot-order invariant.
+ // The ordinary random movement suite rarely produces exact same-frame R1
+ // trades; verify full 69-field states with both weapon orders and Rally pools.
+ let directedTradeScenarios=0,directedTradeTicks=0;
+ for(const [flag,priorRally] of [['--trade',0],['--trade-rally',10]]){
+  for(const [w0,w1] of PAIRS){
+   const source=huntMatch({weapons:[WEAPONS[w0],WEAPONS[w1]]});
+   source.ready=0;source.p[0].x=430;source.p[1].x=500;
+   source.p[0].dir=1;source.p[1].dir=-1;
+   for(const hunter of source.p){
+    hunter.act='foldedLight';
+    hunter.age=huntMoveSpec(hunter).startup;
+    hunter.hp=priorRally?80:100;
+    hunter.rally=priorRally;
+    hunter.rallyLife=priorRally?50:0;
+   }
+   const samples=Array.from({length:32},()=>[huntInput(),huntInput()]);
+   const packet=w0+' '+w1+'\\n'+samples.map(row=>row.flatMap(
+    v=>[v.x,v.y,REQUEST[v.act],Number(v.guard)]).join(' ')).join('\\n')+'\\n';
+   const result=spawnSync(exe,[flag],{input:packet,encoding:'utf8',
+    maxBuffer:4*1024*1024,timeout:90000});
+   assert.equal(result.status,0,'Directed trade CLI failed: '+result.stderr);
+   const nativeRows=result.stdout.trim().split('\\n');
+   assert.equal(nativeRows.length,samples.length);
+   for(let t=0;t<samples.length;t++){
+    const actualEvents=[];
+    huntStep(source,samples[t],actualEvents);
+    if(t===0){
+     assert.equal(actualEvents.filter(x=>x.kind==='hit').length,2,
+      'Both weapon hitboxes must physically connect during one source tick');
+     assert.equal(actualEvents.filter(x=>x.kind==='rally').length,priorRally?2:0,
+      'Only pre-contact Rally can be reclaimed, never same-tick damage');
+     assert(source.p.every(x=>x.hitConfirmed===false),
+      'No stunned fighter keeps an asymmetric hidden hit confirm');
+    }
+    const native=nativeRows[t].trim().split(/\\s+/).map(Number);
+    assert.equal(native.length,totalFields);
+    let k=0;
+    const compare=(field,val)=>{
+     const got=native[k++],wanted=number(field,val);
+     if(!Number.isFinite(got)||!Number.isFinite(wanted)||Math.abs(got-wanted)>1e-8)
+      throw Error('Native same-tick trade mismatch '+flag+
+       ' weapons='+w0+','+w1+' frame='+t+' field='+field+
+       ' JS='+wanted+' CPP='+got);
+     checks++;maxError=Math.max(maxError,Math.abs(got-wanted));
+    };
+    for(const field of GLOBAL)compare(field,source[field]);
+    compare('score0',source.score[0]);compare('score1',source.score[1]);
+    for(const fighter of source.p)for(const field of FIELDS)compare(field,fighter[field]);
+   }
+   directedTradeScenarios++;
+   directedTradeTicks+=samples.length;
+  }
+ }
+ assert.equal(directedTradeScenarios,8);
  assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0&&eventsSeen.visceral>0,
   'Trace missed core Hunt gameplay situations');
  console.log(JSON.stringify({result:'HUNT_V3_NATIVE_CPP_JS_PARITY_PASS',
-  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks,
+  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks,
+  directedTradeScenarios,directedTradeTicks,
   directedVisceral:true,directedTicks:trace.length,cornerCrossings:verifiedCornerCrossings,
   weaponPairs:PAIRS.length,fieldsPerTick:totalFields,fieldComparisons:checks,
   maxAbsoluteDifference:maxError,nativeRollbackChecks:rewinds,
