@@ -5,6 +5,12 @@ import {HUNT_PUBLIC_LOCALES,HUNT_COPY} from '../public/hunt-identity.mjs';
 import {ACTIVITY_MODE} from '../server/public-activity.mjs';
 const surfaces=[
  '../public/hunt-identity.mjs',
+ '../public/hunt.html',
+ '../public/hunt.mjs',
+ '../public/hunt.css',
+ '../public/hunt-render.mjs',
+ '../public/hunt-browser-input.mjs',
+ '../public/hunt-practice-suite.mjs',
  '../public/hub.html',
  '../public/hub.mjs',
  '../public/side.html',
