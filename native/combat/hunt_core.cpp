@@ -33,6 +33,21 @@ int main(int argc,char**argv){
     p.rally=existing_rally?10:0;
     p.rallyLife=existing_rally?50:0;
    }
+  }else if(scenario=="--limb-left"||scenario=="--limb-right"){
+   // CLI parity ONLY: a light attack misses the ordinary body but tags the
+   // opponent's short exposed arm in actual missed heavy recovery.
+   if(first!=0)return 7; // Mournweave R1 reach is 88 in this fixture.
+   const bool mirror=scenario=="--limb-right";
+   s.ready=0;
+   s.p[0].x=mirror?580:380;
+   s.p[1].x=mirror?460:500;
+   s.p[0].dir=mirror?-1:1;
+   s.p[1].dir=-s.p[0].dir;
+   s.p[0].act=FOLDED_LIGHT;
+   s.p[0].age=spec(s.p[0].weapon,FOLDED_LIGHT).startup;
+   s.p[1].act=UNFURLED_HEAVY;
+   const Spec victim=spec(s.p[1].weapon,UNFURLED_HEAVY);
+   s.p[1].age=victim.startup+victim.active;
   }else return 7;
  }
  std::vector<State> checkpoints;
