@@ -9,7 +9,8 @@ const MOVE=Object.freeze({'':0,cut:1,hew:2,shot:3,step:4,feint:5,stun:6,guardBre
 const keys=['x','y','vx','vy','dir','hp','st','ammo','act','age','spent','crouch','jumpHeld','guardAge','regen','combo'];
 const original=sideMatch();assert.equal(original.rules,'seamless-side/1');
 const work=mkdtempSync(join(tmpdir(),'seamless-native-core-'));
-const exe=join(work,'sf-native-core');
+const external=process.env.SF_NATIVE_CORE_EXE;
+const exe=external?resolve(external):join(work,process.platform==='win32'?'sf-native-core.exe':'sf-native-core');
 let seed=0x45ad1c72;
 const rnd=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
 const action=()=>rnd()<.18?['cut','hew','shot','step','feint'][Math.floor(rnd()*5)]:'';
@@ -33,10 +34,12 @@ for(let t=0;t<6500;t++){
 }
 let compile;
 try{
+ if(!external){
  compile=spawnSync(process.env.CXX||'g++',[
   '-std=c++17','-O2','-Wall','-Wextra','-Werror','-ffp-contract=off','-fno-fast-math',
   resolve('native/combat/side_core.cpp'),'-o',exe],{encoding:'utf8',timeout:60000});
  if(compile.status!==0)throw Error('Native core compilation failed: '+compile.stderr);
+ }
  const packet=traces.map(pair=>pair.flatMap(v=>[v.x,v.y,MOVE[v.act],Number(v.guard)]).join(' ')).join('\n')+'\n';
  const native=spawnSync(exe,[],{input:packet,encoding:'utf8',maxBuffer:25*1024*1024,timeout:60000});
  if(native.status!==0)throw Error('Native simulation execution failed: '+native.stderr);
