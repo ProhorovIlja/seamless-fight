@@ -124,6 +124,11 @@ func connect_private_1v1(endpoint: String, origin: String, code: String="", aren
 		return false
 	return $Online.open_room(endpoint,origin,code,arena)
 
+func spectate_public_1v1(endpoint: String, origin: String, watch_code: String) -> bool:
+	if $Practice.active:
+		return false
+	return $Online.open_spectator(endpoint,origin,watch_code)
+
 func disconnect_private_1v1() -> void:
 	$Online.close_room()
 
