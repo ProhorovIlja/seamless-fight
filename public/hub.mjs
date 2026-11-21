@@ -18,7 +18,8 @@ export function validateCourtStatus(value){
 export function validatePublicGallery(value){
  return Boolean(value&&typeof value==='object'&&
   /^[A-Za-z0-9_-]{12}$/.test(value.watchCode)&&
-  value.watchPath==='/fight/?watch='+value.watchCode&&
+  ['/fight/?watch=','/fight/side/?watch='].some(prefix=>
+    value.watchPath===prefix+value.watchCode)&&
   ['waiting','in-progress','complete'].includes(value.status)&&
   value.fighters>=1&&value.fighters<=HUB_DUEL_SIZE&&
   Number.isInteger(value.spectators)&&value.spectators>=0&&value.spectators<=6&&
@@ -55,7 +56,9 @@ function renderGalleries(data){
   state.textContent=lobby.status==='in-progress'?'Live now':lobby.status==='waiting'?'Waiting':'Complete';
   const title=document.createElement('h3');title.textContent=lobby.arena;
   const stats=document.createElement('p');
-  stats.textContent=lobby.fighters+' / 2 fighters · '+lobby.spectators+' / 6 spectators · '+(lobby.format==='casual-1v1'?'Casual 1v1':'Unrated set');
+  stats.textContent=lobby.fighters+' / 2 fighters · '+lobby.spectators+' / 6 spectators · '+
+   (lobby.watchPath.startsWith('/fight/side/')?'2.5D side-view · ':'Overhead prototype · ')+
+   (lobby.format==='casual-1v1'?'Casual 1v1':'Unrated set');
   const action=document.createElement('a');
   action.href=lobby.watchPath;action.textContent='Watch duel';
   action.setAttribute('aria-label','Spectate the '+lobby.arena+' duel');
