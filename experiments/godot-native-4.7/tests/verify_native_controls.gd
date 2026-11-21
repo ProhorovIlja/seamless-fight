@@ -1,5 +1,6 @@
 extends SceneTree
 const Controls = preload("res://scripts/native_controls.gd")
+const Stage = preload("res://scenes/stage.tscn")
 func _initialize() -> void:
 	call_deferred("_verify")
 func _fail(message: String) -> void:
@@ -51,6 +52,23 @@ func _verify() -> void:
 		return
 	if c.encoded_input().size()!=4:
 		_fail("Native input must match 4-field C++/wire format")
+		return
+
+	var dual: Dictionary = c.with_device_rebinding(profile,"sf_cut",{"kind":"key","code":KEY_Z},"kbm")
+	if dual.is_empty() or dual["actions"]["sf_cut"].filter(func(e): return str(e["kind"])=="pad_button").size()!=1:
+		_fail("Keyboard rebinding erased gamepad attack mapping")
+		return
+	var stage := Stage.instantiate()
+	root.add_child(stage)
+	await process_frame
+	var settings: CanvasLayer=stage.get_node("InputSettings")
+	settings.open_settings()
+	if not settings.visible or settings.buttons.size()<20:
+		_fail("Native user-facing KBM/gamepad menu did not open")
+		return
+	settings.close_settings()
+	if settings.visible:
+		_fail("Input panel cannot be closed")
 		return
 	print("NATIVE_INPUT_PROFILE_VERIFIED: KBM/pad defaults, conflicts, strict codes, capture, rebinding and canonical 4-int output")
 	quit(0)
