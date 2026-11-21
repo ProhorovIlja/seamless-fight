@@ -25,7 +25,7 @@ for(let t=0;t<6500;t++){
  if(t>=90&&t<250){
   a.x=t<156?1:0;b.x=t<156?-1:0;
   a.y=0;b.y=0;
-  a.guard=false;b.guard=t>=160&&t<247;
+  a.guard=false;b.guard=(t>=160&&t<200)||(t>=233&&t<247);
   a.act=t===180?'cut':t===215?'hew':'';b.act='';
  }
  if(t>=250&&t%251===0){a.act='hew';b.act='shot';}
@@ -67,6 +67,7 @@ try{
  }
  assert(observed.hit>0||observed.parry>0,'trace did not exercise actual hit/parry events');
  assert(observed.block>0,'trace did not exercise actual defended/chip-damage strikes');
+ assert(observed.parry>0,'trace did not exercise genuine 4-frame perfect-deflect window');
  assert(observed.action>0&&observed.round>0,'trace did not exercise move actions and rounds');
  console.log(JSON.stringify({status:'NATIVE_CPP_JS_RULESET_PARITY_PASS',rules:s.rules,
   ticks:traces.length,checkedFields:states,maxDifference,events:observed,round:s.round,score:s.score}));
