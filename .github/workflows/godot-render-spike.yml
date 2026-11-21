@@ -79,6 +79,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Test two actual Godot native transports against the existing Node 1v1 server
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts --no-audit --no-fund
+          HOST=127.0.0.1 PORT=18893 PUBLIC_ORIGIN=http://127.0.0.1:18893 node server.mjs > "${RUNNER_TEMP}/pvp-server.log" 2>&1 &
+          GAME_SERVER_PID=$!
+          trap 'kill "$GAME_SERVER_PID" 2>/dev/null || true; cat "${RUNNER_TEMP}/pvp-server.log"' EXIT
+          for i in {1..70}; do
+            if curl --silent --fail http://127.0.0.1:18893/fight/health >/dev/null; then break; fi
+            sleep .1
+          done
+          curl --fail --silent http://127.0.0.1:18893/fight/health
+          GODOT="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          "${GODOT}" --headless --path experiments/godot-4.7 \
+            --script res://tests/verify_side_online.gd --quit-after 720
       - name: Set up real Chromium runtime (GPU software fallback)
         run: |
           npm install --ignore-scripts --no-audit --no-save playwright@1.58.2
