@@ -38,11 +38,11 @@ test('keyboard/mouse default uses valid independent native actions with no macro
   {x:0,y:0,act:'step',guard:false});
  assert.equal(adapter.stats().tick,5);
 });
-test('leverless and keyboard SOCD neutralize left/right and jump/crouch',()=>{
+test('leverless and keyboard SOCD neutralize left/right and jump/down; never crouch',()=>{
  for(const layout of ['keyboard-mouse','leverless','fightstick']){
   const profile=huntDeviceProfile(layout),a=createHuntInputAdapter(profile);
   const l=profile.binds.left[0],r=profile.binds.right[0],
-   u=profile.binds.jump[0],d=profile.binds.crouch[0];
+   u=profile.binds.jump[0],d=profile.binds.down[0];
   assert.equal(a.sample(frame(l,r)).x,0,layout+' horizontal SOCD');
   assert.equal(a.sample(frame(u,d)).y,0,layout+' vertical SOCD');
   assert.equal(a.sample(frame(l,u)).x,-1);
@@ -124,4 +124,15 @@ test('sample stream is deterministic across 600 gameplay ticks and a fresh adapt
  first.reset();
  assert.equal(first.sample(tape[0]).act,second.sample(tape[0]).act);
  assert.equal(first.stats().tick,1);
+});
+
+
+test('down input neutralizes jump but cannot crouch or create an alternate hurtbox',()=>{
+ for(const layout of HUNT_DEVICE_LAYOUTS){
+  const p=huntDeviceProfile(layout),a=createHuntInputAdapter(p);
+  assert(!HUNT_BINDABLE.includes('crouch'));
+  assert.equal(a.sample(frame(p.binds.down[0])).y,0);
+  assert.equal(a.sample(frame(p.binds.jump[0],p.binds.down[0])).y,0);
+  assert.equal(a.sample(frame(p.binds.jump[0])).y,-1);
+ }
 });

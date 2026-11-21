@@ -4,7 +4,7 @@ import {
  HUNT_RULESET,HUNT_HZ,HUNT_FLOOR,HUNT_ACTIONS,HUNT_MOVES,
  HUNT_BLOOD_COST,HUNT_BLOOD_BULLETS,HUNT_VISCERAL_WINDOW,
  HUNT_HITSTUN_ESCAPE_START,HUNT_HITSTUN_ESCAPE_EXTRA_STAMINA,
- huntMatch,huntStep,huntInput,huntInspector,canonicalHuntInput,huntFrameTable
+ huntMatch,huntStep,huntInput,huntInspector,huntHurtbox,canonicalHuntInput,huntFrameTable
 } from '../public/side-hunt-lab.mjs';
 
 const cmd=(act='',x=0,y=0)=>({x,y,act,guard:false});
@@ -416,4 +416,47 @@ test('firearm only parries inside authored windows; early, late and out-of-range
  assert.equal(b.hp,100);
  assert.equal(b.exposed,0);
  assert(!events.some(e=>e.kind==='gunParry'));
+});
+
+
+test('down is not a Bloodborne-first stance: standing hurtbox and movement remain identical',()=>{
+ const s=live(250),p=s.p[0],before=p.x;
+ const height=huntHurtbox(p).top;
+ frames(s,28,cmd('',0,1),huntInput());
+ assert.equal(p.x,before);
+ assert.equal(p.crouch,false,'legacy checkpoint field remains permanently false');
+ assert.equal(huntInspector(s).phase,'neutral');
+ assert.equal(huntHurtbox(p).top,height);
+ assert.throws(()=>canonicalHuntInput({act:'crouch'}),/Invalid/);
+});
+
+test('cornered hunter exits by paid forward quickstep through a body during real i-frames',()=>{
+ const s=live(42),a=s.p[0],b=s.p[1],events=[];
+ a.x=65;b.x=107;
+ huntStep(s,[cmd('step',1),huntInput()],events);
+ assert.equal(a.st,81);
+ frames(s,11,huntInput(),huntInput(),events);
+ assert(a.x>b.x,'forward quickstep crosses a close opponent instead of getting body-locked');
+ assert.equal(a.y,HUNT_FLOOR,'grounded quickstep does not wall-jump');
+ assert(events.some(e=>e.kind==='action'&&e.actor===0&&e.move==='step'));
+});
+
+test('corner crossing is not free: retreat sticks to wall and exhausted player cannot step',()=>{
+ const back=live(42);back.p[0].x=65;back.p[1].x=107;
+ huntStep(back,[cmd('step',-1),huntInput()]);frames(back,11);
+ assert(back.p[0].x<back.p[1].x);
+ assert.equal(back.p[0].st,81);
+ const empty=live(42);empty.p[0].x=65;empty.p[1].x=107;empty.p[0].st=0;
+ huntStep(empty,[cmd('step',1),huntInput()]);frames(empty,11);
+ assert(empty.p[0].x<empty.p[1].x);
+ assert.notEqual(empty.p[0].act,'step');
+});
+
+test('quickstep i-frames end before its recovery, so corner escape can be punished',()=>{
+ const s=live(38),a=s.p[0],b=s.p[1];
+ a.x=65;b.x=103;a.act='step';a.age=8;a.vx=0;
+ b.act='foldedLight';b.age=HUNT_MOVES.foldedLight.startup;b.dir=-1;
+ const health=a.hp;
+ huntStep(s);
+ assert(a.hp<health);
 });

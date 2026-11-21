@@ -17,9 +17,9 @@ const $=id=>document.getElementById(id);
 const TICK_MS=1000/HUNT_HZ,MAX_TICKS_PER_RENDER=8,REPLAY_MAX_BYTES=3*1024*1024;
 const MAX_DUMMY_LIBRARY_BYTES=512*1024;
 const browserLayouts=new Set(['keyboard-mouse','gamepad','fightstick','leverless','fightpad']);
-const BINDINGS_KEY='sf-hunt-practice.browser-bindings.v1';
+const BINDINGS_KEY='sf-hunt-practice.browser-bindings.v2';
 const ACTION_LABELS=Object.freeze({
- left:'Move Left',right:'Move Right',jump:'Jump',crouch:'Crouch',
+ left:'Move Left',right:'Move Right',jump:'Jump',down:'Down (SOCD only)',
  light:'Light Strike',heavy:'Heavy Strike',charge:'Charged Strike',
  trick:'Transform Weapon',shot:'Firearm',step:'Quickstep',visceral:'Visceral',
  heal:'Heal',blood:'Create Blood Rounds',feint:'Feint',sync:'Follow-up'

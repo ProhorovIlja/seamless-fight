@@ -3,12 +3,12 @@
 // do NOT infer actual hardware certification from these pure data tests.
 import {canonicalHuntInput,HUNT_ACTIONS} from './side-hunt-lab.mjs';
 
-export const HUNT_INPUT_SCHEMA='sf-hunt-input-profile/1';
+export const HUNT_INPUT_SCHEMA='sf-hunt-input-profile/2';
 export const HUNT_DEVICE_LAYOUTS=Object.freeze([
  'keyboard-mouse','gamepad','fightstick','leverless','fightpad','accessibility'
 ]);
 export const HUNT_BINDABLE=Object.freeze([
- 'left','right','jump','crouch',...HUNT_ACTIONS.filter(x=>x!=='')
+ 'left','right','jump','down',...HUNT_ACTIONS.filter(x=>x!=='')
 ]);
 export const HUNT_ACTION_PRIORITY=Object.freeze([
  'visceral','shot','step','trick','charge','heavy','light','heal','blood','feint','sync'
@@ -16,7 +16,7 @@ export const HUNT_ACTION_PRIORITY=Object.freeze([
 const DEFAULT_BINDS=Object.freeze({
  'keyboard-mouse':{
   left:['key:KeyA','key:ArrowLeft'],right:['key:KeyD','key:ArrowRight'],
-  jump:['key:Space'],crouch:['key:KeyS','key:ArrowDown'],
+  jump:['key:Space'],down:['key:KeyS','key:ArrowDown'],
   light:['mouse:0'],heavy:['mouse:2'],charge:['key:KeyH'],
   trick:['key:KeyQ'],shot:['key:KeyE'],step:['key:ShiftLeft'],
   visceral:['key:KeyF'],heal:['key:KeyR'],blood:['key:KeyB'],
@@ -24,7 +24,7 @@ const DEFAULT_BINDS=Object.freeze({
  },
  gamepad:{
   left:['pad:dpad-left','pad:left-x-'],right:['pad:dpad-right','pad:left-x+'],
-  jump:['pad:south'],crouch:['pad:dpad-down','pad:left-y+'],
+  jump:['pad:south'],down:['pad:dpad-down','pad:left-y+'],
   light:['pad:west'],heavy:['pad:north'],charge:['pad:right-trigger'],
   trick:['pad:left-shoulder'],shot:['pad:right-shoulder'],
   step:['pad:east'],visceral:['pad:left-trigger'],heal:['pad:dpad-up'],
@@ -32,7 +32,7 @@ const DEFAULT_BINDS=Object.freeze({
  },
  fightstick:{
   left:['pad:dpad-left','pad:left-x-'],right:['pad:dpad-right','pad:left-x+'],
-  jump:['pad:dpad-up'],crouch:['pad:dpad-down'],
+  jump:['pad:dpad-up'],down:['pad:dpad-down'],
   light:['pad:west'],heavy:['pad:north'],charge:['pad:right-trigger'],
   trick:['pad:left-shoulder'],shot:['pad:right-shoulder'],
   step:['pad:south'],visceral:['pad:east'],heal:['pad:left-trigger'],
@@ -40,7 +40,7 @@ const DEFAULT_BINDS=Object.freeze({
  },
  leverless:{
   left:['pad:dpad-left'],right:['pad:dpad-right'],
-  jump:['pad:dpad-up'],crouch:['pad:dpad-down'],
+  jump:['pad:dpad-up'],down:['pad:dpad-down'],
   light:['pad:west'],heavy:['pad:north'],charge:['pad:right-trigger'],
   trick:['pad:left-shoulder'],shot:['pad:right-shoulder'],
   step:['pad:south'],visceral:['pad:east'],heal:['pad:left-trigger'],
@@ -48,7 +48,7 @@ const DEFAULT_BINDS=Object.freeze({
  },
  fightpad:{
   left:['pad:dpad-left'],right:['pad:dpad-right'],
-  jump:['pad:south'],crouch:['pad:dpad-down'],
+  jump:['pad:south'],down:['pad:dpad-down'],
   light:['pad:west'],heavy:['pad:north'],charge:['pad:right-trigger'],
   trick:['pad:left-shoulder'],shot:['pad:right-shoulder'],
   step:['pad:east'],visceral:['pad:left-trigger'],heal:['pad:dpad-up'],
@@ -56,7 +56,7 @@ const DEFAULT_BINDS=Object.freeze({
  },
  accessibility:{
   left:['switch:left'],right:['switch:right'],
-  jump:['switch:jump'],crouch:['switch:crouch'],
+  jump:['switch:jump'],down:['switch:down'],
   light:['switch:light'],heavy:['switch:heavy'],charge:['switch:charge'],
   trick:['switch:trick'],shot:['switch:shot'],step:['switch:step'],
   visceral:['switch:visceral'],heal:['switch:heal'],blood:['switch:blood'],
@@ -129,7 +129,7 @@ export function createHuntInputAdapter(profile=huntDeviceProfile()){
   }
   // Neutral SOCD: no last-input advantage for leverless, stick + D-pad or KBM.
   const x=Number(now.has('right'))-Number(now.has('left'));
-  const y=Number(now.has('crouch'))-Number(now.has('jump'));
+  const y=now.has('jump')&&!now.has('down')?-1:0; // Down neutralizes up; never crouches.
   let act='';
   for(const action of HUNT_ACTION_PRIORITY){
    if(now.has(action)&&!lastActions.has(action)){act=action;break;}

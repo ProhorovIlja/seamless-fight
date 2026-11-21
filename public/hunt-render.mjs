@@ -55,9 +55,8 @@ function fighter(ctx,p,previous,alpha,t,slot){
  ctx.scale(p.dir,1);
  const sway=Math.sin(time*1.9+slot)*1.1;
  const walk=Math.abs(p.vx)>1.4?Math.sin(p.x*.043)*4:0;
- const crouch=p.crouch?22:0;
  const airborne=y<HUNT_FLOOR;
- const lay=crouch+(airborne?-5:0);
+ const lay=airborne?-5:0;
  // Legs are separated and articulated, not static rectangular placeholders.
  ctx.fillStyle='#171d25';
  ctx.beginPath();ctx.moveTo(-13,-37+lay);ctx.lineTo(-5,-35+lay);
