@@ -7,11 +7,12 @@ import {loadHuntReplay,huntReplayFingerprint} from './side-hunt-replay.mjs';
 export const HUNT_STATS_SCHEMA='sf-hunt-practice-metrics/1';
 const fresh=slot=>({
  slot,actionStarts:0,meleeStarts:0,meleeHits:0,meleeWhiffs:0,
- firearmShots:0,firearmHits:0,firearmParries:0,
+ firearmShots:0,firearmHits:0,firearmParries:0,firearmWhiffs:0,
  viscerals:0,visceralAttempts:0,
  damageFromConfirmedEvents:0,damageTakenFromConfirmedEvents:0,
- dodgeEscapes:0,quicksteps:0,rearStaggers:0,
- recoveryPunishes:0,dodgeRecoveryPunishes:0,startupInterrupts:0,
+ dodgeEscapes:0,quicksteps:0,rearStaggers:0,cornerEscapes:0,
+ recoveryPunishes:0,firearmRecoveryPunishes:0,
+ dodgeVulnerableTailPunishes:0,dodgeRecoveryPunishes:0,startupInterrupts:0,
  vialsUsed:0,bloodRituals:0,bloodRoundsCreated:0,
  rallyHealthReclaimed:0,maxCombo:0
 });
@@ -51,7 +52,12 @@ export function analyzeHuntReplay(capture){
      break;
     case 'hit':
      // Confirmed enemy state at impact, never inferred from a keypress.
-     if(ev.punishedRecovery===true)p.recoveryPunishes++;
+     if(ev.punishedRecovery===true){
+      p.recoveryPunishes++;
+      if(['shot','airShot'].includes(ev.punishedMove))
+       p.firearmRecoveryPunishes++;
+     }
+     if(ev.punishedDodgeVulnerableTail===true)p.dodgeVulnerableTailPunishes++;
      if(ev.punishedDodgeRecovery===true)p.dodgeRecoveryPunishes++;
      if(ev.hitDuringStartup===true)p.startupInterrupts++;
      p.meleeHits++;
@@ -61,6 +67,7 @@ export function analyzeHuntReplay(capture){
      break;
     case 'whiff':
      if(isMelee(ev.move))p.meleeWhiffs++;
+     if(ev.move==='shot'||ev.move==='airShot')p.firearmWhiffs++;
      break;
     case 'fire':
      p.firearmShots++;
@@ -85,6 +92,7 @@ export function analyzeHuntReplay(capture){
      other.damageTakenFromConfirmedEvents+=ev.damage;
      break;
     case 'rearStagger':p.rearStaggers++;break;
+    case 'cornerEscape':p.cornerEscapes++;break;
     case 'heal':p.vialsUsed++;break;
     case 'bloodBullets':p.bloodRituals++;p.bloodRoundsCreated+=ev.bullets;break;
     case 'rally':p.rallyHealthReclaimed+=ev.health;break;
