@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
  HUNT_RULESET,HUNT_HZ,HUNT_FLOOR,HUNT_ACTIONS,HUNT_MOVES,
- HUNT_BLOOD_COST,HUNT_BLOOD_BULLETS,HUNT_VISCERAL_WINDOW,HUNT_DEFAULT_RULES,
+ HUNT_BLOOD_COST,HUNT_BLOOD_BULLETS,HUNT_VISCERAL_WINDOW,
+ HUNT_HITSTUN_ESCAPE_START,HUNT_HITSTUN_ESCAPE_EXTRA_STAMINA,
  huntMatch,huntStep,huntInput,huntInspector,canonicalHuntInput,huntFrameTable
 } from '../public/side-hunt-lab.mjs';
 
@@ -189,26 +190,24 @@ test('single jump is default; second airborne jump is forbidden without changing
  assert.equal(p.jumps,1);
  assert(p.y<initialY,'single jump still follows a ballistic trajectory');
  assert(!events.some(e=>e.kind==='doubleJump'));
- assert.equal(HUNT_DEFAULT_RULES.allowAirStep,false);
+ assert.equal(HUNT_MOVES.airStep,undefined);
+ assert.throws(()=>huntMatch({allowAirStep:true}),/Unsupported Hunt match option/);
  frames(s,130);
  assert.equal(p.y,HUNT_FLOOR);
  assert.equal(p.jumps,0,'landing restores the next ordinary jump');
 });
 
-test('air-step is an explicit experimental room rule, never a ranked default',()=>{
- const normal=live(160),p=normal.p[0];
+test('air step is removed in every room, even if a legacy client requests it',()=>{
+ const s=live(160),p=s.p[0];
  p.y=HUNT_FLOOR-30;p.vy=0;
- huntStep(normal,[cmd('step'),huntInput()]);
- assert.equal(p.act,'','air dodge is not silently enabled');
- const custom=live(160,{allowAirStep:true}),a=custom.p[0];
- a.y=HUNT_FLOOR-30;a.vy=0;
- huntStep(custom,[cmd('step'),huntInput()]);
- assert.equal(a.act,'airStep');
- assert.equal(a.airSteps,1);
- assert.equal(huntInspector(custom).airStepAllowed,true);
- assert.throws(()=>huntMatch({allowAirStep:'yes'}),/boolean/);
+ huntStep(s,[cmd('step'),huntInput()]);
+ assert.equal(p.act,'','no airborne dodge command should exist');
+ assert.equal(huntInspector(s).action,'');
+ assert.equal(HUNT_MOVES.airStep,undefined);
+ assert.throws(()=>huntMatch({allowAirStep:true}),/Unsupported Hunt match option/);
+ assert.throws(()=>huntMatch({allowAirStep:false}),/Unsupported Hunt match option/);
+ assert.throws(()=>huntStep({...s,rules:'sf-hunt-lab/2'}),/Incompatible/);
 });
-
 test('airborne firearm can interrupt a committed grounded heal and cancel its health reward',()=>{
  const s=live(),a=s.p[0],b=s.p[1],events=[];
  a.y=HUNT_FLOOR-50;a.vy=0;a.act='airShot';a.age=HUNT_MOVES.airShot.startup;
@@ -279,7 +278,7 @@ test('no universal grab or block input, while timed firearm parry remains a sepa
  assert.throws(()=>canonicalHuntInput({guard:true}),/no blocking/i);
  assert(HUNT_ACTIONS.includes('shot'));
  assert(HUNT_ACTIONS.includes('visceral'));
- assert.equal(s.options.allowAirStep,false);
+ assert.equal(Object.hasOwn(s,'options'),false);
 });
 
 
@@ -320,7 +319,7 @@ test('committed attacks and quicksteps each consume limited stamina',()=>{
  assert(a.st<100&&d.st<100);
 });
 
-test('gun-parried victim remains in hitstun and cannot cancel into immediate attack',()=>{
+test('gun-parried victim cannot instantly attack or quickstep out of a visceral opening',()=>{
  const s=live(),events=[],a=s.p[0],b=s.p[1];
  a.act='shot';a.age=HUNT_MOVES.shot.startup;
  b.act='foldedHeavy';b.age=HUNT_MOVES.foldedHeavy.startup-2;
@@ -330,4 +329,91 @@ test('gun-parried victim remains in hitstun and cannot cancel into immediate att
  assert.equal(b.act,'stagger','visceral opening must remain punishable');
  assert(b.exposed>0);
  assert(!events.some(e=>e.kind==='action'&&e.actor===1&&e.move==='foldedLight'));
+ // Normal hitstun allows a delayed dodge, but a successful firearm parry
+ // is a distinct punishable visceral stagger.
+ b.age=HUNT_HITSTUN_ESCAPE_START+2;
+ huntStep(s,[huntInput(),cmd('step',-1)],events);
+ assert.equal(b.act,'stagger');
+});
+
+test('normal melee hitstun permits a delayed paid quickstep, not a free attack cancel',()=>{
+ const s=live(68),events=[],a=s.p[0],b=s.p[1];
+ a.act='foldedLight';a.age=HUNT_MOVES.foldedLight.startup;
+ const originalHealth=b.hp;
+ huntStep(s,[huntInput(),huntInput()],events);
+ assert.equal(b.act,'stun');
+ assert(b.hp<originalHealth,'damage must happen before any recovery attempt');
+ const healthAfterHit=b.hp,stamina=b.st;
+ for(let age=1;age<HUNT_HITSTUN_ESCAPE_START;age++){
+  b.age=age;
+  huntStep(s,[huntInput(),cmd('step',-1)],events);
+  assert.equal(b.act,'stun','no dodge before recovery frame '+age);
+  assert.equal(b.hp,healthAfterHit);
+ }
+ b.age=HUNT_HITSTUN_ESCAPE_START;
+ huntStep(s,[huntInput(),cmd('step',-1)],events);
+ assert.equal(b.act,'step','escape allowed at explicit startup frame');
+ assert.equal(b.hp,healthAfterHit);
+ assert.equal(b.st,stamina-HUNT_MOVES.step.cost-HUNT_HITSTUN_ESCAPE_EXTRA_STAMINA);
+ assert(b.vx<0,'backward input moves away, not magnetized toward attacker');
+ assert(events.some(e=>e.kind==='action'&&e.actor===1&&e.move==='step'));
+});
+test('normal hitstun escape fails when stamina cannot cover dodge plus extra recovery tax',()=>{
+ const s=live(),p=s.p[1];p.act='stun';p.age=HUNT_HITSTUN_ESCAPE_START;
+ p.st=HUNT_MOVES.step.cost+HUNT_HITSTUN_ESCAPE_EXTRA_STAMINA-1;
+ huntStep(s,[huntInput(),cmd('step',-1)]);
+ assert.equal(p.act,'stun');
+ assert.equal(p.st,HUNT_MOVES.step.cost+HUNT_HITSTUN_ESCAPE_EXTRA_STAMINA-1);
+});
+test('successful parry, charged rear stagger, visceral victim and jump cannot bypass recovery',()=>{
+ for(const action of ['stagger','visceralVictim']){
+  const s=live(),p=s.p[1];
+  p.act=action;p.age=HUNT_HITSTUN_ESCAPE_START+3;p.st=100;p.exposed=30;
+  huntStep(s,[huntInput(),cmd('step',-1)]);
+  assert.equal(p.act,action);
+  assert.equal(p.st,100);
+ }
+ const air=live(),p=air.p[1];
+ p.act='stun';p.age=HUNT_HITSTUN_ESCAPE_START+2;
+ p.y=HUNT_FLOOR-45;p.vy=0;
+ huntStep(air,[huntInput(),cmd('step',-1)]);
+ assert.equal(p.act,'stun','air-dodge prohibited even in hitstun');
+});
+test('quickstep has limited invulnerability after escape; a mistimed dodge can be caught',()=>{
+ const s=live(70),a=s.p[0],b=s.p[1];
+ b.act='stun';b.age=HUNT_HITSTUN_ESCAPE_START;b.st=100;
+ huntStep(s,[huntInput(),cmd('step',-1)]);
+ assert.equal(b.act,'step');
+ // A shot during dodge startup can still hurt, while true i-frames avoid it.
+ const early=structuredClone(s),late=structuredClone(s);
+ early.p[0].act='shot';early.p[0].age=HUNT_MOVES.shot.startup;
+ early.p[1].age=0;early.p[1].spent=false;
+ const earlyHp=early.p[1].hp;
+ huntStep(early,[huntInput(),huntInput()]);
+ assert(early.p[1].hp<earlyHp,'first frame does not give perfect instant immunity');
+ late.p[0].act='shot';late.p[0].age=HUNT_MOVES.shot.startup;
+ late.p[1].age=3;late.p[1].spent=false;
+ const lateHp=late.p[1].hp;
+ huntStep(late,[huntInput(),huntInput()]);
+ assert.equal(late.p[1].hp,lateHp,'actual quickstep i-frames prevent hit');
+});
+test('firearm only parries inside authored windows; early, late and out-of-range shots are not free staggers',()=>{
+ for(const age of [1,HUNT_MOVES.foldedHeavy.startup+HUNT_MOVES.foldedHeavy.active+2]){
+  const s=live(),events=[],a=s.p[0],b=s.p[1];
+  a.act='shot';a.age=HUNT_MOVES.shot.startup;
+  b.act='foldedHeavy';b.age=age;
+  const originalHp=b.hp;
+  huntStep(s,[huntInput(),huntInput()],events);
+  assert.equal(b.exposed,0);
+  assert.equal(b.hp,originalHp-HUNT_MOVES.shot.damage);
+  assert(events.some(e=>e.kind==='bulletHit'));
+  assert(!events.some(e=>e.kind==='gunParry'));
+ }
+ const far=live(430),events=[],a=far.p[0],b=far.p[1];
+ a.act='shot';a.age=HUNT_MOVES.shot.startup;
+ b.act='foldedHeavy';b.age=HUNT_MOVES.foldedHeavy.startup-2;
+ huntStep(far,[huntInput(),huntInput()],events);
+ assert.equal(b.hp,100);
+ assert.equal(b.exposed,0);
+ assert(!events.some(e=>e.kind==='gunParry'));
 });
