@@ -161,6 +161,40 @@ func _verify() -> void:
 			game.get_move_frame_data(0)["action"]!=label:
 			_fail("Native Godot missing action label for "+label)
 			return
+	# Phase-evidence checks use legal inputs and the same action semantics as JS.
+	game.reset()
+	for tick in range(90):game.step_encoded(0,0,0,0,0,0,0,0)
+	if not game.step_encoded(1,0,6,0,0,0,0,0):
+		_fail("Cannot begin directional quickstep for frame evidence")
+		return
+	for age in range(1,22):
+		var meter: Dictionary=game.get_move_frame_data(0)
+		var invincible: bool=age>=1 and age<7
+		var vulnerable_tail: bool=age>=7 and age<9
+		var recovery: bool=age>=9 and age<21
+		var remaining: int=21-age if recovery else 0
+		if meter.get("action","")!="step" or int(meter.get("age",-1))!=age or \
+		 bool(meter.get("quickstepIframes",false))!=invincible or \
+		 bool(meter.get("quickstepVulnerableTail",false))!=vulnerable_tail or \
+		 bool(meter.get("quickstepRecoveryPunishable",false))!=recovery or \
+		 int(meter.get("quickstepRemainingRecovery",-1))!=remaining or \
+		 bool(meter.get("firearmCounterWindowOpen",true)):
+			_fail("Incorrect native quickstep phase evidence at age "+str(age))
+			return
+		game.step_encoded(0,0,0,0,0,0,0,0)
+	game.reset()
+	for tick in range(90):game.step_encoded(0,0,0,0,0,0,0,0)
+	if not game.step_encoded(0,0,2,0,0,0,0,0):
+		_fail("Cannot begin real heavy for firearm counter evidence")
+		return
+	for age in range(1,24):
+		var meter: Dictionary=game.get_move_frame_data(0)
+		var can_parry: bool=age>=11 and age<23
+		if meter.get("action","")!="foldedHeavy" or \
+		 bool(meter.get("firearmCounterWindowOpen",false))!=can_parry:
+			_fail("Native firearm parry timing diverged at heavy age "+str(age))
+			return
+		game.step_encoded(0,0,0,0,0,0,0,0)
 	game.reset()
 	print("NATIVE_HUNT_GODOT_V3_PARITY=PASS ticks=",frames.size(),
 	 " checkedSourceFields=",checked," checkpoint=500")
