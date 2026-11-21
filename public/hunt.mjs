@@ -142,6 +142,9 @@ function reset(keepWeapons=true){
  const first=keepWeapons?$('my-weapon').value:'mournweave';
  const second=keepWeapons?$('dummy-weapon').value:'mournweave';
  practice=huntPracticeSession({weapons:[first,second],drill:$('drill').value});
+ // Built-in source drills always use recording slot one. Show that slot
+ // explicitly instead of leaving the UI focused on an empty user slot.
+ if(practice.stats().drill!=='free')$('dummy-slot').value='0';
  $('dummy-mode').value=practice.stats().mode;
  const selected=HUNT_PRACTICE_DRILLS.find(x=>x.id===practice.stats().drill);
  $('drill-help').textContent=selected.id==='free'?
