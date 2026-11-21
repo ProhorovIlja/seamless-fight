@@ -91,3 +91,12 @@ func set_visual_stage(requested: String) -> bool:
 	backdrop.visible=requested=="reliquary"
 	site_backdrop.set_active(requested=="moonlit")
 	return true
+
+func begin_local_practice(bot_profile: String = "normal") -> bool:
+	return $Practice.start_training(bot_profile)
+
+func reset_local_practice() -> bool:
+	return $Practice.reset_rounds()
+
+func end_local_practice() -> void:
+	$Practice.stop_training()
