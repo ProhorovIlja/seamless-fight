@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/stage.gd" id="1_stage"]
 [ext_resource type="Script" path="res://scripts/native_controls.gd" id="2_controls"]
@@ -15,6 +15,7 @@
 [ext_resource type="Script" path="res://scripts/native_court_status.gd" id="13_court"]
 [ext_resource type="Script" path="res://scripts/native_hunt_practice.gd" id="14_hunt"]
 [ext_resource type="Script" path="res://scripts/native_hunt_controls.gd" id="15_hunt_controls"]
+[ext_resource type="Script" path="res://scripts/native_hunt_input_settings.gd" id="16_hunt_ui"]
 
 [node name="Stage" type="Node3D"]
 script = ExtResource("1_stage")
@@ -47,6 +48,9 @@ script = ExtResource("14_hunt")
 
 [node name="HuntControls" type="Node" parent="."]
 script = ExtResource("15_hunt_controls")
+
+[node name="HuntInputSettings" type="CanvasLayer" parent="."]
+script = ExtResource("16_hunt_ui")
 
 [node name="InputSettings" type="CanvasLayer" parent="."]
 script = ExtResource("5_settings")

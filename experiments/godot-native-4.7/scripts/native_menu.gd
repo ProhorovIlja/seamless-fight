@@ -147,7 +147,17 @@ func _build() -> void:
 	divider.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	divider.custom_minimum_size=Vector2(650,28)
 	column.add_child(divider)
-	column.add_child(_label("SOLO TRAINING",18,GOLD))
+
+	column.add_child(_label("HUNT V3 · ORIGINAL COMBAT RESEARCH",18,GOLD))
+	column.add_child(_label("Offline only · 60 Hz C++ · No ranked or online Hunt yet",14,MUTED))
+	var hunt_start:=_button("Begin Hunt v3 practice")
+	hunt_start.name="BeginHuntPractice"
+	hunt_start.pressed.connect(_start_hunt)
+	var hunt_controls:=_button("Hunt v3 keybinds")
+	hunt_controls.name="HuntBindings"
+	hunt_controls.pressed.connect(func(): get_parent().get_node("HuntInputSettings").open_settings())
+	_action_row(column,[hunt_start,hunt_controls])
+	column.add_child(_label("SOLO TRAINING · LEGACY SIDE/1",18,GOLD))
 	training=OptionButton.new()
 	training.name="TrainingDifficulty"
 	for difficulty in ["Passive dummy","Easy","Normal","Hard"]:
@@ -286,6 +296,15 @@ func _toggle_scenery(yes: bool) -> void:
 	if not ok:
 		status.text="Stage artwork unavailable; original painting retained."
 
+func _start_hunt() -> void:
+	if not get_parent().begin_native_hunt_practice("pressure",0,1):
+		status.text="Hunt v3 C++ training unavailable or another session is active."
+		return
+	active_mode="hunt"
+	resume_button.disabled=false
+	status.text="Experimental Hunt v3 · 1v1 offline · All action bindings available."
+	visible=false
+
 func _start_training() -> void:
 	var profile: String=["passive","easy","normal","hard"][training.selected]
 	if get_parent().get_node("Online").online:
@@ -300,24 +319,24 @@ func _start_training() -> void:
 	visible=false
 
 func _rewind_training() -> void:
-	var practice: Node=get_parent().get_node("Practice")
+	var practice: Node=get_parent().get_node("HuntPractice") if active_mode=="hunt" else get_parent().get_node("Practice")
 	if not practice.rewind_frames(60):
 		status.text="Need 60 frames of native practice history. Offline only."
 		return
 	status.text="Rewound 60 ticks, paused. Advance one frame or resume with F1."
 
 func _advance_training() -> void:
-	var practice: Node=get_parent().get_node("Practice")
+	var practice: Node=get_parent().get_node("HuntPractice") if active_mode=="hunt" else get_parent().get_node("Practice")
 	if not practice.advance_one_frame():
 		status.text="First rewind or pause active local training."
 		return
 	status.text="Advanced exactly one deterministic C++ simulation tick."
 
 func _restart_training() -> void:
-	if not get_parent().reset_local_practice():
+	if not (get_parent().get_node("HuntPractice").reset_training() if active_mode=="hunt" else get_parent().reset_local_practice()):
 		status.text="Start training before restarting the round."
 		return
-	get_parent().get_node("Practice").pause_training()
+	(get_parent().get_node("HuntPractice") if active_mode=="hunt" else get_parent().get_node("Practice")).pause_training()
 	status.text="Native fight and checkpoint timeline reset to the start."
 
 func _record_dummy() -> void:
@@ -337,6 +356,16 @@ func _play_dummy() -> void:
 	status.text="Dummy now repeats your input tape, horizontally mirrored. No AI learning."
 
 func _inspect_training() -> bool:
+	if get_parent().get_node("HuntPractice").active:
+		var hunt: Node=get_parent().get_node("HuntPractice")
+		var hero: Dictionary=hunt.get_frame_meter(0)
+		var foe: Dictionary=hunt.get_frame_meter(1)
+		practice_details.text="HUNT V3 · 60 Hz native" + 		  "\nHunter: %s · %s %dF, %dS %dA %dR" % [
+		  str(hero.get("action","")),str(hero.get("phase","idle")),int(hero.get("age",0)),
+		  int(hero.get("startup",0)),int(hero.get("active",0)),int(hero.get("recovery",0))] + 		  "\nDummy: %s · %s %dF" % [
+		  str(foe.get("action","")),str(foe.get("phase","idle")),int(foe.get("age",0))]
+		return true
+
 	var practice: Node=get_parent().get_node("Practice")
 	if not practice.active:
 		practice_details.text="Begin offline training to inspect frame phases and 60Hz inputs."
@@ -442,8 +471,8 @@ func _copy_invite() -> void:
 		status.text="Room invitation copied. It is not an account credential."
 
 func _resume() -> void:
-	if active_mode=="training":
-		var practice: Node=get_parent().get_node("Practice")
+	if active_mode in ["training","hunt"]:
+		var practice: Node=get_parent().get_node("HuntPractice") if active_mode=="hunt" else get_parent().get_node("Practice")
 		if practice.active:
 			practice.resume_training()
 	elif active_mode in ["online","spectate"]:
@@ -456,6 +485,7 @@ func _resume() -> void:
 
 func _leave() -> void:
 	get_parent().end_local_practice()
+	get_parent().end_native_hunt_practice()
 	get_parent().disconnect_private_1v1()
 	active_mode=""
 	room_code=""
@@ -472,7 +502,7 @@ func _leave() -> void:
 	visible=true
 
 func _on_practice_stopped() -> void:
-	if active_mode=="training":
+	if active_mode in ["training","hunt"]:
 		active_mode=""
 		resume_button.disabled=true
 
@@ -480,12 +510,14 @@ func _input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo or event.keycode!=KEY_F1:
 		return
 	var settings: CanvasLayer=get_parent().get_node("InputSettings")
-	if settings.visible or get_parent().get_node("GraphicsSettings").visible:
+	if settings.visible or get_parent().get_node("GraphicsSettings").visible or get_parent().get_node("HuntInputSettings").visible:
 		return
 	if visible:
 		_resume()
 	else:
 		visible=true
-		if active_mode=="training":
+		if active_mode=="hunt":
+			get_parent().get_node("HuntPractice").pause_training()
+		elif active_mode=="training":
 			get_parent().get_node("Practice").pause_training()
 	get_viewport().set_input_as_handled()

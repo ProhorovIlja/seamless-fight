@@ -122,6 +122,22 @@ func rewind_frames(frames: int) -> bool:
 	get_parent().last_confirmed_tick=-1
 	return _publish_state()
 
+func pause_training() -> bool:
+	if not active:return false
+	paused=true
+	set_physics_process(false)
+	return true
+
+func resume_training() -> bool:
+	if not active:return false
+	paused=false
+	set_physics_process(not last_state.get("over",false))
+	return true
+
+func advance_one_frame() -> bool:
+	if not active or not paused or last_state.get("over",false):return false
+	return step_manual([0,0,0,0],_dummy_input())
+
 func available_history_frames() -> int:
 	return maxi(0,int(last_state.get("tick",0))-first_retained_tick) if active else 0
 
@@ -149,7 +165,7 @@ func _physics_process(_delta: float) -> void:
 	var menu: CanvasLayer=get_parent().get_node("NativeMenu")
 	var settings: CanvasLayer=get_parent().get_node("InputSettings")
 	var graphics: CanvasLayer=get_parent().get_node("GraphicsSettings")
-	if menu.visible or settings.visible or graphics.visible:
+	if menu.visible or settings.visible or graphics.visible or get_parent().get_node("HuntInputSettings").visible:
 		return
 	var source_input: Array=get_parent().get_node("HuntControls").encoded_input()
 	# Every Hunt v3 verb is remappable; no legacy block or action translation.
