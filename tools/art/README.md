@@ -59,11 +59,11 @@ Create `artifacts/` first. The generator documents every authored move's startup
 
 ## Bloodborne-first Hunt v2 animation shot list (separate research pipeline)
 
-For the current experimental `sf-hunt-lab/2` source, build an exact 60 Hz list of all required authored animations for both original weapons:
+For the current experimental `sf-hunt-lab/3` source, build an exact 60 Hz list of all required authored animations for both original weapons:
 
 ```sh
 mkdir -p artifacts
-node tools/art/export-hunt-animation-brief.mjs > artifacts/hunt-animations-v2.json
+node tools/art/export-hunt-animation-brief.mjs > artifacts/hunt-animations-v3.json
 ```
 
-This inventories the **aerial firearm and gun-parry cues**, paired visceral attacker/victim choreography, charged heavy, neutral and attack-linked transformations, grounded Blood Vial use, blood-bullet ritual, stagger, and ordinary action phases, with explicit deterministic frame windows. The research rules use **one jump** and *optional* air-step (off in default duels), no conventional block/grabs. `test/hunt-animation-brief.test.mjs` checks provenance of every timing value against the actual action table. As before, this generates JSON metadata, **not professional 3D art, a new Godot animation runtime or licensed motion capture**. Both existing 3D character sockets remain empty until independently validated authored GLB rigs and clips arrive.
+This inventories the **aerial firearm and gun-parry cues**, paired visceral attacker/victim choreography, charged heavy, neutral and attack-linked transformations, grounded Blood Vial use, blood-bullet ritual, stagger, and ordinary action phases, with explicit deterministic frame windows. The current research rules use **one jump and no air-step anywhere**, no conventional block/grabs. Ordinary hitstun can end in a costly grounded quickstep only after the prescribed initial lockout, whereas a true parry/visceral stagger remains punishable. `test/hunt-animation-brief.test.mjs` checks provenance of every timing value against the actual action table. As before, this generates JSON metadata, **not professional 3D art, a new Godot animation runtime or licensed motion capture**. Both existing 3D character sockets remain empty until independently validated authored GLB rigs and clips arrive.
