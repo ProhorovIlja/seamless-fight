@@ -35,11 +35,15 @@ func _verify() -> void:
 		_fail("Cannot start scripted hard training profile")
 		return
 	practice.set_physics_process(false)
+	var nearest_x := 705.0
 	for n in range(580):
 		practice._physics_process(1.0/60.0)
+		nearest_x=minf(nearest_x,float(practice.last_state["p"][1]["x"]))
 	var hard: Dictionary=practice.last_state
-	if hard["tick"]<580 or hard["p"][1]["x"] >=705.0:
-		_fail("Hard mode never walked toward the hunter")
+	# Do not assert the FINAL x: the bot can win a round and be reset to its
+	# original spawn before tick 580. Assert that it really approached at least once.
+	if hard["tick"]<580 or nearest_x>=690.0:
+		_fail("Hard bot never approached the hunter during 580 native frames; min x="+str(nearest_x))
 		return
 	if hard["p"][0]["hp"]>100.0 or hard["p"][1]["hp"]>100.0:
 		_fail("Native game health exceeded bounded starting values")
