@@ -72,8 +72,18 @@ func _verify() -> void:
 		fail("Whiff arm appeared before active attack frames ended")
 		return
 	if not practice.step_manual([0,0,0,0],[0,0,0,0]) or \
-	 not hud.move_label.text.contains("WHIFF RECOVERY ARM: +22U"):
-		fail("Training-only HUD omitted actual missed-swing arm extension")
+	 not hud.move_label.text.contains("WHIFF RECOVERY ARM: +22U") or \
+	 not hud.move_label.text.contains("MISSED R2 / TRICK LOCK: 4F"):
+		fail("Training-only HUD omitted actual missed-swing arm and four-frame L1 lock")
+		return
+	for remaining in [3,2,1]:
+		if not practice.step_manual([0,0,0,0],[0,0,0,0]) or \
+		 not hud.move_label.text.contains("MISSED R2 / TRICK LOCK: "+str(remaining)+"F"):
+			fail("Godot whiff-R2 transform timing does not match source risk")
+			return
+	if not practice.step_manual([0,0,0,0],[0,0,0,0]) or \
+	 hud.move_label.text.contains("MISSED R2 / TRICK LOCK"):
+		fail("Godot R2 L1 lock did not end after four vulnerable recovery ticks")
 		return
 	if not practice.reset_training() or practice.last_state["tick"]!=0:
 		fail("Native window drill did not reset combat before baseline practice")
