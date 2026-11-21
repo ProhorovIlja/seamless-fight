@@ -12,6 +12,8 @@ const BACKDROP := "res://assets/reliquary-painted.webp"
 @onready var camera: Camera3D = $CombatCamera
 @onready var left_visual: Node3D = $Veil
 @onready var right_visual: Node3D = $Cinder
+@onready var site_backdrop: Node3D = $SiteBackdrop
+var active_visual_stage := "reliquary"
 
 var backdrop: MeshInstance3D
 var last_confirmed_tick: int = -1
@@ -80,4 +82,12 @@ func apply_authoritative_state(snapshot: Dictionary) -> bool:
 		visual.position = world_position(float(fighter["x"]), float(fighter["y"]))
 		visual.rotation.y = PI if int(fighter["dir"]) < 0 else 0.0
 	last_confirmed_tick = tick
+	return true
+
+func set_visual_stage(requested: String) -> bool:
+	if requested not in ["reliquary","moonlit"] or backdrop == null:
+		return false
+	active_visual_stage=requested
+	backdrop.visible=requested=="reliquary"
+	site_backdrop.set_active(requested=="moonlit")
 	return true
