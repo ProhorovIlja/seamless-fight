@@ -553,15 +553,78 @@ try{
   visceralLockTicks+=inputs.length;
  }
  assert.equal(visceralLockScenarios,4);
+ // 32 deliberate source/native attack-link probes: a heavy R2 that
+ // whiffed must remain punishable before it can become a fresh L1 hitbox.
+ // This is NOT a hit-confirm-only trick system: successfully connected
+ // heavies, light whiffs and charged Bloodborne-style chains keep routing.
+ let whiffMorphScenarios=0,whiffMorphTicks=0;
+ for(const weaponIndex of [0,1])for(const slot of [0,1])
+  for(const form of ['folded','unfurled'])
+   for(const variant of ['heavy-early','heavy-late','heavy-hit','light-whiff']){
+    const source=huntMatch({weapons:[WEAPONS[weaponIndex],WEAPONS[weaponIndex]]});
+    source.ready=0;
+    source.p[0].x=360;source.p[1].x=800;
+    source.p[0].vx=0;source.p[1].vx=0;
+    source.p[0].dir=1;source.p[1].dir=-1;
+    const attacker=source.p[slot],light=variant==='light-whiff';
+    attacker.form=form;attacker.act=form+(light?'Light':'Heavy');
+    const m=huntMoveSpec(attacker);
+    attacker.age=variant==='heavy-early'?m.startup+m.active+3:
+     variant==='heavy-late'?m.startup+m.active+4:
+     variant==='heavy-hit'?m.startup+m.active-1:m.startup+1;
+    attacker.spent=variant==='heavy-hit';
+    attacker.hitConfirmed=variant==='heavy-hit';
+    attacker.st=100;attacker.chain=1;
+    const inputs=Array.from({length:20},(_,t)=>{
+     const pair=[huntInput(),huntInput()];
+     if(t===0)pair[slot]={...huntInput(),act:'trick'};
+     return pair;
+    });
+    const scenario='--morph-p'+slot+'-'+form+'-'+variant;
+    const packet=weaponIndex+' '+weaponIndex+'\n'+inputs.map(pair=>pair.flatMap(
+     p=>[p.x,p.y,REQUEST[p.act],Number(p.guard)]).join(' ')).join('\n')+'\n';
+    const native=spawnSync(exe,[scenario],{input:packet,encoding:'utf8',
+     timeout:90000,maxBuffer:4*1024*1024});
+    assert.equal(native.status,0,'Native morph fixture '+scenario+': '+native.stderr);
+    const rows=native.stdout.trim().split('\n');
+    assert.equal(rows.length,inputs.length);
+    for(let t=0;t<inputs.length;t++){
+     huntStep(source,inputs[t]);
+     const fighter=source.p[slot];
+     if(t===0){
+      const mustStart=variant!=='heavy-early';
+      assert.equal(fighter.act=== (form==='folded'?'unfurl':'refold'),mustStart,
+       'Trick window for original '+variant+' '+scenario);
+     }
+     const values=rows[t].trim().split(/\s+/).map(Number);
+     assert.equal(values.length,totalFields);
+     let k=0;
+     const compare=(field,value)=>{
+      const actual=values[k++],expected=number(field,value);
+      if(!Number.isFinite(actual)||!Number.isFinite(expected)||
+         Math.abs(expected-actual)>1e-8)
+       throw Error('Native whiff morph mismatch '+scenario+' t='+t+
+        ' field='+field+' JS='+expected+' C++='+actual);
+      checks++;maxError=Math.max(maxError,Math.abs(expected-actual));
+     };
+     for(const field of GLOBAL)compare(field,source[field]);
+     compare('score0',source.score[0]);compare('score1',source.score[1]);
+     for(const player of source.p)
+      for(const field of FIELDS)compare(field,player[field]);
+    }
+    whiffMorphScenarios++;whiffMorphTicks+=inputs.length;
+   }
+ assert.equal(whiffMorphScenarios,32);
  assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0&&eventsSeen.visceral>0,
   'Trace missed core Hunt gameplay situations');
  console.log(JSON.stringify({result:'HUNT_V3_NATIVE_CPP_JS_PARITY_PASS',
-  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks+simultaneousFacingTicks+visceralOpeningTicks+visceralLockTicks,
+  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks+simultaneousFacingTicks+visceralOpeningTicks+visceralLockTicks+whiffMorphTicks,
   directedTradeScenarios,directedTradeTicks,limbScenarios,limbTicks,
   neutralFaceScenarios,neutralFaceTicks,
   simultaneousFacingScenarios,simultaneousFacingTicks,
   visceralOpeningScenarios,visceralOpeningTicks,
   visceralLockScenarios,visceralLockTicks,
+  whiffMorphScenarios,whiffMorphTicks,
   directedVisceral:true,directedTicks:trace.length,cornerCrossings:verifiedCornerCrossings,
   weaponPairs:PAIRS.length,fieldsPerTick:totalFields,fieldComparisons:checks,
   maxAbsoluteDifference:maxError,nativeRollbackChecks:rewinds,
