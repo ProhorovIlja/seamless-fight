@@ -1,0 +1,33 @@
+name: Godot 4.7.2 2.5D Renderer Spike
+on:
+  push:
+    branches: [feat/lantern-court]
+    paths:
+      - 'experiments/godot-4.7/**'
+      - '.github/workflows/godot-render-spike.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parse-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official MIT-licensed stable Godot 4.7.2 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 2 --max-time 150 --silent --show-error \
+            https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
+            --output "${RUNNER_TEMP}/godot.zip"
+          unzip -q "${RUNNER_TEMP}/godot.zip" -d "${RUNNER_TEMP}"
+          chmod +x "${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          "${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64" --headless --version
+      - name: Import and validate full Godot scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          "${GODOT}" --headless --path experiments/godot-4.7 --editor --import --quit
+          "${GODOT}" --headless --path experiments/godot-4.7 --script res://tests/verify_stage.gd --quit-after 240
