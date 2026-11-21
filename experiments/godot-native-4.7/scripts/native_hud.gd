@@ -1,4 +1,5 @@
 extends CanvasLayer
+const WireNumbers=preload("res://scripts/native_wire_numbers.gd")
 ## Display-only combat HUD in the website's charcoal/bone/old-gold language.
 ## Only consumes validated, complete 60Hz local or server-authoritative states.
 ## Never feeds gameplay decisions or changes the input tick.
@@ -159,8 +160,8 @@ func apply_snapshot(snapshot: Dictionary) -> bool:
 	if snapshot.get("rules","")!="seamless-side/1" or not snapshot.get("p") is Array:
 		return false
 	var players: Array=snapshot["p"]
-	var tick: Variant=snapshot.get("tick",-1)
-	if typeof(tick)!=TYPE_INT or int(tick)<0 or int(tick)<=last_tick or players.size()!=2:
+	var tick: int=WireNumbers.checked_nonnegative(snapshot.get("tick",-1),100000000)
+	if tick<0 or tick<=last_tick or players.size()!=2:
 		return false
 	for side in range(2):
 		if not players[side] is Dictionary:

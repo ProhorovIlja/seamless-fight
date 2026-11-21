@@ -1,4 +1,5 @@
 extends Node
+const WireNumbers=preload("res://scripts/native_wire_numbers.gd")
 ## Native Godot bridge to the existing UNRATED private side-view transport.
 ## Never evaluates untrusted match results or changes deterministic engine state.
 ## Native WebSocket Origin is a compatibility header, NOT authentication.
@@ -108,7 +109,7 @@ func _handle_message(message: Dictionary) -> void:
 		return
 	var kind: String = str(message.get("t", ""))
 	if kind == "room":
-		var new_slot: int = int(message.get("slot", -1))
+		var new_slot: int = WireNumbers.checked_nonnegative(message.get("slot",-1),1)
 		var new_code: String = str(message.get("code", ""))
 		var pattern := RegEx.create_from_string("^[A-Za-z0-9_-]{12}$")
 		if not [0, 1].has(new_slot) or pattern.search(new_code) == null:
@@ -127,14 +128,16 @@ func _handle_message(message: Dictionary) -> void:
 		var snapshot: Variant = message.get("s")
 		if not snapshot is Dictionary or snapshot.get("rules", "") != RULESET:
 			return
-		var tick: Variant = snapshot.get("tick")
-		if typeof(tick) != TYPE_INT or tick <= latest_tick or tick < 0:
+		var tick: int = WireNumbers.checked_nonnegative(snapshot.get("tick"),100000000)
+		if tick < 0 or tick <= latest_tick:
 			return
 		var players: Variant = snapshot.get("p")
 		if not players is Array or players.size() != 2:
 			return
 		latest_tick = tick
-		var ack: int = maxi(0, int(message.get("ack", 0)))
+		var ack: int = WireNumbers.checked_nonnegative(message.get("ack",0),2147480000)
+		if ack < 0:
+			return
 		var ev: Variant = message.get("events", [])
 		var events: Array = ev if ev is Array else []
 		authoritative_state.emit(snapshot, ack, events)

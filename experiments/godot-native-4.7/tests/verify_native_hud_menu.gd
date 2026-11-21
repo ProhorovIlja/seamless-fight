@@ -57,6 +57,20 @@ func _verify() -> void:
 	if hud.clock_label.text!="65" or hud.move_label.text.find("ACTIVE")==-1:
 		_fail("Real match clock or startup/active/recovery frames missing")
 		return
+	var json_snapshot: Variant=JSON.parse_string(JSON.stringify(mock))
+	json_snapshot["tick"]=2.0
+	json_snapshot["p"][0]["hp"]=70.0
+	if not stage.apply_authoritative_state(json_snapshot):
+		_fail("Real JSON-decoded integral float tick incorrectly rejected")
+		return
+	if hud.last_tick!=2 or hud.health[0].value!=70.0:
+		_fail("Valid network JSON snapshot did not update HUD")
+		return
+	var invalid_fraction: Dictionary=json_snapshot.duplicate(true)
+	invalid_fraction["tick"]=2.5
+	if stage.apply_authoritative_state(invalid_fraction) or hud.apply_snapshot(invalid_fraction):
+		_fail("Fractional network tick accepted after float validation")
+		return
 	if stage.apply_authoritative_state(mock) or hud.apply_snapshot(mock):
 		_fail("Duplicate combat tick accepted twice")
 		return
@@ -66,7 +80,7 @@ func _verify() -> void:
 	if hud.apply_snapshot(malformed):
 		_fail("HUD accepted out-of-range authoritative health")
 		return
-	if hud.last_tick!=1 or hud.health[0].value!=73.0:
+	if hud.last_tick!=2 or hud.health[0].value!=70.0:
 		_fail("Bad snapshot partially changed UI state")
 		return
 	hud.reset_mode("PRIVATE 1V1",false)

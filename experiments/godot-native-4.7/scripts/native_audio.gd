@@ -1,4 +1,5 @@
 extends Node
+const WireNumbers=preload("res://scripts/native_wire_numbers.gd")
 ## Deterministic-event-indexed, presentation-only native foley.
 ## Uses the same three provenanced Kenney CC0 Ogg files as the browser game.
 ## No borrowed music, voice performances or invented premium recordings.
@@ -106,9 +107,9 @@ func accept_events(events: Array, confirmed_tick: int) -> int:
 	var count := 0
 	var newest := last_event_tick
 	for entry in events.slice(0,MAX_EVENTS):
-		if not entry is Dictionary or typeof(entry.get("tick"))!=TYPE_INT:
+		if not entry is Dictionary:
 			continue
-		var tick: int=entry["tick"]
+		var tick: int=WireNumbers.checked_nonnegative(entry.get("tick"),100000000)
 		if tick<=last_event_tick or tick>confirmed_tick or tick<0:
 			continue
 		var kind: String=str(entry.get("kind",""))

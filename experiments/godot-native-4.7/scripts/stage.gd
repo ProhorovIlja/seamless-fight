@@ -1,4 +1,5 @@
 extends Node3D
+const WireNumbers=preload("res://scripts/native_wire_numbers.gd")
 ## Rendering-engine spike. Godot is a read-only visual client for authoritative
 ## 960x540 world snapshots; game rules and collision remain on the JS server.
 ## No placeholder boxes or low-poly human models are shown as final art.
@@ -60,15 +61,15 @@ func _valid_fighter(data: Variant) -> bool:
 			return false
 	var x := float(data["x"])
 	var y := float(data["y"])
-	var direction := int(data["dir"])
+	var direction: int=WireNumbers.checked_direction(data["dir"])
 	return is_finite(x) and is_finite(y) and x >= 0.0 and x <= WORLD_WIDTH and 		y >= -500.0 and y <= FLOOR_PX and abs(direction) == 1
 
 func apply_authoritative_state(snapshot: Dictionary) -> bool:
 	if snapshot.get("rules", "") != RULESET:
 		return false
-	if typeof(snapshot.get("tick")) != TYPE_INT:
+	var tick: int=WireNumbers.checked_nonnegative(snapshot.get("tick"),100000000)
+	if tick<0:
 		return false
-	var tick: int = snapshot["tick"]
 	if tick <= last_confirmed_tick or tick < 0:
 		return false
 	var players: Variant = snapshot.get("p")
@@ -80,7 +81,7 @@ func apply_authoritative_state(snapshot: Dictionary) -> bool:
 		var visual: Node3D = left_visual if i == 0 else right_visual
 		var fighter: Dictionary = players[i]
 		visual.position = world_position(float(fighter["x"]), float(fighter["y"]))
-		visual.rotation.y = PI if int(fighter["dir"]) < 0 else 0.0
+		visual.rotation.y = PI if WireNumbers.checked_direction(fighter["dir"]) < 0 else 0.0
 	last_confirmed_tick = tick
 	if $CombatHud.visible:
 		$CombatHud.apply_snapshot(snapshot)
