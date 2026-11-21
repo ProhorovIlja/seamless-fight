@@ -1,0 +1,23 @@
+name: Native C++ to JS Side-View Ruleset Parity
+on:
+  push:
+    branches: [feat/lantern-court]
+    paths:
+      - 'native/combat/**'
+      - 'scripts/native-combat-parity.mjs'
+      - 'public/side-engine.mjs'
+      - '.github/workflows/native-combat-parity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cpp-js-authority-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Cross-check portable C++ against canonical 60Hz JS simulation
+        run: node scripts/native-combat-parity.mjs
