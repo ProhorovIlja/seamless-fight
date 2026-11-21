@@ -21,7 +21,7 @@ const BINDINGS_KEY='sf-hunt-practice.browser-bindings.v2';
 const ACTION_LABELS=Object.freeze({
  left:'Move Left',right:'Move Right',jump:'Jump',down:'Down (SOCD only)',
  light:'Light Strike',heavy:'Heavy Strike',charge:'Charged Strike',
- trick:'Transform Weapon',shot:'Firearm',step:'Quickstep',visceral:'Visceral',
+ trick:'Transform Weapon',shot:'Firearm',step:'Dodge (directional quickstep / neutral backstep)',visceral:'Visceral',
  heal:'Heal',blood:'Create Blood Rounds',feint:'Feint',sync:'Follow-up'
 });
 const PAD_AXIS_TOKENS=['left-x-','left-x+','left-y-','left-y+',

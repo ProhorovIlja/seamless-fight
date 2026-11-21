@@ -47,6 +47,9 @@ test('real Node HTTP server exposes English-only interactive Hunt laboratory and
  assert.match(html,/ORIGINAL 1V1 · ENGLISH ONLY/);
  assert.match(html,/sf-hunt-lab\/3/);
  assert.match(html,/id="arena"/);
+ assert.match(html,/Neutral Shift backstep \(no i-frames\)/,
+  'practice controls must explain neutral dodge is NOT invulnerable');
+ assert.match(html,/Shift \+ direction quickstep \(i-frames\)/);
  assert.match(html,/id="dummy-mode"/);
  assert.match(html,/id="goal-progress"/);
  assert.match(html,/id="goal-description"/);
