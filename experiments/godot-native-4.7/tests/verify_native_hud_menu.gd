@@ -8,11 +8,11 @@ func _fail(message: String) -> void:
 	push_error("NATIVE_HUD_MENU_FAILURE: "+message)
 	quit(1)
 func _verify() -> void:
-	var stage := Stage.instantiate()
+	var stage: Variant = Stage.instantiate()
 	root.add_child(stage)
 	await process_frame
-	var menu: CanvasLayer=stage.get_node("NativeMenu")
-	var hud: CanvasLayer=stage.get_node("CombatHud")
+	var menu: Variant=stage.get_node("NativeMenu")
+	var hud: Variant=stage.get_node("CombatHud")
 	if not menu.visible or hud.visible:
 		_fail("Entry must show the menu and not a misleading active match HUD")
 		return

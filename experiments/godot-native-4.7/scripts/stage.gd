@@ -116,3 +116,9 @@ func disconnect_private_1v1() -> void:
 
 func current_invitation_code() -> String:
 	return $Online.transport.room_code
+
+func rewind_local_practice(frames: int=60) -> bool:
+	return $Practice.rewind_frames(frames)
+
+func advance_local_practice() -> bool:
+	return $Practice.advance_one_frame()

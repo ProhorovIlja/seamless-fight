@@ -123,6 +123,13 @@ func _build() -> void:
 	start.name="BeginTraining"
 	start.pressed.connect(_start_training)
 	_action_row(column,[start])
+	var rewind := _button("Rewind 60 frames")
+	rewind.pressed.connect(_rewind_training)
+	var forward := _button("Advance 1 frame")
+	forward.pressed.connect(_advance_training)
+	var restart := _button("Restart training")
+	restart.pressed.connect(_restart_training)
+	_action_row(column,[rewind,forward,restart])
 	column.add_child(_label("PRIVATE 1V1   ·   UNRATED",18,GOLD))
 	endpoint=_field("wss://host.example/fight/side/socket")
 	endpoint.name="ServerEndpoint"
@@ -191,6 +198,27 @@ func _start_training() -> void:
 	status.text="Offline "+profile+" training · F1 for menu, Esc for controls."
 	visible=false
 
+func _rewind_training() -> void:
+	var practice: Node=get_parent().get_node("Practice")
+	if not practice.rewind_frames(60):
+		status.text="Need 60 frames of native practice history. Offline only."
+		return
+	status.text="Rewound 60 ticks, paused. Advance one frame or resume with F1."
+
+func _advance_training() -> void:
+	var practice: Node=get_parent().get_node("Practice")
+	if not practice.advance_one_frame():
+		status.text="First rewind or pause active local training."
+		return
+	status.text="Advanced exactly one deterministic C++ simulation tick."
+
+func _restart_training() -> void:
+	if not get_parent().reset_local_practice():
+		status.text="Start training before restarting the round."
+		return
+	get_parent().get_node("Practice").pause_training()
+	status.text="Native fight and checkpoint timeline reset to the start."
+
 func _connect_private(code: String) -> void:
 	if active_mode=="training" or get_parent().get_node("Practice").active:
 		status.text="Leave training before connecting online."
@@ -232,7 +260,7 @@ func _resume() -> void:
 	if active_mode=="training":
 		var practice: Node=get_parent().get_node("Practice")
 		if practice.active:
-			practice.set_physics_process(true)
+			practice.resume_training()
 	elif active_mode=="online":
 		if not get_parent().get_node("Online").online:
 			status.text="Private room has disconnected."
@@ -268,5 +296,5 @@ func _input(event: InputEvent) -> void:
 	else:
 		visible=true
 		if active_mode=="training":
-			get_parent().get_node("Practice").set_physics_process(false)
+			get_parent().get_node("Practice").pause_training()
 	get_viewport().set_input_as_handled()

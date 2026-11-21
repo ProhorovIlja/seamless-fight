@@ -44,6 +44,26 @@ func _verify() -> void:
 	if hard["p"][0]["hp"]>100.0 or hard["p"][1]["hp"]>100.0:
 		_fail("Native game health exceeded bounded starting values")
 		return
+	if not practice.pause_training() or practice.available_history_frames()<120:
+		_fail("Native training history or pause missing")
+		return
+	if not stage.rewind_local_practice(120):
+		_fail("Could not load an actual 120-tick native checkpoint")
+		return
+	if practice.last_state["tick"]!=460 or not practice.paused:
+		_fail("Rewind did not seek to the correct historical frame and pause")
+		return
+	if not stage.advance_local_practice() or practice.last_state["tick"]!=461:
+		_fail("Single-frame advance failed or skipped a tick")
+		return
+	if not practice.resume_training():
+		_fail("Native trainer cannot resume from a historical checkpoint")
+		return
+	for n in range(119):
+		practice._physics_process(1.0/60.0)
+	if practice.last_state!=hard:
+		_fail("Replayed native training timeline diverged from deterministic original")
+		return
 	if not stage.reset_local_practice():
 		_fail("Cannot restart training from exact native reset")
 		return
