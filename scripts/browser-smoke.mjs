@@ -500,7 +500,23 @@ try{
  assert.equal(await hunt.locator('#dummy-mode').inputValue(),'passive');
  await hunt.locator('#drill').selectOption('parry-heal');
  assert.equal(await hunt.locator('#p1-health').getAttribute('style'),'width: 60%;');
- assert.match(await hunt.locator('#drill-help').textContent(),/Counter Vial Healing/);
+ assert.match(await hunt.locator('#drill option:checked').textContent(),/Counter Vial Healing/);
+ assert.equal(await hunt.locator('#drill option').count(),15,'all 15 genuine Hunt drills must appear');
+ assert.match(await hunt.locator('#goal-category').textContent(),/DEFENSE/);
+ assert.match(await hunt.locator('#goal-description').textContent(),/vial-healing/);
+ // Actual jump and missed weapon swing are observable without awarding fake
+ // objective victories for a passive player.
+ await hunt.locator('#drill').selectOption('anti-air');
+ await until(async()=>/Hunter 2.*jump/.test(await hunt.locator('#events').textContent()),
+   'source airborne practice dummy executes a real single jump');
+ assert.match(await hunt.locator('#goal-progress').textContent(),/0 confirmed · 1 observed/);
+ await hunt.locator('#drill').selectOption('whiff-punish');
+ await until(async()=>/0 confirmed · 1 observed/.test(await hunt.locator('#goal-progress').textContent()),
+   'source whiff punish drill observes one actually missed heavy');
+ await hunt.locator('#drill').selectOption('timing-read');
+ assert.equal(await hunt.locator('#dummy-mode').inputValue(),'random');
+ assert.match(await hunt.locator('#goal-category').textContent(),/READS & FOOTSIES/);
+ assert.match(await hunt.locator('#drill-help').textContent(),/real feint/);
  await hunt.screenshot({path:'artifacts/hunt-v3-offline-practice.png'});
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: legacy duels + authentic Hunt v3 60Hz English-only practice, dummy, frame meter and source-verified replay analysis.');
