@@ -4,6 +4,7 @@
 import {HUNT_HZ,HUNT_RULESET,HUNT_W,HUNT_FLOOR,huntInput}
  from './side-hunt-lab.mjs';
 import {huntPracticeSession,HUNT_PRACTICE_DRILLS} from './hunt-practice-suite.mjs';
+import {HUNT_TRAINING_GOALS} from './hunt-training-goals.mjs';
 import {huntPublicHud,huntActionName} from './hunt-identity.mjs';
 import {huntDeviceProfile,createHuntInputAdapter,HUNT_DEVICE_LAYOUTS,HUNT_BINDABLE,
  validateHuntDeviceProfile,rebindHuntDeviceProfile}
@@ -147,9 +148,18 @@ function reset(keepWeapons=true){
  if(practice.stats().drill!=='free')$('dummy-slot').value='0';
  $('dummy-mode').value=practice.stats().mode;
  const selected=HUNT_PRACTICE_DRILLS.find(x=>x.id===practice.stats().drill);
+ const objective=HUNT_TRAINING_GOALS[selected.id];
  $('drill-help').textContent=selected.id==='free'?
-  'Free Practice starts at neutral spacing. Record the dummy or select a source-based counter drill.':
-  selected.label+' · '+selected.spacing+'-unit starting distance · source-played action at tick '+(selected.startAt+1)+'. Respond with actual input; no scripted win or auto-parry.';
+  'Free Practice starts at neutral spacing. Record the dummy or select a source-based training scenario.':
+  objective.category+' · '+selected.spacing+'-unit starting distance. '+(
+   selected.id==='timing-read'?
+    'Two deterministic normal-input tapes alternate heavy commitment and real feint.':
+    selected.id==='anti-air'?
+    'The dummy jumps once using real directional inputs; counter without a universal air dash.':
+    ['hit-confirm','transform-pressure','blood-economy'].includes(selected.id)?
+    'Practice your own attacks and resources against a non-cheating passive opponent.':
+    'The dummy starts a real source action at tick '+(selected.startAt+1)+'.'
+  )+' No scripted successes.';
  before=practice.inspect();after=practice.inspect();
  clearInput();lastEventTick=-1;acc=0;
  updateHud();
@@ -193,6 +203,12 @@ function updateHud(){
    ' Crimson · '+f.vials+' Vials · Pursuit '+f.focus;
   showMeter(i);
  }
+ const goal=practice.goal();
+ $('goal-description').textContent=goal.goal;
+ $('goal-category').textContent=goal.category.toUpperCase();
+ $('goal-progress').textContent=goal.successes+' confirmed · '+goal.attempts+' observed';
+ $('goal-feedback').textContent=goal.status;
+ $('goal-progress').classList.toggle('completed',goal.completed);
  $('input-readout').textContent=
   'X '+lastFrame.x+' · Y '+lastFrame.y+' · '+huntActionName(lastFrame.act);
  const history=practice.inputHistory(14);
@@ -483,5 +499,20 @@ $('metrics').addEventListener('click',()=>{
   status('Analyzed '+data.observedFrames+' verified local simulation frames · UNRATED 1v1.');
  }catch(err){status('Local analysis failed: '+err.message);}
 });
+const categories=new Map();
+for(const drill of HUNT_PRACTICE_DRILLS){
+ const category=HUNT_TRAINING_GOALS[drill.id]?.category||'Open Practice';
+ if(!categories.has(category)){
+  const group=document.createElement('optgroup');
+  group.label=category;
+  categories.set(category,group);
+  $('drill').append(group);
+ }
+ const option=document.createElement('option');
+ option.value=drill.id;option.textContent=drill.label;
+ categories.get(category).append(option);
+}
+$('drill').querySelector('option[value="free"]').remove();
+$('drill').value='free';
 refreshControllerPicker();setControlFamily();updateHud();
 requestAnimationFrame(animate);
