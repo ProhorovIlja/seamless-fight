@@ -17,7 +17,8 @@ func _verify() -> void:
 	var required: Array[String]=rig.required_clips("mournweave")
 	if required.size()!=46 or not required.has("airShot") or required.has("airStep") or required.has("guard") or \
 	 not required.has("backstep") or not required.has("foldedBackstepLight") or \
-	 not required.has("unfurledBackstepLight"):
+	 not required.has("unfurledBackstepLight") or \
+	 not required.has("retreat") or required.has("crouch"):
 		_fail("Hunt v3 must require all 28 combat actions plus 18 shared original performances")
 		return
 	if not rig.required_clips("fake-weapon").is_empty():
@@ -70,6 +71,11 @@ func _verify() -> void:
 			clip.track_insert_key(track,0.25,Quaternion(Vector3.UP,0.14))
 	if not rig.validate_original_rig(actor,"mournweave").is_empty():
 		_fail("42-bone, 8000+ skinned vertices and all 46 keyed clip names rejected")
+		return
+	if rig._decide_clip({"act":"","y":436.0,"vx":-2.0,"dir":1})!="retreat" or \
+	 rig._decide_clip({"act":"","y":436.0,"vx":2.0,"dir":-1})!="retreat" or \
+	 rig._decide_clip({"act":"","y":436.0,"vx":2.5,"dir":1})!="run":
+		_fail("Footsies retreat gait did not respect authoritative 2.5D facing")
 		return
 	rig.animator=player
 	rig.bound_weapon="mournweave"
