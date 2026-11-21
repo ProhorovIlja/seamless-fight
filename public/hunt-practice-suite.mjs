@@ -157,7 +157,13 @@ export function huntPracticeSession({weapons,seed=1}={}){
  function load(capture){
   const imported=loadHuntReplay(capture);
   if(imported.getState().rules!==HUNT_RULESET)throw TypeError('Different Hunt rules');
-  replay=imported;state=replay.getState();history=[];events=[];paused=true;
+  // Imported playback is already integrity-checked, but the generic replay
+  // loader conservatively sizes maxFrames to the imported tape length. Rebuild
+  // it as a writable practice timeline so frame advance/takeover can continue.
+  const writable=createHuntReplay({initialState:capture.startState,
+   maxFrames:MAX_FRAMES,checkpointEvery:30});
+  for(const inputs of capture.frames)writable.append(inputs);
+  replay=writable;state=replay.getState();history=[];events=[];paused=true;
   mode='passive';recordingSlot=-1;playStart=state.tick;
   return true;
  }
