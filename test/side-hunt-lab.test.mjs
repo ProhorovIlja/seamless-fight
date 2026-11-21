@@ -281,3 +281,53 @@ test('no universal grab or block input, while timed firearm parry remains a sepa
  assert(HUNT_ACTIONS.includes('visceral'));
  assert.equal(s.options.allowAirStep,false);
 });
+
+
+test('airborne input actually selects firearm clip, consumes ammo, and obeys finite reserve',()=>{
+ const s=live(190),p=s.p[0],events=[];
+ p.y=HUNT_FLOOR-45;p.vy=0;p.ammo=1;
+ huntStep(s,[cmd('shot'),huntInput()],events);
+ assert.equal(p.act,'airShot');
+ assert.equal(p.ammo,0);
+ assert.equal(p.bloodAmmo,0);
+ assert(events.some(e=>e.kind==='action'&&e.move==='airShot'));
+ frames(s,70);
+ p.y=HUNT_FLOOR-40;p.vy=0;
+ huntStep(s,[cmd('shot'),huntInput()]);
+ assert.equal(p.act,'','air shooting cannot ignore an empty bullet pool');
+});
+
+test('heals and blood bullet creation cannot start while airborne',()=>{
+ for(const act of ['heal','blood']){
+  const s=live(150),p=s.p[0];
+  p.hp=60;p.y=HUNT_FLOOR-40;p.vy=0;
+  const startHp=p.hp,startVials=p.vials;
+  huntStep(s,[cmd(act),huntInput()]);
+  assert.equal(p.act,'');
+  assert.equal(p.hp,startHp);
+  assert.equal(p.vials,startVials);
+  assert.equal(p.bloodAmmo,0);
+ }
+});
+
+test('committed attacks and quicksteps each consume limited stamina',()=>{
+ const attack=live(160),a=attack.p[0];
+ huntStep(attack,[cmd('light'),huntInput()]);
+ assert.equal(a.st,100-HUNT_MOVES.foldedLight.cost);
+ const dodge=live(160),d=dodge.p[0];
+ huntStep(dodge,[cmd('step'),huntInput()]);
+ assert.equal(d.st,100-HUNT_MOVES.step.cost);
+ assert(a.st<100&&d.st<100);
+});
+
+test('gun-parried victim remains in hitstun and cannot cancel into immediate attack',()=>{
+ const s=live(),events=[],a=s.p[0],b=s.p[1];
+ a.act='shot';a.age=HUNT_MOVES.shot.startup;
+ b.act='foldedHeavy';b.age=HUNT_MOVES.foldedHeavy.startup-2;
+ huntStep(s,[huntInput(),huntInput()],events);
+ assert.equal(b.act,'stagger');
+ huntStep(s,[huntInput(),cmd('light')],events);
+ assert.equal(b.act,'stagger','visceral opening must remain punishable');
+ assert(b.exposed>0);
+ assert(!events.some(e=>e.kind==='action'&&e.actor===1&&e.move==='foldedLight'));
+});
