@@ -34,7 +34,7 @@ func validate_profile(data: Variant) -> Array[String]:
 
 func available_features() -> Dictionary:
 	var method := RenderingServer.get_current_rendering_method()
-	return {"native":true,"fsr1":true,"fsr2_2":method != "gl_compatibility",
+	return {"native":true,"fsr1":true,"fsr2_2":method == "forward_plus" or method == "mobile",
 		"dlss_4_5":false,"dlss_5":false,"fsr_4_1_2":false,
 		"xess_3":false,"nvidia_reflex":false,"amd_antilag2":false,
 		"intel_xell":false,"frame_generation":false}
