@@ -56,3 +56,14 @@ node tools/art/export-trick-animation-brief.mjs > artifacts/trick-animations-v3.
 ```
 
 Create `artifacts/` first. The generator documents every authored move's startup/active/recovery, world-space reach and vertical hit envelope, initial/final form, deterministic form-switch age, and separate full-body/grip/foot/cloth QA flags. The 60 Hz combat simulation remains authoritative; imported 3D clips must align with these windows rather than control physics. `test/trick-animation-brief.test.mjs` checks completeness and timing across both original weapons. This export is **not** an animated GLB, does not make the present native runtime support trick-lab v3, and does not establish that a single premium hunter or transformation clip already exists. Real authored Blender rigs, animation QA, licenses, native visual integration and hardware testing are still required.
+
+## Bloodborne-first Hunt v2 animation shot list (separate research pipeline)
+
+For the current experimental `sf-hunt-lab/2` source, build an exact 60 Hz list of all required authored animations for both original weapons:
+
+```sh
+mkdir -p artifacts
+node tools/art/export-hunt-animation-brief.mjs > artifacts/hunt-animations-v2.json
+```
+
+This inventories the **aerial firearm and gun-parry cues**, paired visceral attacker/victim choreography, charged heavy, neutral and attack-linked transformations, grounded Blood Vial use, blood-bullet ritual, stagger, and ordinary action phases, with explicit deterministic frame windows. The research rules use **one jump** and *optional* air-step (off in default duels), no conventional block/grabs. `test/hunt-animation-brief.test.mjs` checks provenance of every timing value against the actual action table. As before, this generates JSON metadata, **not professional 3D art, a new Godot animation runtime or licensed motion capture**. Both existing 3D character sockets remain empty until independently validated authored GLB rigs and clips arrive.
