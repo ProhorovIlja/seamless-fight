@@ -51,6 +51,19 @@ int main(int argc,char**argv){
    const Spec victim=spec(s.p[1].weapon,UNFURLED_HEAVY);
    s.p[1].age=victim.startup+victim.active;
    s.p[1].spent=previous_hit;
+  }else if(scenario=="--attack-facing-p0-left"||scenario=="--attack-facing-p0-right"||
+           scenario=="--attack-facing-p1-left"||scenario=="--attack-facing-p1-right"){
+   // Both inputs are simultaneous. At 1U separation the neutral walker
+   // would traverse the other body's START position before its heavy R2.
+   // The attack's direction must be chosen from PRE-frame positions for
+   // either player slot, independent of drive() call order.
+   s.ready=0;
+   const bool heavy_p1=scenario.find("-p1-")!=std::string::npos;
+   const bool heavy_left=scenario.find("-left")!=std::string::npos;
+   const int attacker=heavy_p1?1:0;
+   s.p[attacker].x=heavy_left?479.5:480.5;
+   s.p[1-attacker].x=heavy_left?480.5:479.5;
+   s.p[0].vx=0;s.p[1].vx=0;
   }else if(scenario=="--face-cross-p0"||scenario=="--face-cross-p1"){
    // Directed parity: at almost zero spacing a neutral hunter TRIES
    // to walk through the opponent, but the solid body solver must preserve
