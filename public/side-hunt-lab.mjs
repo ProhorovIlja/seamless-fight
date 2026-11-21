@@ -439,12 +439,15 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  // Collision resumes immediately when the dodge window closes.
  const forwardStep=p=>p.act==='step'&&p.age>=1&&p.age<7&&p.vx*p.dir>0;
  if(!forwardStep(a)&&!forwardStep(b)&&Math.abs(a.y-b.y)<55&&Math.abs(a.x-b.x)<38){
-  // Respect pre-movement body order. Using the NEW x order here allows a
-  // neutral walk to tunnel through an opponent at sub-frame overlap, a
-  // free cross-up/corner escape in an otherwise no-block 2.5D fighter.
-  // Real airborne overhead paths and i-frame forward steps still cross.
-  const dir=beforeX[0]<=beforeX[1]?-1:1,d=(38-Math.abs(a.x-b.x))/2;
-  a.x=clamp(a.x+dir*d,65,HUNT_W-65);b.x=clamp(b.x-dir*d,65,HUNT_W-65);
+  // Solve to an exact 38-unit physical body gap with the ORIGINAL
+  // left/right order. Taking the post-drive order would let ordinary
+  // walking tunnel through an opponent (a free corner cross-up), and
+  // halving penetration at the arena edge leaves bodies overlapping.
+  // True i-frame through-steps and jumps above collision height are exempt.
+  const center=(a.x+b.x)/2;
+  const left=clamp(center-19,65,HUNT_W-65-38),right=left+38;
+  if(beforeX[0]<=beforeX[1]){a.x=left;b.x=right;}
+  else{a.x=right;b.x=left;}
  }
  // An idle hunter must face the FINAL opponent position after simultaneous
  // movement/body separation. Reusing the opponent's partially updated
