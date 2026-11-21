@@ -9,6 +9,7 @@ const DARK := Color("#0c0f15")
 const PANEL := Color(0.055,0.063,0.080,0.98)
 const BORDER := Color("#6c583b")
 var status: Label
+var practice_details: Label
 var join_code: LineEdit
 var endpoint: LineEdit
 var origin: LineEdit
@@ -147,6 +148,13 @@ func _build() -> void:
 	var replay := _button("Replay dummy loop")
 	replay.pressed.connect(_play_dummy)
 	_action_row(column,[record,finish,replay])
+	var inspect_frames := _button("Frame data / input log")
+	inspect_frames.name="InspectTrainingFrames"
+	inspect_frames.pressed.connect(_inspect_training)
+	_action_row(column,[inspect_frames])
+	practice_details=_label("Training frame information appears here after a native match starts.",14,MUTED)
+	practice_details.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	column.add_child(practice_details)
 	column.add_child(_label("PRIVATE 1V1   ·   UNRATED",18,GOLD))
 	endpoint=_field("wss://host.example/fight/side/socket")
 	endpoint.name="ServerEndpoint"
@@ -273,6 +281,31 @@ func _play_dummy() -> void:
 		status.text="Record at least one active-gameplay frame first."
 		return
 	status.text="Dummy now repeats your input tape, horizontally mirrored. No AI learning."
+
+func _inspect_training() -> bool:
+	var practice: Node=get_parent().get_node("Practice")
+	if not practice.active:
+		practice_details.text="Begin offline training to inspect frame phases and 60Hz inputs."
+		return false
+	var actor: Dictionary=practice.get_frame_meter(0)
+	var foe: Dictionary=practice.get_frame_meter(1)
+	if actor.is_empty() or foe.is_empty():
+		practice_details.text="Training frame data unavailable."
+		return false
+	var trace: Array=practice.get_input_trace(5)
+	var input_text := "No recorded inputs"
+	if not trace.is_empty():
+		var last: Dictionary=trace.back()
+		input_text="Last tick %d: player %s | dummy %s" % [int(last["tick"]),str(last["player"]),str(last["dummy"])]
+	practice_details.text=("LEGACY C++ TRAINING · seamless-side/1, NOT Hunt v3" +
+		"\nPlayer: %s  %s  %dF  (%dS / %dA / %dR), remaining %dF" % [
+			str(actor["action"]),str(actor["phase"]),int(actor["age"]),
+			int(actor["startup"]),int(actor["active"]),int(actor["recovery"]),int(actor["remaining"])] +
+		"\nDummy: %s  %s  %dF  (%dS / %dA / %dR)" % [
+			str(foe["action"]),str(foe["phase"]),int(foe["age"]),
+			int(foe["startup"]),int(foe["active"]),int(foe["recovery"])] +
+		"\n"+input_text)
+	return true
 
 func _connect_private(code: String) -> void:
 	if active_mode=="training" or get_parent().get_node("Practice").active:
