@@ -3,7 +3,7 @@
 import {HUNT_ACTIONS,HUNT_RULESET,HUNT_WEAPONS} from './side-hunt-lab.mjs';
 export const HUNT_IDENTITY_SCHEMA='sf-hunt-identity/1';
 export const HUNT_WORKING_TITLE='Seamless Fight';
-export const HUNT_PUBLIC_LOCALES=Object.freeze(['en','ru']);
+export const HUNT_PUBLIC_LOCALES=Object.freeze(['en']);
 const copy={
  en:{
   title:'Seamless Fight',tagline:'The night remembers every duel.',
@@ -41,58 +41,47 @@ const copy={
   noticeAssetReview:'Original or properly licensed assets only.',
   noticeRollback:'Rollback verification is required for competitive play.',
   noticeTesting:'Controller compatibility requires actual hardware testing.',
-  noticeLoading:'Preparing the court'
+  noticeLoading:'Preparing the court',
+  mode1v1:'1v1 Only',modeTeamsUnavailable:'Team combat is not part of this game.',
+  launcherTitle:'The Court',launcherOnline:'Online Connections',
+  launcherDuels:'Live Duels',launcherWatch:'Watch Live Duels',
+  launcherLobbies:'Open Galleries',launcherPractice:'Practice Offline',
+  launcherGuest:'Guest Session',launcherAccount:'Account',
+  launcherUnverified:'Online identity unavailable',
+  launcherPending:'Not Connected',launcherConnection:'Connection Status',
+  lobbyTitle:'Duel Lobbies',lobbyHost:'Host Private Duel',
+  lobbyJoin:'Join Duel',lobbyWatch:'Spectate',lobbyVisibility:'Gallery Visibility',
+  lobbyPublic:'Public Spectating',lobbyPrivate:'Invite Only',
+  lobbyEmpty:'No publicly shared duels right now.',
+  lobbySpectators:'Spectators',lobbyFighters:'Fighters',
+  lobbyRoom:'Duel Room',lobbyWaiting:'Waiting for Opponent',
+  lobbyInProgress:'In Progress',lobbyFinished:'Match Complete',
+  lobbyInvite:'Share Invitation',lobbyCopy:'Copy Link',
+  socialFriends:'Friends',socialAddFriend:'Add Friend',
+  socialInvite:'Invite Friend',socialWatchFriend:'Watch Friend',
+  socialOnline:'Online',socialAway:'Away',socialOffline:'Offline',
+  socialBlocked:'Blocked',socialPrivacy:'Privacy',
+  socialUnavailable:'Friend accounts are not connected in this build.',
+  rankedLeaderboard:'Ranked Leaderboard',rankedNoData:'No verified ranked results available.',
+  rankedStats:'Player Statistics',rankedPending:'Ranked Play Not Available',
+  rankedWins:'Wins',rankedLosses:'Losses',rankedMatches:'Matches Played',
+  rankedRating:'Skill Rating',rankedSeason:'Season',
+  rankedWinrate:'Win Rate',rankedStreak:'Win Streak',
+  rankedHistory:'Match History',rankedProvisional:'Unrated Preview',
+  privacyFriendsOnly:'Friends Only',privacyPublic:'Public',
+  privacyInviteOnly:'Invite Link Required',
+  noticeConnections:'Connected clients, not verified unique players.',
+  noticeLegacy:'Legacy duel rules are active; Hunt v3 is not yet online.',
+  noticeNoFakeRanks:'Leaderboard data requires a verified ranked account service.'
  },
- ru:{
-  title:'Seamless Fight',tagline:'Ночь помнит каждую дуэль.',
-  modeDuel:'Дуэль',modeTraining:'Тренировка',modeSpectate:'Наблюдение',
-  ready:'Суд ожидает',round:'Раунд',victory:'Дуэль завершена',
-  playerOne:'Первый охотник',playerTwo:'Второй охотник',
-  life:'Здоровье',stamina:'Выносливость',ammo:'Серебряные патроны',
-  bloodAmmo:'Багряные патроны',vials:'Лечебные флаконы',
-  rally:'Возврат здоровья',focus:'Преследование',visceral:'Разрывающий удар',
-  parry:'Контрудар выстрелом',rearStagger:'Оглушение со спины',
-  hitstun:'Оглушение',stagger:'Открыт для удара',whiff:'Промах',
-  intro:'Выход на арену',outro:'Уход с арены',taunts:'Жесты',
-  weaponMournweave:'Морнвейв',weaponThornwake:'Торнвейк',
-  formFolded:'Сложенное',formUnfurled:'Развёрнутое',
-  practiceRecord:'Запись манекена',practiceReplay:'Повтор записи',
-  practiceReversal:'Ответное действие',practiceStep:'Следующий кадр',
-  practiceRewind:'Перемотка',practiceFrameData:'Фреймдата',
-  practiceInputHistory:'История ввода',practiceReset:'Перезапуск',
-  practiceFrameStartup:'Подготовка',practiceFrameActive:'Активные кадры',
-  practiceFrameRecovery:'Восстановление',practiceTick:'Кадр симуляции',
-  practiceCounterWindow:'Окно парирования',practiceDodgeEscape:'Выход уклонением',
-  audioMaster:'Общая громкость',audioEffects:'Эффекты',audioMusic:'Музыка',
-  audioVoices:'Голоса',audioDynamicRange:'Динамический диапазон',
-  videoFramerate:'Частота отображения',videoVsync:'Вертикальная синхронизация',
-  videoMotion:'Уменьшение движения камеры',videoFrameGraph:'График времени кадра',
-  inputKeyboard:'Клавиатура и мышь',inputController:'Геймпад',
-  inputFightstick:'Аркадный стик',inputLeverless:'Безрычажный контроллер',
-  inputFightpad:'Файтпад',inputAccessible:'Адаптивный ввод',
-  inputRebind:'Переназначение управления',inputSocd:'Противоположные направления: нейтраль',
-  onlinePrivate:'Закрытая дуэль',onlineUnrated:'Без рейтинга',
-  onlineRanked:'Рейтинговый режим (недоступен)',
-  noticeNotNative:'Эксперимент Hunt; интеграция с Windows ещё не готова.',
-  noticeUnavailable:'Эта функция пока недоступна.',
-  noticeNoRig:'Оригинальная модель охотника не прошла проверку.',
-  noticeAssetReview:'Только оригинальные или лицензированные материалы.',
-  noticeRollback:'Для рейтинговых боёв требуется проверка rollback.',
-  noticeTesting:'Совместимость контроллера требует проверки на устройстве.',
-  noticeLoading:'Подготовка арены'
- }
+
+
 };
 const ACTION_NAMES={
  light:'Light Strike',heavy:'Heavy Strike',charge:'Charged Strike',
  trick:'Transform Arm',shot:'Fire',step:'Quickstep',
  feint:'Feint',sync:'Follow-up',visceral:'Rending Strike',
  heal:'Use Vial',blood:'Create Crimson Rounds'
-};
-const ACTION_NAMES_RU={
- light:'Лёгкий удар',heavy:'Тяжёлый удар',charge:'Заряженный удар',
- trick:'Трансформация оружия',shot:'Выстрел',step:'Уклонение',
- feint:'Обманное движение',sync:'Продолжение комбо',visceral:'Разрывающий удар',
- heal:'Использовать флакон',blood:'Создать багряные патроны'
 };
 export const HUNT_COPY=Object.freeze(Object.fromEntries(
  Object.entries(copy).map(([locale,strings])=>[locale,Object.freeze({...strings})])));
@@ -104,8 +93,8 @@ export function huntText(key,locale='en'){
 export function huntActionName(action,locale='en'){
  if(!HUNT_PUBLIC_LOCALES.includes(locale))throw TypeError('Unsupported locale');
  if(!HUNT_ACTIONS.includes(action))throw RangeError('Unknown combat action');
- if(!action)return locale==='ru'?'Нет действия':'Neutral';
- return (locale==='ru'?ACTION_NAMES_RU:ACTION_NAMES)[action];
+ if(!action)return 'Neutral';
+ return ACTION_NAMES[action];
 }
 export function huntPublicHud(state,slot=0,locale='en'){
  if(state?.rules!==HUNT_RULESET||!Array.isArray(state.p)||![0,1].includes(slot))
