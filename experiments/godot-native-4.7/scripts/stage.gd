@@ -107,6 +107,35 @@ func set_visual_stage(requested: String) -> bool:
 	site_backdrop.set_active(requested=="moonlit")
 	return true
 
+## Developer-only, unrated source-valid Hunt v3 isolated from old online side/1.
+## Separate native 3D animation rig and production network adapter are pending.
+func begin_native_hunt_practice(profile: String="passive",left_weapon: int=0,right_weapon: int=1) -> bool:
+	return $HuntPractice.start_training(profile,left_weapon,right_weapon)
+
+func end_native_hunt_practice() -> void:
+	$HuntPractice.stop_training()
+
+func apply_native_hunt_state(snapshot: Dictionary,frame_meter: Dictionary) -> bool:
+	if not $HuntPractice.active or $Online.online or snapshot.get("rules","")!="sf-hunt-lab/3":
+		return false
+	var tick: int=WireNumbers.checked_nonnegative(snapshot.get("tick"),100000000)
+	var players: Variant=snapshot.get("p")
+	if tick<0 or tick<=last_confirmed_tick or not players is Array or players.size()!=2:
+		return false
+	if not _valid_fighter(players[0]) or not _valid_fighter(players[1]):
+		return false
+	for slot in range(2):
+		var visual: Node3D=left_visual if slot==0 else right_visual
+		var fighter: Dictionary=players[slot]
+		visual.position=world_position(float(fighter["x"]),float(fighter["y"]))
+		visual.rotation.y=PI if int(fighter["dir"])<0 else 0.0
+		# Do not mislabel original side/1 animation clips as Hunt v3 animations.
+		# Source clips must be installed into separate validated Hunt rig sockets.
+	if not $CombatHud.apply_hunt_snapshot(snapshot,frame_meter):
+		return false
+	last_confirmed_tick=tick
+	return true
+
 func begin_local_practice(bot_profile: String = "normal") -> bool:
 	return $Practice.start_training(bot_profile)
 
@@ -120,12 +149,12 @@ func end_local_practice() -> void:
 func connect_private_1v1(endpoint: String, origin: String, code: String="", arena: String="reliquary") -> bool:
 	# Native fixed 2.5D renderer can display actual authoritative 1v1 matches.
 	# Never enable rated matchmaking or network rollback in this prototype.
-	if $Practice.active:
+	if $Practice.active or $HuntPractice.active:
 		return false
 	return $Online.open_room(endpoint,origin,code,arena)
 
 func spectate_public_1v1(endpoint: String, origin: String, watch_code: String) -> bool:
-	if $Practice.active:
+	if $Practice.active or $HuntPractice.active:
 		return false
 	return $Online.open_spectator(endpoint,origin,watch_code)
 

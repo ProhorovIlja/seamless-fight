@@ -35,6 +35,7 @@ protected:
   ClassDB::bind_method(D_METHOD("select_weapons","left","right"),&SFHuntCombat::select_weapons);
   ClassDB::bind_method(D_METHOD("step_encoded","ax","ay","aa","ag","bx","by","ba","bg"),&SFHuntCombat::step_encoded);
   ClassDB::bind_method(D_METHOD("get_tick"),&SFHuntCombat::get_tick);
+  ClassDB::bind_method(D_METHOD("get_move_frame_data","slot"),&SFHuntCombat::get_move_frame_data);
   ClassDB::bind_method(D_METHOD("save_checkpoint"),&SFHuntCombat::save_checkpoint);
   ClassDB::bind_method(D_METHOD("load_checkpoint","encoded"),&SFHuntCombat::load_checkpoint);
   ClassDB::bind_method(D_METHOD("get_state"),&SFHuntCombat::get_state);
@@ -55,6 +56,27 @@ public:
   return true;
  }
  int get_tick() const{return current.tick;}
+ Dictionary get_move_frame_data(int slot) const{
+  Dictionary result;
+  if(slot!=0&&slot!=1)return result;
+  const sf_hunt::Fighter&p=current.p[slot];
+  const sf_hunt::Spec timing=sf_hunt::spec(p.weapon,p.act);
+  result["rules"]="sf-hunt-lab/3";
+  result["weapon"]=HUNT_WEAPON_LABELS[p.weapon];
+  result["action"]=HUNT_ACTION_LABELS[p.act];
+  result["age"]=p.age;
+  result["startup"]=timing.startup;
+  result["active"]=timing.active;
+  result["recovery"]=timing.recovery;
+  result["cost"]=timing.cost;
+  result["reach"]=timing.reach;
+  result["damage"]=timing.damage;
+  result["remaining"]=std::max(0,sf_hunt::total(timing)-p.age);
+  result["phase"]=p.act==sf_hunt::NONE?"idle":
+    p.age<timing.startup?"startup":
+    p.age<timing.startup+timing.active?"active":"recovery";
+  return result;
+ }
  PackedByteArray save_checkpoint() const{
   const std::vector<uint8_t> bytes=sf_hunt::save_checkpoint(current);
   PackedByteArray result;

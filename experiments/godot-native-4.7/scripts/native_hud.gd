@@ -172,6 +172,51 @@ func frame_inspector_text(fighter: Dictionary) -> String:
 	var phase := "STARTUP" if age<startup else "ACTIVE" if age<startup+active else "RECOVERY"
 	return action.to_upper()+"  "+phase+"  "+str(age)+"f  |  Startup "+str(startup)+" / Active "+str(active)+" / Recovery "+str(recovery)
 
+func apply_hunt_snapshot(snapshot: Dictionary,frame_meter: Dictionary) -> bool:
+	if snapshot.get("rules","")!="sf-hunt-lab/3" or not snapshot.get("p") is Array:
+		return false
+	var players: Array=snapshot["p"]
+	var tick: int=WireNumbers.checked_nonnegative(snapshot.get("tick",-1),100000000)
+	if tick<0 or tick<=last_tick or players.size()!=2 or mode!="TRAINING":
+		return false
+	for side in range(2):
+		var fighter: Dictionary=players[side]
+		for field in ["hp","st","ammo","bloodAmmo","vials","focus","weapon","form"]:
+			if not fighter.has(field):
+				return false
+		if not is_finite(float(fighter["hp"])) or not is_finite(float(fighter["st"])):
+			return false
+		if float(fighter["hp"])<0 or float(fighter["hp"])>100 or float(fighter["st"])<0 or float(fighter["st"])>100:
+			return false
+		if int(fighter["ammo"])<0 or int(fighter["ammo"])>7 or int(fighter["bloodAmmo"])<0 or int(fighter["bloodAmmo"])>5:
+			return false
+	var score: Variant=snapshot.get("score",[])
+	if not score is Array or score.size()!=2:
+		return false
+	for side in range(2):
+		var fighter: Dictionary=players[side]
+		health[side].value=float(fighter["hp"])
+		stamina[side].value=float(fighter["st"])
+		ammo[side].text="%s · %s | %d SHOTS + %d BLOOD | %d VIALS | %d WINS" % [
+			str(fighter["weapon"]).to_upper(),str(fighter["form"]).to_upper(),
+			int(fighter["ammo"]),int(fighter["bloodAmmo"]),int(fighter["vials"]),int(score[side])]
+	clock_label.text=str(ceili(float(maxi(0,int(snapshot.get("clock",0))))/60.0))
+	phase_label.text="ROUND "+str(int(snapshot.get("round",1)))
+	if int(snapshot.get("ready",0))>0:
+		phase_label.text="READY"
+	elif int(snapshot.get("end",0))>0:
+		phase_label.text="ROUND END"
+	elif snapshot.get("over",false):
+		phase_label.text="MATCH END"
+	if frame_data_enabled:
+		move_label.text=("%s  %s  %dF · STARTUP %d / ACTIVE %d / RECOVERY %d" % [
+		 str(frame_meter.get("action","")).to_upper(),
+		 str(frame_meter.get("phase","idle")).to_upper(),
+		 int(frame_meter.get("age",0)),int(frame_meter.get("startup",0)),
+		 int(frame_meter.get("active",0)),int(frame_meter.get("recovery",0))])
+	last_tick=tick
+	return true
+
 func apply_snapshot(snapshot: Dictionary) -> bool:
 	if snapshot.get("rules","")!="seamless-side/1" or not snapshot.get("p") is Array:
 		return false

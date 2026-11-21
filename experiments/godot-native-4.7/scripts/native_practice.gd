@@ -31,7 +31,7 @@ func _ready() -> void:
 	set_physics_process(false)
 
 func start_training(profile: String = "normal") -> bool:
-	if profile not in ALLOWED_BOTS or not ClassDB.class_exists("SFCombat") or get_parent().get_node("Online").online:
+	if profile not in ALLOWED_BOTS or not ClassDB.class_exists("SFCombat") or get_parent().get_node("Online").online or get_parent().get_node("HuntPractice").active:
 		return false
 	var instance: Object = ClassDB.instantiate("SFCombat")
 	if instance == null:
