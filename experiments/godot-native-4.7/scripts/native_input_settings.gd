@@ -128,7 +128,7 @@ func _build() -> void:
 
 func _refresh_devices() -> void:
 	var info: Dictionary=controls.controller_diagnostics()
-	var summary := []
+	var summary := PackedStringArray()
 	for item in info["devices"]:
 		summary.append("%s (#%d)" % [str(item["name"]),int(item["id"])])
 	device_info.text="SDL controllers: %d  ·  %s. Arcade sticks and leverless boards use the pad column when recognized; per-device lock and Windows hardware QA are pending." % [int(info["connected"]),", ".join(summary) if not summary.is_empty() else "none detected"]
