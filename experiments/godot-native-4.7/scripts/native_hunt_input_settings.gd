@@ -5,7 +5,7 @@ const GOLD=Color("#d7b478")
 const BONE=Color("#f0e3c6")
 const MUTED=Color("#aaa196")
 const NAMES={"move_left":"Move left","move_right":"Move right",
- "jump":"Jump","crouch":"Crouch","light":"Light attack","heavy":"Heavy attack",
+ "jump":"Jump","down":"Down · SOCD only","light":"Light attack","heavy":"Heavy attack",
  "charge":"Charged heavy","trick":"Trick transformation","shot":"Firearm",
  "step":"Quickstep","feint":"Feint","sync":"Focus cancel",
  "visceral":"Visceral","heal":"Healing vial","blood":"Create blood bullets"}

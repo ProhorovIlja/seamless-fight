@@ -29,7 +29,7 @@ func _verify() -> void:
 				fail("Hunt defaults collide on physical key: "+action)
 				return
 			used[key]=action
-	var directions: Dictionary={"move_left":true,"move_right":true,"jump":true,"crouch":true}
+	var directions: Dictionary={"move_left":true,"move_right":true,"jump":true,"down":true}
 	if controls.encode_pressed(directions)!=[0,0,0,0]:
 		fail("Leverless simultaneous opposite directions must neutralize")
 		return
@@ -40,6 +40,18 @@ func _verify() -> void:
 		return
 	if controls.encode_pressed(pressed)!=[1,-1,0,0]:
 		fail("Held gun input emitted auto-fire")
+		return
+	controls.previous_pressed.clear()
+	if "crouch" in controls.ACTIONS:
+		fail("Crouch must not be exposed as a Hunt move")
+		return
+	controls.previous_pressed.clear()
+	if controls.encode_pressed({"down":true})!=[0,0,0,0]:
+		fail("Down must be a passive SOCD direction only")
+		return
+	controls.previous_pressed.clear()
+	if controls.encode_pressed({"jump":true,"down":true})!=[0,0,0,0]:
+		fail("Vertical simultaneous opposite commands were not neutral")
 		return
 	controls.previous_pressed.clear()
 	for index in range(controls.VERBS.size()):

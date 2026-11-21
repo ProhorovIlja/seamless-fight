@@ -10,7 +10,7 @@
 #include <vector>
 namespace sf_hunt {
 namespace codec {
-constexpr uint32_t VERSION=1;
+constexpr uint32_t VERSION=2; // No crouch/duck semantics; reject old snapshot version.
 constexpr std::size_t CHECKPOINT_SIZE=348, PAYLOAD_END=340;
 constexpr uint64_t FNV_OFFSET=UINT64_C(14695981039346656037);
 constexpr uint64_t FNV_PRIME=UINT64_C(1099511628211);
@@ -65,7 +65,7 @@ inline bool valid(const State&s){
      p.visceralTarget<-1||p.visceralTarget>1||p.act<NONE||p.act>=COUNT||
      p.age<0||p.age>2000||p.jumps<0||p.jumps>1||
      p.regen<0||p.regen>100||p.combo<0||p.combo>10000||
-     p.chain<0||p.chain>5||p.queue<NOTHING||p.queue>BLOOD_INPUT||
+     p.chain<0||p.chain>5||p.crouch||p.queue<NOTHING||p.queue>BLOOD_INPUT||
      p.queueLife<0||p.queueLife>6)return false;
  }
  return true;

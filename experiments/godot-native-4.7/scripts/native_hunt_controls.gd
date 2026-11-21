@@ -2,13 +2,13 @@ extends Node
 ## Dedicated source-compatible Hunt v3 input profile. Does not overwrite
 ## legacy side/1 controls, multiplayer input packet or saved user settings.
 ## No macros, one-shot autofire, guard inputs, or device-id persistence.
-const VERSION := 1
-const FILE := "user://sf_hunt_controls_v1.json"
+const VERSION := 2
+const FILE := "user://sf_hunt_controls_v2.json"
 const MAX_BYTES := 32768
 const DEADZONE := 0.25
 const DEVICE_AUTO := -1
 const DEVICE_KBM := -2
-const ACTIONS := ["move_left","move_right","jump","crouch",
+const ACTIONS := ["move_left","move_right","jump","down",
  "light","heavy","charge","trick","shot","step","feint","sync",
  "visceral","heal","blood"]
 const VERBS := ["light","heavy","charge","trick","shot","step","feint",
@@ -33,7 +33,7 @@ func default_profile() -> Dictionary:
 	"move_left":[_key(KEY_A),_key(KEY_LEFT),_button(JOY_BUTTON_DPAD_LEFT),_axis(JOY_AXIS_LEFT_X,-1)],
 	"move_right":[_key(KEY_D),_key(KEY_RIGHT),_button(JOY_BUTTON_DPAD_RIGHT),_axis(JOY_AXIS_LEFT_X,1)],
 	"jump":[_key(KEY_SPACE),_key(KEY_W),_button(JOY_BUTTON_A)],
-	"crouch":[_key(KEY_S),_key(KEY_DOWN),_button(JOY_BUTTON_DPAD_DOWN),_axis(JOY_AXIS_LEFT_Y,1)],
+	"down":[_key(KEY_S),_key(KEY_DOWN),_button(JOY_BUTTON_DPAD_DOWN),_axis(JOY_AXIS_LEFT_Y,1)],
 	"light":[_key(KEY_J),_button(JOY_BUTTON_X)],
 	"heavy":[_key(KEY_K),_button(JOY_BUTTON_Y)],
 	"charge":[_key(KEY_U)],
@@ -258,7 +258,9 @@ func encode_pressed(now: Dictionary) -> Array:
 	# Deliberately pure resolution of direction and button edges, not input
 	# injection or macro generation. Other held buttons are not repeated.
 	var horizontal: int=int(bool(now.get("move_right",false)))-int(bool(now.get("move_left",false)))
-	var vertical: int=int(bool(now.get("crouch",false)))-int(bool(now.get("jump",false)))
+	# Down exists solely to neutralize simultaneous up/down directions,
+	# never a crouch or hurtbox change.
+	var vertical: int=-1 if bool(now.get("jump",false)) and not bool(now.get("down",false)) else 0
 	var move:=0
 	for index in range(VERBS.size()):
 		var action: String=VERBS[index]

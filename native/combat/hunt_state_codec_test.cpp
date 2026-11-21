@@ -58,6 +58,6 @@ int main(){
  step(blocked,Input{0,0,NOTHING,true},Input{});
  if(save_checkpoint(blocked)!=old)return 10;
  std::cout<<"NATIVE_HUNT_V3_CANONICAL_CODEC_PASS size=348 ticks="
-  <<passes<<" weapons=4 verified_no_exception=1\n";
+  <<passes<<" weapons=4 verified_no_exception=1 codec_version=2\n";
  return 0;
 }
