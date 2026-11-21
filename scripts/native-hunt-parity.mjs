@@ -101,10 +101,63 @@ try{
    assert.equal(k,totalFields);
   }
  }
- assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0,
+ // Directed REAL gun-counter conversion: not probabilistic coverage.
+ // Move both fighters from the canonical default spawn, allow momentum to
+ // settle and reproduce actual source attack/parry/visceral timing. C++ sees
+ // precisely the same inputs, including the original 90-frame round ready.
+ const directed=huntMatch({weapons:['mournweave','thornwake']});
+ const trace=[],sourceEvents=[];
+ const n=(x=0,act='')=>({x,y:0,act,guard:false});
+ const record=(left,right)=>{
+  const pair=[left,right],events=[];
+  huntStep(directed,pair,events);
+  trace.push({inputs:pair,state:structuredClone(directed)});
+  sourceEvents.push(...events);
+  for(const e of events)if(e.kind in eventsSeen)eventsSeen[e.kind]++;
+ };
+ for(let t=0;t<90;t++)record(n(),n());
+ let approach=0;
+ while(Math.abs(directed.p[1].x-directed.p[0].x)>58&&approach<110){
+  record(n(1),n(-1));approach++;
+ }
+ assert(approach<110,'Canonical close-range entry not reached');
+ for(let t=0;t<20;t++)record(n(),n());
+ for(let k=0;k<95;k++)
+  record(n(0,k===3?'shot':k===39?'visceral':''),n(0,k===0?'heavy':''));
+ assert(sourceEvents.some(e=>e.kind==='gunParry'&&e.actor===0&&e.target===1),
+  'Directed scenario did not create the REAL opponent heavy firearm parry');
+ assert(sourceEvents.some(e=>e.kind==='visceral'&&e.actor===0&&e.target===1&&e.damage===42),
+  'Directed parry did not convert into the REAL source visceral');
+ const scriptedPacket='0 1\n'+trace.map(t=>t.inputs.flatMap(
+  i=>[i.x,i.y,REQUEST[i.act],Number(i.guard)]).join(' ')).join('\n')+'\n';
+ const nativeDirected=spawnSync(exe,[],{input:scriptedPacket,encoding:'utf8',
+  maxBuffer:15*1024*1024,timeout:90000});
+ assert.equal(nativeDirected.status,0,'Native directed visceral run failed:\n'+nativeDirected.stderr);
+ assert.match(nativeDirected.stderr,/HUNT_V3_NATIVE_LOCAL_REWIND_PASSED checkpoints=[1-9]/);
+ const rows=nativeDirected.stdout.trim().split('\n');
+ assert.equal(rows.length,trace.length);
+ for(let t=0;t<trace.length;t++){
+  const values=rows[t].trim().split(/\s+/).map(Number);
+  assert.equal(values.length,totalFields);
+  const state=trace[t].state;
+  let at=0;
+  const compare=(field,expected)=>{
+   const got=values[at++],wanted=number(field,expected);
+   if(!Number.isFinite(got)||!Number.isFinite(wanted)||Math.abs(got-wanted)>1e-8)
+    throw Error('Directed real visceral C++ mismatch at frame='+t+
+     ' field='+field+' JS='+wanted+' C++='+got);
+   checks++;maxError=Math.max(maxError,Math.abs(got-wanted));
+  };
+  for(const field of GLOBAL)compare(field,state[field]);
+  compare('score0',state.score[0]);compare('score1',state.score[1]);
+  for(const fighter of state.p)for(const field of FIELDS)compare(field,fighter[field]);
+ }
+ rewinds+=Math.floor(trace.length/157);
+ assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0&&eventsSeen.visceral>0,
   'Trace missed core Hunt gameplay situations');
  console.log(JSON.stringify({result:'HUNT_V3_NATIVE_CPP_JS_PARITY_PASS',
-  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS,
+  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length,
+  directedVisceral:true,directedTicks:trace.length,
   weaponPairs:PAIRS.length,fieldsPerTick:totalFields,fieldComparisons:checks,
   maxAbsoluteDifference:maxError,nativeRollbackChecks:rewinds,
   sourceEvents:eventsSeen}));
