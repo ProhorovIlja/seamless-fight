@@ -240,7 +240,7 @@ inline bool parryable(const Fighter&p){
  const bool offensive=ordinary(p.act)||p.act==UNFURL||p.act==REFOLD;
  return offensive&&p.age>=std::max(2,m.startup-6)&&p.age<m.startup+m.active;
 }
-inline void hit(State&s,int attacker,int target,Action move){
+inline void hit(State&s,int attacker,int target,Action move,double pre_contact_rally=0){
  Fighter&a=s.p[attacker],&b=s.p[target];
  const Spec m=spec(a.weapon,move);a.spent=true;
  const double previous=b.hp;
@@ -266,7 +266,9 @@ inline void hit(State&s,int attacker,int target,Action move){
  if(!m.damage)return;
  const int combo=b.act==STUN?b.combo+1:1;
  const double damage=std::max(5.0,std::ceil(m.damage*std::max(.45,1-.13*(combo-1))));
- const double regain=std::min(a.rally,damage);
+ // Do not recover HP earned from the opponent's earlier slot in this
+ // same simulation tick. Each contender has the same pre-contact budget.
+ const double regain=std::min({a.rally,damage,pre_contact_rally});
  a.hp=std::min(100.0,a.hp+regain);a.rally-=regain;
  if(!a.rally)a.rallyLife=0;
  b.hp=std::max(0.0,b.hp-damage);
@@ -274,7 +276,10 @@ inline void hit(State&s,int attacker,int target,Action move){
  b.combo=combo;b.act=STUN;b.age=0;b.crouch=false;
  b.queue=NOTHING;b.queueLife=0;b.chain=0;b.hitConfirmed=false;b.exposed=0;
  b.vx=a.dir*(m.damage>=27?6.1:4.4);
- a.hitConfirmed=true;a.focus=std::min(100,a.focus+9);
+ // The source may already be stunned by the other simultaneous strike.
+ // No phantom hit-confirm may remain on an interrupted action.
+ a.hitConfirmed=a.act==move;
+ a.focus=std::min(100,a.focus+9);
  const bool rear=(a.x-b.x)*b.dir<0;
  if(charged(move)&&rear&&b.y==FLOOR){
   b.act=STAGGER;b.age=0;b.exposed=40;b.exposeCause=CHARGED_REAR;b.vx=0;
@@ -315,6 +320,7 @@ inline void step(State&s,const Input&aa,const Input&bb){
   a.x=clamp(a.x+direction*d,65.0,double(WIDTH-65));
   b.x=clamp(b.x-direction*d,65.0,double(WIDTH-65));
  }
+ const double rally_before_contact[2]={a.rally,b.rally};
  const bool gun[2]={
   (a.act==SHOT||a.act==AIR_SHOT)&&strike(a,b),
   (b.act==SHOT||b.act==AIR_SHOT)&&strike(b,a)};
@@ -324,7 +330,8 @@ inline void step(State&s,const Input&aa,const Input&bb){
   a.act!=SHOT&&a.act!=AIR_SHOT&&strike(a,b),
   b.act!=SHOT&&b.act!=AIR_SHOT&&strike(b,a)};
  const Action moves[2]={a.act,b.act};
- for(int i=0;i<2;i++)if(melee[i])hit(s,i,1-i,moves[i]);
+ for(int i=0;i<2;i++)if(melee[i])
+  hit(s,i,1-i,moves[i],rally_before_contact[i]);
  for(Fighter&p:s.p)settle(p);
  for(Fighter&p:s.p)if(p.act!=NONE)++p.age;
  if(--s.clock<=0||a.hp<=0||b.hp<=0){
