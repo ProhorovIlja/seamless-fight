@@ -468,8 +468,14 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  // This is read-only event evidence, not a scripted escape or hitbox override.
  for(let slot=0;slot<2;slot++){
   const me=s.p[slot],other=s.p[1-slot],old=beforeX[slot];
-  const crossed=(old-beforeX[1-slot])*(me.x-other.x)<0;
-  if(crossed&&forwardStep(me)&&
+  const opponentStart=beforeX[1-slot];
+  const crossed=(old-opponentStart)*(me.x-other.x)<0;
+  // Do not award an escape when the opponent jumped/dashed across the
+  // defender. The defender's own paid quickstep must have entered the
+  // opponent's ORIGINAL 38U body footprint (19U half width).
+  const enteredOpponentBody=old<opponentStart?
+   me.x>=opponentStart-19:me.x<=opponentStart+19;
+  if(crossed&&enteredOpponentBody&&forwardStep(me)&&
    ((old<=140&&me.vx>0)||(old>=HUNT_W-140&&me.vx<0)))
    events?.push({tick:s.tick,kind:'cornerEscape',actor:slot,target:1-slot,
     stamina:me.st,side:old<=140?'left':'right'});
