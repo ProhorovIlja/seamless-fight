@@ -64,3 +64,22 @@ test('Hunt art timeline export is stable and independent of frame pacing',()=>{
  assert.equal(a,b);
  assert.equal(JSON.parse(a).ruleset,'sf-hunt-lab/3');
 });
+
+
+test('source authoring register distinguishes vulnerable neutral backstep from i-frame quickstep and separate form-specific R1',()=>{
+ const brief=buildHuntAnimationBrief();
+ for(const weapon of HUNT_WEAPONS){
+  const clips=brief.weapons[weapon].clips;
+  assert.equal(clips.backstep.category,'ground-backstep-no-iframes');
+  assert.equal(clips.step.category,'ground-mobility');
+  for(const form of ['folded','unfurled']){
+   const clip=clips[form+'BackstepLight'];
+   assert.equal(clip.category,'ground-backstep-counterattack');
+   assert.equal(clip.initialForm,form);
+   assert(clip.timing.activeFrames>0);
+   assert(clip.timing.recoveryFrames>0);
+   assert.equal(clip.visualRequirements.authoredFullBodyPerformance,true);
+   assert.equal(clip.visualRequirements.animationNeverDefinesCollisions,true);
+  }
+ }
+});

@@ -600,3 +600,51 @@ test('a late light does not become a fabricated heavy startup counter-hit',()=>{
  assert.equal(hit.hitDuringStartup,false);
  assert.equal(hit.remainingStartup,0);
 });
+
+
+test('neutral-stick dodge is a grounded backward hop without invulnerability, directional dodge remains paid quickstep',()=>{
+ for(const weapon of ['mournweave','thornwake']){
+  const state=live(90,{weapons:[weapon,weapon]});
+  const before=state.p[0].x,events=[];
+  huntStep(state,[cmd('step'),huntInput()],events);
+  assert.equal(state.p[0].act,'backstep');
+  assert.equal(state.p[0].st,100-HUNT_MOVES.backstep.cost);
+  assert(state.p[0].x<before,'neutral input moves away from facing');
+  assert(events.some(e=>e.kind==='action'&&e.move==='backstep'));
+  const directional=live(90,{weapons:[weapon,weapon]});
+  huntStep(directional,[cmd('step',1),huntInput()]);
+  assert.equal(directional.p[0].act,'step');
+  assert.equal(directional.p[0].st,100-HUNT_MOVES.step.cost);
+ }
+});
+test('non-invulnerable backstep can be hit during movement while directional quickstep retains real i-frames',()=>{
+ const make=action=>{
+  const state=live(65),events=[];
+  state.p[0].act=action;state.p[0].age=3;state.p[0].vx=0;
+  state.p[1].act='foldedHeavy';
+  state.p[1].age=HUNT_MOVES.foldedHeavy.startup;state.p[1].dir=-1;
+  huntStep(state,[huntInput(),huntInput()],events);
+  return events.some(e=>e.kind==='hit'&&e.target===0);
+ };
+ assert.equal(make('backstep'),true,'neutral backstep has no hidden dodge immunity');
+ assert.equal(make('step'),false,'directional quickstep still has a bounded i-frame window');
+});
+test('each original trick-weapon form has a committed and stamina-paid backstep R1, not a free neutral move',()=>{
+ for(const weapon of ['mournweave','thornwake']){
+  for(const form of ['folded','unfurled']){
+   const state=live(80,{weapons:[weapon,weapon]}),p=state.p[0];
+   p.form=form;
+   huntStep(state,[cmd('step'),huntInput()]);
+   for(let k=0;k<5;k++)huntStep(state,[huntInput(),huntInput()]);
+   const events=[];huntStep(state,[cmd('light'),huntInput()],events);
+   const move=form+'BackstepLight',authored=huntFrameTable(weapon).find(x=>x.name===move);
+   assert(authored&&authored.damage>0&&authored.recovery>0);
+   assert.equal(p.act,move);
+   assert(events.some(e=>e.kind==='action'&&e.actor===0&&e.move===move));
+   assert.equal(p.st,100-HUNT_MOVES.backstep.cost-authored.cost);
+  }
+  const idle=live(80,{weapons:[weapon,weapon]});
+  huntStep(idle,[cmd('light'),huntInput()]);
+  assert.equal(idle.p[0].act,'foldedLight','the new backstep attack is not a default neutral light');
+ }
+});
