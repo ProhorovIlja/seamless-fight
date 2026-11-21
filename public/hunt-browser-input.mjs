@@ -37,6 +37,17 @@ export function huntBrowserGamepadTokens(gamepad,deadzone=HUNT_PAD_DEADZONE){
   if(y<=-deadzone)down.push('pad:left-y-');
   if(y>=deadzone)down.push('pad:left-y+');
  }
+ if(gamepad.axes.length>=4){
+  const rx=Number(gamepad.axes[2]),ry=Number(gamepad.axes[3]);
+  if(Number.isFinite(rx)){
+   if(rx<=-deadzone)down.push('pad:right-x-');
+   if(rx>=deadzone)down.push('pad:right-x+');
+  }
+  if(Number.isFinite(ry)){
+   if(ry<=-deadzone)down.push('pad:right-y-');
+   if(ry>=deadzone)down.push('pad:right-y+');
+  }
+ }
  return Object.freeze({connected:true,down:Object.freeze(down)});
 }
 
