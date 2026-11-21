@@ -7,7 +7,7 @@ import {huntPracticeSession,HUNT_PRACTICE_DRILLS} from './hunt-practice-suite.mj
 import {huntPublicHud,huntActionName} from './hunt-identity.mjs';
 import {huntDeviceProfile,createHuntInputAdapter,HUNT_DEVICE_LAYOUTS}
  from './hunt-input-device.mjs';
-import {huntKeyboardToken,huntMouseToken,huntBrowserGamepadTokens}
+import {huntKeyboardToken,huntMouseToken,huntBrowserGamepadTokens,selectHuntStandardGamepad}
  from './hunt-browser-input.mjs';
 import {drawHuntArena} from './hunt-render.mjs';
 
@@ -23,24 +23,59 @@ let adapter=createHuntInputAdapter(huntDeviceProfile('keyboard-mouse'));
 let layout='keyboard-mouse',boxes=false,last=0,acc=0,lastDraw=0,lastHud=0;
 let drawCount=0,drawWindow=0,lastFrame=huntInput(),lastEventTick=-1;
 let message='Practice is running. No online opponents or rankings.';
-let calloutUntil=0,calloutText='',selectedGamepadIndex=-1,lastPadLabel='';
+let calloutUntil=0,calloutText='',controllerLock=null,lastPadLabel='';
+let controllerSignature='',nextPadRefresh=0;
+const frameSamples=[];
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const status=text=>{$('status').textContent=text;message=text;};
 function clearInput(){
  downKeys.clear();downMouse.clear();adapter.reset();lastFrame=huntInput();
 }
+function browserPads(){
+ try{return typeof navigator.getGamepads==='function'?
+   Array.from(navigator.getGamepads()||[]):[];}
+ catch{return [];}
+}
+function refreshControllerPicker(){
+ const detected=browserPads().filter(p=>p?.connected===true&&
+  p.mapping==='standard'&&Number.isSafeInteger(p.index));
+ const signature=detected.map(p=>p.index+':'+String(p.id).slice(0,100)).join('|');
+ if(signature===controllerSignature)return;
+ controllerSignature=signature;
+ const picker=$('controller-select');
+ picker.replaceChildren();
+ const automatic=document.createElement('option');
+ automatic.value='auto';automatic.textContent='Automatic · first mapped controller';
+ picker.append(automatic);
+ for(const gamepad of detected){
+  const entry=document.createElement('option');
+  entry.value=String(gamepad.index);
+  entry.textContent=String(gamepad.id).slice(0,72)+' · #'+gamepad.index;
+  picker.append(entry);
+ }
+ if(controllerLock!==null&&!detected.some(x=>x.index===controllerLock)){
+  const disconnected=document.createElement('option');
+  disconnected.value=String(controllerLock);
+  disconnected.disabled=true;
+  disconnected.textContent='Disconnected controller #'+controllerLock+' · no input';
+  picker.append(disconnected);
+ }
+ picker.value=controllerLock===null?'auto':String(controllerLock);
+}
 function choosePad(){
- const pads=typeof navigator.getGamepads==='function'?navigator.getGamepads():[];
- const connected=[...pads].filter(p=>p?.connected===true&&p.mapping==='standard');
- const selected=connected.find(p=>p.index===selectedGamepadIndex)||connected[0];
- if(selected)selectedGamepadIndex=selected.index;
- else selectedGamepadIndex=-1;
+ const now=performance.now();
+ if(now>=nextPadRefresh){
+  refreshControllerPicker();nextPadRefresh=now+500;
+ }
+ const selected=selectHuntStandardGamepad(browserPads(),controllerLock);
  const label=selected?
-  'Mapped controller: '+String(selected.id).slice(0,100)+' · gamepad index '+selected.index+
-  ' · 60Hz input sampling.':
-  'No standard-mapped gamepad / arcade / leverless device detected. The fighter receives neutral input.';
- // Never mutate the DOM 60 times/s for an unchanged controller connection.
+  'Mapped controller: '+String(selected.id).slice(0,100)+' · index '+selected.index+
+  (controllerLock===null?' · automatic selection':' · locked controller')+
+  ' · exact 60Hz input sampling.':
+  controllerLock!==null?
+   'Selected controller #'+controllerLock+' disconnected or unmapped. Fighter input is neutral; no pad failover.':
+   'No standard-mapped gamepad, arcade or leverless device detected. Fighter input is neutral.';
  if(label!==lastPadLabel){$('input-device').textContent=label;lastPadLabel=label;}
  return selected;
 }
@@ -150,10 +185,23 @@ function render(time){
  drawHuntArena(ctx,after,{previous:before,alpha,showBoxes:boxes,time,reduceMotion});
  $('callout').textContent=time<calloutUntil?calloutText:'';
  $('callout').classList.toggle('active',time<calloutUntil);
+ if(lastDraw){
+  const elapsed=time-lastDraw;
+  if(elapsed>0&&elapsed<250){
+   frameSamples.push(elapsed);
+   if(frameSamples.length>120)frameSamples.shift();
+  }
+ }
  lastDraw=time;
  drawCount++;
  if(time-drawWindow>1000){
   $('render-fps').textContent='DISPLAY FPS '+Math.round(drawCount*1000/Math.max(1,time-drawWindow));
+  if(frameSamples.length>=5){
+   const sorted=frameSamples.slice().sort((a,b)=>a-b);
+   const median=sorted[Math.floor(sorted.length/2)];
+   const p95=sorted[Math.ceil(sorted.length*.95)-1];
+   $('frame-pace').textContent='FRAME '+median.toFixed(1)+'ms · P95 '+p95.toFixed(1)+'ms';
+  }
   drawCount=0;drawWindow=time;
  }
 }
@@ -233,8 +281,22 @@ function stopOnLostFocus(){
 }
 window.addEventListener('blur',stopOnLostFocus);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopOnLostFocus();});
-window.addEventListener('gamepaddisconnected',()=>{if(layout!=='keyboard-mouse'){adapter.reset();selectedGamepadIndex=-1;choosePad();}});
-window.addEventListener('gamepadconnected',()=>{if(layout!=='keyboard-mouse')choosePad();});
+$('controller-select').addEventListener('change',()=>{
+ const selection=$('controller-select').value;
+ controllerLock=selection==='auto'?null:Number(selection);
+ clearInput();lastPadLabel='';
+ refreshControllerPicker();choosePad();
+ status(controllerLock===null?
+  'Controller selection automatic; only one mapped pad is sampled at a time.':
+  'Controller #'+controllerLock+' locked for the local fighter. Disconnect does not hand input to another pad.');
+});
+window.addEventListener('gamepaddisconnected',()=>{
+ adapter.reset();lastPadLabel='';controllerSignature='';
+ refreshControllerPicker();if(layout!=='keyboard-mouse')choosePad();
+});
+window.addEventListener('gamepadconnected',()=>{
+ controllerSignature='';refreshControllerPicker();if(layout!=='keyboard-mouse')choosePad();
+});
 $('pause').addEventListener('click',()=>{
  if(practice.stats().paused){practice.resume();acc=0;last=0;status('Offline Hunt v3 practice resumed.');}
  else{practice.pause();status('Practice paused at an exact 60Hz simulation tick.');}
@@ -342,5 +404,5 @@ $('metrics').addEventListener('click',()=>{
   status('Analyzed '+data.observedFrames+' verified local simulation frames · UNRATED 1v1.');
  }catch(err){status('Local analysis failed: '+err.message);}
 });
-setControlFamily();updateHud();
+refreshControllerPicker();setControlFamily();updateHud();
 requestAnimationFrame(animate);
