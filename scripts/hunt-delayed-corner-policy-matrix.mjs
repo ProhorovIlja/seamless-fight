@@ -107,7 +107,7 @@ export function huntDelayedCornerScenario({
   defenderHP:s.p[0].hp,attackerHP:s.p[1].hp,
   defenderStamina:s.p[0].st,attackerStamina:s.p[1].st,
   startedAttackerMoves:attacksStarted,
-  actualAttackerFeints:counts(events,'action',1)&&events.filter(e=>e.kind==='action'&&e.actor===1&&e.move==='feint').length,
+  actualAttackerFeints:events.filter(e=>e.kind==='action'&&e.actor===1&&e.move==='feint').length,
   landedAttackerHits:dodgeHits.length,
   defenderMeleeHits:counts(events,'hit',0,1),
   confirmedDefenderGunParries:counts(events,'gunParry',0,1),
