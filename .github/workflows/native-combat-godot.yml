@@ -62,6 +62,9 @@ jobs:
           G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           chmod +x "$G"
           bash scripts/native-fetch-polyhaven-stage-prop.sh
+          # Separate CI jobs use clean checkouts; downloading PBR in the Linux
+          # extension job does not make it available to integrated-export.
+          bash scripts/native-fetch-polyhaven-stage-prop.sh
           node scripts/native-godot-vectors.mjs
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
