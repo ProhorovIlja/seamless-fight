@@ -154,6 +154,8 @@ function reset(keepWeapons=true){
   objective.category+' · '+selected.spacing+'-unit starting distance. '+(
    selected.id==='timing-read'?
     'Two deterministic normal-input tapes alternate heavy commitment and real feint.':
+    selected.id==='gun-whiff-punish'?
+    'Quickstep through the live firearm hitbox, then land a melee attack while the missed gun is STILL recovering. A gun parry or a late hit is not a whiff punish.':
     selected.id==='anti-air'?
     'The dummy jumps once using real directional inputs; counter without a universal air dash.':
     ['hit-confirm','transform-pressure','blood-economy'].includes(selected.id)?
