@@ -6,6 +6,8 @@ const PBR_GOTHIC_STATUE := "res://assets/pbr/gothic_statue.glb"
 var photogrammetry_loaded := false
 var _fog: MeshInstance3D
 var _near: MeshInstance3D
+var _rays: MeshInstance3D
+var _ray_mat: ShaderMaterial
 var _clock := 0.0
 var reduce_motion := false
 
@@ -15,6 +17,7 @@ func _ready() -> void:
 	_make_alpha_layer("FarCity", "skyline-far.webp",Vector2(18.0,5.016),Vector3(0,-2.1,-8.0),0.76)
 	_near=_make_alpha_layer("NearCity","skyline-near.webp",Vector2(18.5,5.155),Vector3(0,-2.15,-7.0),0.98)
 	_fog=_make_alpha_layer("Mist","fog.webp",Vector2(20.5,4.46),Vector3(0,-3.35,-6.0),0.47)
+	_make_moonbeams()
 	_install_optional_photogrammetry()
 	set_active(false)
 
@@ -55,6 +58,35 @@ func _make_alpha_layer(label: String,source: String,size: Vector2,point: Vector3
 	add_child(mesh)
 	return mesh
 
+
+func _make_moonbeams() -> void:
+	# One draw call, unlit and presentation-only. Low-alpha moving moon shafts
+	# stay BEHIND the fighter plane; input/physics never reads shader time.
+	_rays=MeshInstance3D.new()
+	_rays.name="Moonbeams"
+	var quad := QuadMesh.new()
+	quad.size=Vector2(17.0,9.0)
+	_rays.mesh=quad
+	_rays.position=Vector3(0.0,0.0,-5.85)
+	_rays.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var shader := Shader.new()
+	shader.code="""shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, fog_disabled;
+uniform float phase = 0.0;
+void fragment() {
+    float y = UV.y;
+    float x = UV.x;
+    float shaft_a = exp(-pow((x - (0.72 - 0.21 * y + 0.022 * sin(phase * 0.14))) * 13.0, 2.0));
+    float shaft_b = exp(-pow((x - (0.42 - 0.15 * y + 0.016 * sin(phase * 0.11 + 2.0))) * 18.0, 2.0));
+    float mist = 0.62 + 0.38 * sin(phase * 0.16 + x * 2.0);
+    ALBEDO = vec3(0.54, 0.64, 0.78);
+    ALPHA = clamp((shaft_a * 0.085 + shaft_b * 0.048) * mist * (1.0 - y * 0.45), 0.0, 0.14);
+}
+"""
+	_ray_mat=ShaderMaterial.new()
+	_ray_mat.shader=shader
+	_rays.material_override=_ray_mat
+	add_child(_rays)
 
 func _install_optional_photogrammetry() -> void:
 	# A pinned, license-audited Poly Haven CC0 glTF, downloaded at build time.
@@ -97,6 +129,8 @@ func set_active(enabled: bool) -> void:
 			_fog.position.x=0.0
 		if _near != null:
 			_near.position.x=0.0
+		if _ray_mat != null:
+			_ray_mat.set_shader_parameter("phase",0.0)
 
 func set_reduce_motion(enabled: bool) -> void:
 	reduce_motion=enabled
@@ -106,9 +140,13 @@ func set_reduce_motion(enabled: bool) -> void:
 			_fog.position.x=0.0
 		if _near != null:
 			_near.position.x=0.0
+		if _ray_mat != null:
+			_ray_mat.set_shader_parameter("phase",0.0)
 
 func _process(delta: float) -> void:
 	_clock=fmod(_clock+minf(maxf(delta,0.0),0.1),3600.0)
+	if _ray_mat!=null:
+		_ray_mat.set_shader_parameter("phase",_clock)
 	# Tiny drift only. Source image atlases are wider than the visible camera.
 	# Combat position, clock and authoritative latency are never consulted.
 	if _fog != null:

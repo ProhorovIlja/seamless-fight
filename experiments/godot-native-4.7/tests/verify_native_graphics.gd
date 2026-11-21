@@ -24,6 +24,16 @@ func _verify() -> void:
 	if not site.visible or not site.has_node("FarCity") or not site.has_node("Moon") or not site.has_node("Mist"):
 		_fail("Site-backed 2.5D arena lacks required original artwork")
 		return
+	if not site.has_node("Moonbeams"):
+		_fail("Animated Gothic arena missing authored moon shafts")
+		return
+	var shafts: MeshInstance3D=site.get_node("Moonbeams")
+	if shafts.position.z>=-1.0 or shafts.get_child_count()!=0:
+		_fail("Stage rays must remain behind actors and must not add gameplay colliders")
+		return
+	if not shafts.material_override is ShaderMaterial:
+		_fail("GPU-only moon shafts missing low-cost atmospheric shader")
+		return
 	if stage.get_node("OriginalPaintedReliquary").visible:
 		_fail("Two stage artworks rendered on top of each other")
 		return

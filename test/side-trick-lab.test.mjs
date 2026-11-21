@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {
  TRICK_RULESET,TRICK_HZ,TRICK_FLOOR,TRICK_MOVES,TRICK_ACTIONS,
+ TRICK_WEAPONS,TRICK_WEAPON_SPECS,trickMoveSpec,trickFrameTable,
  trickInput,trickMatch,trickStep,trickPhase,trickAttackbox,trickInspector,
  canonicalTrickInput
 } from '../public/side-trick-lab.mjs';
@@ -18,7 +19,7 @@ function finish(s,limit=100){
 }
 test('new experimental ruleset is isolated from existing production protocol and input spoofing',()=>{
  const state=trickMatch();
- assert.equal(state.rules,'sf-trick-lab/1');
+ assert.equal(state.rules,'sf-trick-lab/2');
  assert.equal(TRICK_RULESET,'sf-trick-lab/1');assert.equal(TRICK_HZ,60);
  assert.notEqual(state.rules,'seamless-side/1');
  assert.equal(trickPhase(state.p[0]),'neutral');
@@ -178,4 +179,54 @@ test('new rules are deterministic across 1,400 ticks and arbitrary rewind/branch
   assert(Number.isFinite(p.st)&&p.st>=0&&p.st<=100);
   assert(['folded','unfurled'].includes(p.form));
  }
+});
+
+test('two original trick weapons have independently authored frame windows and are bound to match loadouts',()=>{
+ assert.deepEqual(TRICK_WEAPONS,['mournweave','thornwake']);
+ assert.equal(TRICK_WEAPON_SPECS.thornwake.foldedLight.startup,5);
+ assert.equal(TRICK_WEAPON_SPECS.mournweave.foldedLight.startup,7);
+ assert.notEqual(TRICK_WEAPON_SPECS.thornwake.unfurl.reach,
+  TRICK_WEAPON_SPECS.mournweave.unfurl.reach);
+ assert.throws(()=>trickMatch({weapons:['unknown','mournweave']}),/original trick weapons/);
+ const fast=trickMatch({weapons:['thornwake','mournweave']});
+ const slow=trickMatch();
+ fast.ready=0;slow.ready=0;
+ fast.p[0].x=slow.p[0].x=430;
+ fast.p[1].x=slow.p[1].x=505;
+ trickStep(fast,[cmd('light'),trickInput()]);
+ trickStep(slow,[cmd('light'),trickInput()]);
+ many(fast,5);many(slow,5);
+ assert(fast.p[1].hp<100,'Thornwake reaches its fast startup by tick 6');
+ assert.equal(slow.p[1].hp,100,'Mournweave has not entered its slower active frames yet');
+ assert.equal(trickInspector(fast).weapon,'thornwake');
+ assert.equal(trickInspector(fast).startup,5);
+ assert.equal(trickMoveSpec(fast.p[0]).damage,12);
+});
+test('chosen weapon profile survives round resets and never silently equips a different weapon',()=>{
+ const s=trickMatch({weapons:['thornwake','mournweave']});
+ s.ready=0;s.clock=1;
+ trickStep(s);
+ assert.equal(s.end,115);
+ many(s,115);
+ assert.equal(s.round,2);
+ assert.deepEqual(s.p.map(p=>p.weapon),['thornwake','mournweave']);
+ assert.equal(s.p[0].form,'folded');
+});
+
+test('inspectable frame data is weapon-specific, immutable and covers every authored action',()=>{
+ const mour=trickFrameTable('mournweave'),thorn=trickFrameTable('thornwake');
+ assert.equal(mour.length,thorn.length);
+ assert(mour.length>=18);
+ const find=(rows,name)=>rows.find(x=>x.name===name);
+ assert.equal(find(mour,'foldedLight').startup,7);
+ assert.equal(find(thorn,'foldedLight').startup,5);
+ assert.equal(find(thorn,'unfurl').reach,188);
+ assert.equal(find(mour,'unfurl').reach,142);
+ for(const move of thorn){
+  assert.equal(move.totalFrames,move.startup+move.active+move.recovery);
+  assert(move.startup>=0&&move.active>=0&&move.recovery>=0);
+  assert(Object.isFrozen(move));
+ }
+ assert(Object.isFrozen(thorn));
+ assert.throws(()=>trickFrameTable('unlicensed-mesh'),/Unknown/);
 });

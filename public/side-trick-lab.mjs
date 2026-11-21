@@ -3,9 +3,10 @@
 // Research mechanics only: DO NOT feed this state to seamless-side/1 clients,
 // the existing Node authority, the GGPO prototype or ranked matchmaking.
 // Pure and deterministic; no wall clock, rendering, sound or networking.
-export const TRICK_RULESET='sf-trick-lab/1';
+export const TRICK_RULESET='sf-trick-lab/2';
 export const TRICK_HZ=60, TRICK_FLOOR=436, TRICK_W=960;
 export const TRICK_WEAPON='mournweave';
+export const TRICK_WEAPONS=Object.freeze(['mournweave','thornwake']);
 export const TRICK_FORMS=Object.freeze(['folded','unfurled']);
 export const TRICK_ACTIONS=Object.freeze(['','light','heavy','trick','shot','step','feint','sync']);
 const clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
@@ -32,6 +33,31 @@ export const TRICK_MOVES=Object.freeze({
  stun:move(0,0,22,0,0,0),
  guardBreak:move(0,0,29,0,0,0)
 });
+// Distinct original arsenals. Both share the same deterministic action graph.
+export const THORNWAKE_MOVES=Object.freeze({...TRICK_MOVES,
+ foldedLight:move(5,3,15,9,82,12,-96,-24),
+ foldedHeavy:move(16,4,24,21,124,25,-114,-31),
+ unfurledLight:move(14,5,19,16,182,16,-122,-25),
+ unfurledHeavy:move(24,8,29,34,222,31,-129,-23),
+ airFoldedLight:move(8,4,18,12,99,13,-103,-8),
+ airFoldedHeavy:move(19,6,24,24,136,25,-127,-9),
+ airUnfurledLight:move(13,5,21,17,190,17,-120,-5),
+ airUnfurledHeavy:move(25,7,28,33,224,28,-130,-6),
+ unfurl:move(13,6,19,20,188,17,-117,-24),
+ refold:move(8,5,16,16,108,18,-103,-27),
+ shiftOut:move(8,0,13,7,0,0),
+ shiftIn:move(4,0,11,5,0,0)
+});
+export const TRICK_WEAPON_SPECS=Object.freeze({
+ mournweave:TRICK_MOVES,thornwake:THORNWAKE_MOVES
+});
+export const trickMoveSpec=(p,act=p.act)=>TRICK_WEAPON_SPECS[p.weapon][act];
+export function trickFrameTable(weapon=TRICK_WEAPON){
+ if(!TRICK_WEAPONS.includes(weapon))throw TypeError('Unknown original trick weapon');
+ return Object.freeze(Object.entries(TRICK_WEAPON_SPECS[weapon])
+  .map(([name,m])=>Object.freeze({name,...m,totalFrames:m.startup+m.active+m.recovery})));
+}
+
 const ATTACKS=new Set(Object.keys(TRICK_MOVES).filter(x=>TRICK_MOVES[x].damage>0));
 const ORDINARY=new Set(['foldedLight','foldedHeavy','unfurledLight','unfurledHeavy',
  'airFoldedLight','airFoldedHeavy','airUnfurledLight','airUnfurledHeavy']);
@@ -45,23 +71,26 @@ export function canonicalTrickInput(input){
   typeof guard!=='boolean')throw TypeError('Invalid movement, action or guard input');
  return {x,y,act,guard};
 }
-export function trickFighter(slot){
- return {x:slot?705:255,y:TRICK_FLOOR,vx:0,vy:0,dir:slot?-1:1,
+export function trickFighter(slot,weapon=TRICK_WEAPON){
+ if(!TRICK_WEAPONS.includes(weapon))throw TypeError('Unknown original trick weapon');
+ return {x:slot?705:255,y:TRICK_FLOOR,vx:0,vy:0,dir:slot?-1:1,weapon,
   hp:100,st:100,ammo:3,focus:0,form:'folded',
   act:'',age:0,spent:false,hitConfirmed:false,guardAge:0,
   crouch:false,jumpHeld:false,jumps:0,airSteps:0,regen:0,
   combo:0,chain:0,queue:'',queueLife:0};
 }
-export function trickMatch(){
+export function trickMatch({weapons=[TRICK_WEAPON,TRICK_WEAPON]}={}){
+ if(!Array.isArray(weapons)||weapons.length!==2||weapons.some(x=>!TRICK_WEAPONS.includes(x)))
+  throw TypeError('Two original trick weapons required');
  return {rules:TRICK_RULESET,tick:0,clock:65*TRICK_HZ,ready:90,end:0,round:1,
-  winner:null,over:false,score:[0,0],p:[trickFighter(0),trickFighter(1)]};
+  winner:null,over:false,score:[0,0],p:[trickFighter(0,weapons[0]),trickFighter(1,weapons[1])]};
 }
-export const trickCanAct=p=>!p.act||p.age>=total(TRICK_MOVES[p.act]);
+export const trickCanAct=p=>!p.act||p.age>=total(trickMoveSpec(p));
 export const trickPhase=p=>{
  if(p.guardAge)return 'guard';
  if(p.crouch)return 'crouch';
  if(!p.act)return p.y<TRICK_FLOOR?'airborne':'neutral';
- const m=TRICK_MOVES[p.act];
+ const m=trickMoveSpec(p);
  return p.age<m.startup?'startup':p.age<m.startup+m.active?'active':'recovery';
 };
 const motion=(p,input)=>{
@@ -80,7 +109,7 @@ export function trickHurtbox(p){
  return {left:p.x-18,right:p.x+18,top:p.y-(p.crouch?58:111),bottom:p.y-8};
 }
 export function trickAttackbox(p){
- const m=TRICK_MOVES[p.act];
+ const m=trickMoveSpec(p);
  if(!m?.damage)return null;
  return {left:p.dir>0?p.x+8:p.x-m.reach,right:p.dir>0?p.x+m.reach:p.x-8,
   top:p.y+m.top,bottom:p.y+m.bottom};
@@ -96,12 +125,12 @@ function buffer(p,input){
 }
 function starts(p,other,requested){
  if(!requested)return false;
- const m=TRICK_MOVES[requested];
+ const m=trickMoveSpec(p,requested);
  if(!m||p.st<m.cost)return false;
  if(requested==='shot'&&!p.ammo)return false;
  if(requested==='airStep'&&p.airSteps>=1)return false;
  if((requested==='shiftOut'||requested==='shiftIn')&&p.y<TRICK_FLOOR)return false;
- const old=TRICK_MOVES[p.act];
+ const old=trickMoveSpec(p);
  const wasAttacking=ATTACKS.has(p.act);
  let chained=false;
  if(!p.act||trickCanAct(p)){
@@ -165,7 +194,7 @@ function drive(p,q,input,events,tick,actor){
    p.queue='';p.queueLife=0;
   }
  }
- const m=TRICK_MOVES[p.act];
+ const m=trickMoveSpec(p);
  if(m&&(TRANSFORMS.has(p.act)||p.act==='shiftOut'||p.act==='shiftIn')&&p.age===m.startup-1){
   p.form=p.form==='folded'?'unfurled':'folded';
   events?.push({tick,kind:'transform',actor,form:p.form,move:p.act,x:p.x,y:p.y-72});
@@ -190,7 +219,7 @@ function drive(p,q,input,events,tick,actor){
  else if(!p.act&&!guarding)p.st=Math.min(100,p.st+.69);
 }
 function canStrike(p,q){
- const m=TRICK_MOVES[p.act];
+ const m=trickMoveSpec(p);
  if(!m?.damage||p.spent||p.age<m.startup||p.age>=m.startup+m.active)return false;
  if(q.act==='step'&&q.age>=1&&q.age<7)return false;
  const attack=trickAttackbox(p),hurt=trickHurtbox(q);
@@ -198,7 +227,7 @@ function canStrike(p,q){
   attack.top<hurt.bottom&&attack.bottom>hurt.top;
 }
 function resolveHit(s,actor,target,moveName,events){
- const a=s.p[actor],b=s.p[target],m=TRICK_MOVES[moveName];
+ const a=s.p[actor],b=s.p[target],m=trickMoveSpec(a,moveName);
  a.spent=true;
  const guard=b.guardAge>0&&b.dir===-a.dir&&b.y===TRICK_FLOOR;
  const parry=guard&&b.guardAge<=4&&b.st>=10&&moveName!=='shot';
@@ -234,7 +263,7 @@ export function trickStep(s,inputs=[trickInput(),trickInput()],events){
  s.tick++;
  if(s.over)return s;
  if(s.end){
-  if(!--s.end){s.p=[trickFighter(0),trickFighter(1)];
+  if(!--s.end){s.p=[trickFighter(0,s.p[0].weapon),trickFighter(1,s.p[1].weapon)];
    s.clock=65*TRICK_HZ;s.ready=90;s.round++;s.winner=null;}
   return s;
  }
@@ -251,8 +280,8 @@ export function trickStep(s,inputs=[trickInput(),trickInput()],events){
  for(let slot=0;slot<2;slot++)if(hits[slot])
   resolveHit(s,slot,1-slot,names[slot],events);
  for(let slot=0;slot<2;slot++){
-  const p=s.p[slot],m=TRICK_MOVES[p.act];
-  if(p.act==='shot'&&p.age===TRICK_MOVES.shot.startup)
+  const p=s.p[slot],m=trickMoveSpec(p);
+  if(p.act==='shot'&&p.age===trickMoveSpec(p,'shot').startup)
    events?.push({tick:s.tick,kind:'fire',actor:slot,move:p.act});
   if(m?.damage&&!p.spent&&p.age===m.startup+m.active-1)
    events?.push({tick:s.tick,kind:'whiff',actor:slot,move:p.act});
@@ -270,8 +299,8 @@ export function trickStep(s,inputs=[trickInput(),trickInput()],events){
 }
 export function trickInspector(state,slot=0){
  if(state?.rules!==TRICK_RULESET||![0,1].includes(slot))throw TypeError('Wrong ruleset or player slot');
- const p=state.p[slot],moveInfo=TRICK_MOVES[p.act];
- return Object.freeze({tick:state.tick,weapon:TRICK_WEAPON,form:p.form,action:p.act,
+ const p=state.p[slot],moveInfo=trickMoveSpec(p);
+ return Object.freeze({tick:state.tick,weapon:p.weapon,form:p.form,action:p.act,
   phase:trickPhase(p),startup:moveInfo?.startup??0,active:moveInfo?.active??0,
   recovery:moveInfo?.recovery??0,age:p.age,chain:p.chain,
   hitConfirmed:p.hitConfirmed,queued:p.queue,bufferFrames:p.queueLife,

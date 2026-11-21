@@ -62,9 +62,6 @@ jobs:
           G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           chmod +x "$G"
           bash scripts/native-fetch-polyhaven-stage-prop.sh
-          # Separate CI jobs use clean checkouts; downloading PBR in the Linux
-          # extension job does not make it available to integrated-export.
-          bash scripts/native-fetch-polyhaven-stage-prop.sh
           node scripts/native-godot-vectors.mjs
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
@@ -131,6 +128,9 @@ jobs:
           unzip -p "$RUNNER_TEMP/templates.tpz" templates/windows_release_x86_64.exe > "$TARGET/windows_release_x86_64.exe"
           unzip -p "$RUNNER_TEMP/templates.tpz" templates/version.txt > "$TARGET/version.txt"
           G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+          # This job starts from an independent checkout: explicitly fetch
+          # the same hash-verified CC0 Gothic GLB before Godot import/export.
+          bash scripts/native-fetch-polyhaven-stage-prop.sh
           node scripts/native-godot-vectors.mjs
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           SF_EXPECT_PBR=1 "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_graphics.gd --quit-after 300
