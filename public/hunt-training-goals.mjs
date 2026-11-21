@@ -22,7 +22,8 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'blood-economy':{category:'Resources',goal:'Create five temporary rounds at an HP cost and fire one afterward.',trigger:'bloodBullets',success:'bloodShot'},
  'timing-read':{category:'Reads & Footsies',goal:'Read a committed heavy or a genuine feint, then retaliate when a safe opening appears.',trigger:'heavy',success:'timingPunish'},
  'visceral-followup':{category:'Offense',goal:'Convert a successful firearm counter into a real timed visceral strike.',trigger:'gunParry',success:'visceral'},
- 'corner-escape':{category:'Defense',goal:'Escape real wall pressure by quickstepping forward THROUGH the opponent during i-frames. A mistimed dodge is punishable.',trigger:'heavy',success:'cornerEscape'},
+ 'corner-escape':{category:'Defense',goal:'Escape the LEFT wall by a paid forward quickstep THROUGH the opponent during real i-frames.',trigger:'heavy',success:'cornerEscape'},
+ 'corner-escape-right':{category:'Defense',goal:'Escape the RIGHT wall by a paid forward quickstep THROUGH the opponent during real i-frames.',trigger:'heavy',success:'cornerEscape'},
  'corner-interrupt-left':{category:'Defense',goal:'At the LEFT wall, interrupt a real incoming R2 windup using a grounded R1 before its active hitbox.',trigger:'heavy',success:'cornerCounterHit'},
  'corner-interrupt-right':{category:'Defense',goal:'At the RIGHT wall, interrupt a real incoming R2 windup using a grounded R1 before its active hitbox.',trigger:'heavy',success:'cornerCounterHit'}
 });
@@ -82,6 +83,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    drill==='timing-read'&&is(e,'action',1,'foldedHeavy')||
    drill==='visceral-followup'&&is(e,'gunParry',0)||
    drill==='corner-escape'&&is(e,'action',1,'foldedHeavy')||
+   drill==='corner-escape-right'&&is(e,'action',1,'foldedHeavy')&&e.playerWall==='right'||
    drill==='corner-interrupt-left'&&is(e,'action',1,'foldedHeavy')&&e.playerWall==='left'||
    drill==='corner-interrupt-right'&&is(e,'action',1,'foldedHeavy')&&e.playerWall==='right'){
    attempts++;
@@ -153,10 +155,14 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
      ))success(e);
     break;
    case 'corner-escape':
-    if(is(e,'cornerEscape',0)&&
-       earlier(entries,i,p=>is(p,'action',1,'foldedHeavy'),0,48))
-     success(e);
+   case 'corner-escape-right':{
+    const side=drill==='corner-escape'?'left':'right';
+    const pressure=earlier(entries,i,p=>is(p,'action',1,'foldedHeavy')&&
+      p.playerWall===side,0,48);
+    if(is(e,'cornerEscape',0)&&e.side===side&&pressure)
+     success(e,pressure.tick);
     break;
+   }
    case 'corner-interrupt-left':
    case 'corner-interrupt-right':{
     const side=drill.endsWith('left')?'left':'right';
