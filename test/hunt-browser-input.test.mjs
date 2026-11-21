@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {huntKeyboardToken,huntMouseToken,huntBrowserGamepadTokens,HUNT_STANDARD_BUTTONS}
+import {huntKeyboardToken,huntMouseToken,huntBrowserGamepadTokens,HUNT_STANDARD_BUTTONS,selectHuntStandardGamepad}
  from '../public/hunt-browser-input.mjs';
 import {huntDeviceProfile,createHuntInputAdapter} from '../public/hunt-input-device.mjs';
 const pad=()=>({connected:true,mapping:'standard',axes:[0,0,0,0],
@@ -54,4 +54,18 @@ test('fightstick and gamepad preserve different one-tick face-button actions',()
  const stick=createHuntInputAdapter(huntDeviceProfile('fightstick'));
  assert.equal(ordinary.sample(huntBrowserGamepadTokens(a)).act,'');
  assert.equal(stick.sample(huntBrowserGamepadTokens(a)).act,'step');
+});
+
+test('explicit USB gamepad/fightstick selection is exclusive and disconnect never routes to another pad',()=>{
+ const a={...pad(),index:0,id:'Generic first pad'};
+ const b={...pad(),index:3,id:'Leverless board'};
+ assert.equal(selectHuntStandardGamepad([a,null,b]),a);
+ assert.equal(selectHuntStandardGamepad([b,a],null),a,'auto chooses lowest valid stable session index');
+ assert.equal(selectHuntStandardGamepad([a,b],3),b);
+ assert.equal(selectHuntStandardGamepad([a,{...b,connected:false}],3),null);
+ assert.equal(selectHuntStandardGamepad([a,{...b,mapping:''}],3),null);
+ assert.equal(selectHuntStandardGamepad([a],3),null,'selected absent pad may not fall back to first');
+ assert.equal(selectHuntStandardGamepad([],null),null);
+ assert.throws(()=>selectHuntStandardGamepad([a],-1),/Controller selection/);
+ assert.throws(()=>selectHuntStandardGamepad([a],'0'),/Controller selection/);
 });
