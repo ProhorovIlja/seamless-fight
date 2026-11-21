@@ -15,8 +15,8 @@ func _verify() -> void:
 		_fail("Native rig clip requirements disagree with current Hunt rules")
 		return
 	var required: Array[String]=rig.required_clips("mournweave")
-	if required.size()!=43 or not required.has("airShot") or required.has("airStep") or required.has("guard"):
-		_fail("Hunt v3 must require all 25 combat actions plus 18 shared original performances")
+	if required.size()!=46 or not required.has("airShot") or required.has("airStep") or required.has("guard"):
+		_fail("Hunt v3 must require all 28 combat actions plus 18 shared original performances")
 		return
 	if not rig.required_clips("fake-weapon").is_empty():
 		_fail("Unknown proprietary weapon accepted")
@@ -57,7 +57,7 @@ func _verify() -> void:
 		library.add_animation(clip_name,clip)
 	player.add_animation_library("",library)
 	if rig.validate_original_rig(actor,"mournweave").is_empty():
-		_fail("Technically detailed mesh with 43 EMPTY animation names passed")
+		_fail("Technically detailed mesh with 46 EMPTY animation names passed")
 		return
 	for clip_name in required:
 		var clip: Animation=library.get_animation(clip_name)
@@ -67,7 +67,7 @@ func _verify() -> void:
 			clip.track_insert_key(track,0.0,Quaternion.IDENTITY)
 			clip.track_insert_key(track,0.25,Quaternion(Vector3.UP,0.14))
 	if not rig.validate_original_rig(actor,"mournweave").is_empty():
-		_fail("42-bone, 8000+ skinned vertices and all 43 keyed clip names rejected")
+		_fail("42-bone, 8000+ skinned vertices and all 46 keyed clip names rejected")
 		return
 	rig.animator=player
 	rig.bound_weapon="mournweave"
@@ -115,5 +115,5 @@ func _verify() -> void:
 	rig.queue_free()
 	await process_frame
 	await process_frame
-	print("HUNT_V3_ORIGINAL_3D_RIG_GATE_PASS: generated 60Hz manifest, 43 required clips, actual keyed poses, airShot, rollback resampling and no copied art")
+	print("HUNT_V3_ORIGINAL_3D_RIG_GATE_PASS: generated 60Hz manifest, 46 required clips, actual keyed poses, airShot, rollback resampling and no copied art")
 	quit(0)
