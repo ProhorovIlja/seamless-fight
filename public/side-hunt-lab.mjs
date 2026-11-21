@@ -81,6 +81,7 @@ const ORDINARY=new Set(['foldedLight','foldedHeavy','unfurledLight','unfurledHea
 const TRANSFORMS=new Set(['unfurl','refold']);
 // Meter-backed grounded pursuit cancel: only after confirmed contact, never on whiff.
 // Never grants an aerial dodge.
+export const HUNT_WHIFF_HEAVY_TRANSFORM_RECOVERY=4; // R2 whiff must be physically punishable before L1 coverage.
 export const HUNT_PURSUIT_FOCUS=25;
 export const HUNT_HITSTUN_ESCAPE_START=8; // Minimum frames of normal hitstun before quickstep.
 export const HUNT_HITSTUN_ESCAPE_EXTRA_STAMINA=6; // On top of standard 19-step cost.
@@ -199,8 +200,13 @@ function starts(p,other,requested,input,opponentStartX,opponentStartExposed){
   chained=true;
  }else if(TRANSFORMS.has(requested)&&
    (ORDINARY.has(p.act)||p.act==='step')&&
-   p.age>=old.startup+1&&p.age<total(old)-6&&p.chain<4){
-  // Form-cancel permitted on contact or whiff, but costs real stamina.
+   p.age>=old.startup+1&&p.age<total(old)-6&&p.chain<4&&
+   // A missed, committed R2/charged R2 cannot cancel away its entire
+   // recovery into a fresh hitbox. Confirmed contact retains its original
+   // Bloodborne-style L1 conversion; whiffed lights remain more flexible.
+   (!((p.act.endsWith('Heavy')||p.act.endsWith('Charged'))&&
+      !p.hitConfirmed)||
+    p.age>=old.startup+old.active+HUNT_WHIFF_HEAVY_TRANSFORM_RECOVERY)){
   chained=true;
  }else if(wasAttacking&&ORDINARY.has(requested)&&
    // A committed R2/charged R2 cannot universally skip its own recovery
