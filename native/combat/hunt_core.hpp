@@ -230,7 +230,16 @@ inline bool strike(const Fighter&p,const Fighter&q){
  if(q.act==STEP&&q.age>=1&&q.age<7)return false;
  const double left=p.dir>0?p.x+8:p.x-m.reach,right=p.dir>0?p.x+m.reach:p.x-8;
  const double top=p.y+m.top,bottom=p.y+m.bottom;
- const double hleft=q.x-18,hright=q.x+18,htop=q.y-111,hbottom=q.y-8;
+ // Match the JS source's small, facing-aware recovering melee arm
+ // hurtbox. Whiff punishment must target exposed limbs, not the full
+ // weapon blade; extension is only active in genuine recovery.
+ const Spec target=spec(q.weapon,q.act);
+ const bool arm_exposed=ordinary(q.act)&&
+   q.age>=target.startup+target.active&&q.age<total(target);
+ const int arm=arm_exposed?std::min(24,target.reach/5):0;
+ const double hleft=q.x-18-(q.dir<0?arm:0);
+ const double hright=q.x+18+(q.dir>0?arm:0);
+ const double htop=q.y-111,hbottom=q.y-8;
  return left<hright&&right>hleft&&top<hbottom&&bottom>htop;
 }
 inline bool parryable(const Fighter&p){
