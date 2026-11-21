@@ -20,3 +20,6 @@ rendering_device/driver.windows="d3d12"
 scaling_3d/mode=0
 scaling_3d/scale=1.0
 environment/defaults/default_clear_color=Color(0.047, 0.052, 0.066, 1)
+
+[physics]
+common/physics_ticks_per_second=60
