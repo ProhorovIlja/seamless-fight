@@ -5,9 +5,10 @@ import {HUNT_HZ,HUNT_RULESET,HUNT_W,HUNT_FLOOR,huntInput}
  from './side-hunt-lab.mjs';
 import {huntPracticeSession,HUNT_PRACTICE_DRILLS} from './hunt-practice-suite.mjs';
 import {huntPublicHud,huntActionName} from './hunt-identity.mjs';
-import {huntDeviceProfile,createHuntInputAdapter,HUNT_DEVICE_LAYOUTS}
+import {huntDeviceProfile,createHuntInputAdapter,HUNT_DEVICE_LAYOUTS,HUNT_BINDABLE,
+ validateHuntDeviceProfile,rebindHuntDeviceProfile}
  from './hunt-input-device.mjs';
-import {huntKeyboardToken,huntMouseToken,huntBrowserGamepadTokens,selectHuntStandardGamepad}
+import {huntKeyboardToken,huntMouseToken,huntBrowserGamepadTokens,selectHuntStandardGamepad,HUNT_STANDARD_BUTTONS}
  from './hunt-browser-input.mjs';
 import {drawHuntArena} from './hunt-render.mjs';
 
@@ -15,6 +16,58 @@ const $=id=>document.getElementById(id);
 const TICK_MS=1000/HUNT_HZ,MAX_TICKS_PER_RENDER=8,REPLAY_MAX_BYTES=3*1024*1024;
 const MAX_DUMMY_LIBRARY_BYTES=512*1024;
 const browserLayouts=new Set(['keyboard-mouse','gamepad','fightstick','leverless','fightpad']);
+const BINDINGS_KEY='sf-hunt-practice.browser-bindings.v1';
+const ACTION_LABELS=Object.freeze({
+ left:'Move Left',right:'Move Right',jump:'Jump',crouch:'Crouch',
+ light:'Light Strike',heavy:'Heavy Strike',charge:'Charged Strike',
+ trick:'Transform Weapon',shot:'Firearm',step:'Quickstep',visceral:'Visceral',
+ heal:'Heal',blood:'Create Blood Rounds',feint:'Feint',sync:'Follow-up'
+});
+const PAD_AXIS_TOKENS=['left-x-','left-x+','left-y-','left-y+',
+ 'right-x-','right-x+','right-y-','right-y+'];
+const KEYBOARD_TOKENS=[
+ ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(x=>'key:Key'+x),
+ ...'0123456789'.split('').map(x=>'key:Digit'+x),
+ ...['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space','ShiftLeft',
+ 'ShiftRight','ControlLeft','ControlRight','AltLeft','AltRight',
+ 'Backquote','Minus','Equal','BracketLeft','BracketRight','Semicolon',
+ 'Quote','Comma','Period','Slash','Backslash'].map(x=>'key:'+x),
+ ...Array.from({length:5},(_,i)=>'mouse:'+i)
+];
+const PAD_TOKENS=[...HUNT_STANDARD_BUTTONS,...PAD_AXIS_TOKENS].map(x=>'pad:'+x);
+const profiles=Object.fromEntries([...browserLayouts].map(x=>[x,huntDeviceProfile(x)]));
+try{
+ const raw=localStorage.getItem(BINDINGS_KEY);
+ if(raw&&raw.length<=32000){
+  const previous=JSON.parse(raw);
+  for(const name of browserLayouts)if(previous?.[name]){
+   validateHuntDeviceProfile(previous[name]);
+   if(previous[name].layout===name)profiles[name]=previous[name];
+  }
+ }
+}catch{ /* Invalid local settings are ignored, never interpreted as code. */ }
+function persistBindings(){
+ try{localStorage.setItem(BINDINGS_KEY,JSON.stringify(profiles));}catch{}
+}
+function availableTokens(){
+ return layout==='keyboard-mouse'?KEYBOARD_TOKENS:PAD_TOKENS;
+}
+function refreshBindingEditor(){
+ const chosen=$('rebind-action'),token=$('rebind-token');
+ const action=chosen.value||HUNT_BINDABLE[0];
+ token.replaceChildren();
+ for(const physical of availableTokens()){
+  const entry=document.createElement('option');
+  entry.value=physical;entry.textContent=physical.replace(':',' · ');
+  token.append(entry);
+ }
+ token.value=profiles[layout].binds[action][0];
+ $('active-bindings').textContent=HUNT_BINDABLE.map(key=>
+  ACTION_LABELS[key]+': '+profiles[layout].binds[key].join(' / ')).join('\\n');
+ $('input-guide').textContent=HUNT_BINDABLE.map(key=>
+  ACTION_LABELS[key]+': '+profiles[layout].binds[key].join(' / ')).join(' · ');
+}
+
 const canvas=$('arena'),ctx=canvas.getContext('2d');
 if(!ctx)throw Error('Hunt v3 practice requires a canvas-rendering browser.');
 const downKeys=new Set(),downMouse=new Set();
@@ -238,15 +291,11 @@ function animate(now){
 function setControlFamily(){
  const next=$('input-family').value;
  if(!browserLayouts.has(next)||!HUNT_DEVICE_LAYOUTS.includes(next))return;
- layout=next;adapter=createHuntInputAdapter(huntDeviceProfile(next));lastPadLabel='';
+ layout=next;adapter=createHuntInputAdapter(profiles[next]);lastPadLabel='';
  clearInput();status('Input profile: '+next+'. SOCD neutral; real controller support depends on hardware mapping.');
- if(next==='keyboard-mouse'){
-  $('input-device').textContent='Keyboard and mouse active.';
-  $('input-guide').textContent='A/D move · Space jump · S crouch · Left click light · Right click heavy · H charge · Q transform · E firearm · Shift dodge · F visceral · R heal · B blood rounds · T feint · G follow-up';
- }else{
-  choosePad();
-  $('input-guide').textContent='D-pad/left stick move · Face buttons attack · shoulder/trigger inputs transform, fire and evade. The '+next+' layout is bound by the actual Hunt input profile. No macros or automatic actions.';
- }
+ if(next==='keyboard-mouse')$('input-device').textContent='Keyboard and mouse active.';
+ else choosePad();
+ refreshBindingEditor();
 }
 function isEditing(target){
  return Boolean(target?.closest?.('input,select,textarea,button,[contenteditable=true]'));
@@ -255,7 +304,7 @@ window.addEventListener('keydown',event=>{
  if(event.repeat||event.ctrlKey||event.altKey||event.metaKey||isEditing(event.target))return;
  const token=huntKeyboardToken(event.code);
  if(!token)return;
- const binds=huntDeviceProfile('keyboard-mouse').binds;
+ const binds=profiles['keyboard-mouse'].binds;
  if(Object.values(binds).some(a=>a.includes(token))){
   downKeys.add(token);event.preventDefault();
  }
@@ -346,6 +395,31 @@ $('dummy-mode').addEventListener('change',()=>{
  updateButtons();
 });
 $('input-family').addEventListener('change',setControlFamily);
+for(const action of HUNT_BINDABLE){
+ const option=document.createElement('option');
+ option.value=action;option.textContent=ACTION_LABELS[action];
+ $('rebind-action').append(option);
+}
+$('rebind-action').addEventListener('change',refreshBindingEditor);
+$('apply-binding').addEventListener('click',()=>{
+ const action=$('rebind-action').value,token=$('rebind-token').value;
+ try{
+  profiles[layout]=rebindHuntDeviceProfile(profiles[layout],action,[token]);
+  adapter=createHuntInputAdapter(profiles[layout]);clearInput();
+  persistBindings();refreshBindingEditor();
+  $('binding-message').textContent=ACTION_LABELS[action]+' bound to '+token+' for '+layout+'.';
+ }catch(err){
+  $('binding-message').textContent=
+   'Binding rejected: '+String(err.message).slice(0,105)+
+   '. Choose a free key or restore defaults.';
+ }
+});
+$('reset-bindings').addEventListener('click',()=>{
+ profiles[layout]=huntDeviceProfile(layout);
+ adapter=createHuntInputAdapter(profiles[layout]);clearInput();
+ persistBindings();refreshBindingEditor();
+ $('binding-message').textContent='Default bindings restored for '+layout+'.';
+});
 $('export').addEventListener('click',()=>{
  try{
   const capture=practice.save();
