@@ -88,6 +88,12 @@ public:
   const int recovery_end=sf_hunt::total(timing);
   const bool step_recovery=stepping&&p.age>=recovery_start&&p.age<recovery_end;
   result["firearmCounterWindowOpen"]=sf_hunt::parryable(p);
+  // Same exact bounded whiff-only arm as the native collision test.
+  // This is practice HUD evidence; never send secret state to rivals.
+  const bool whiff_arm=sf_hunt::ordinary(p.act)&&!p.spent&&
+   p.age>=recovery_start&&p.age<recovery_end;
+  result["whiffRecoveryArmExposed"]=whiff_arm;
+  result["whiffRecoveryArmUnits"]=whiff_arm?std::min(24,timing.reach/5):0;
   result["quickstepIframes"]=stepping&&p.age>=1&&p.age<7;
   result["quickstepVulnerableTail"]=stepping&&p.age>=7&&p.age<recovery_start;
   result["quickstepRecoveryPunishable"]=step_recovery;
