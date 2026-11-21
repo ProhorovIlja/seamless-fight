@@ -45,12 +45,14 @@ const neutral=()=>huntInput();
 const opposite=input=>({...input,x:-input.x});
 const MAX_FRAMES=7200;
 const GOAL_HISTORY_LIMIT=1200;
-function scoreProjection(tickEvents,beforePlayerAction,confirmedState){
- // Source-derived at event tick; never a user-supplied drill-completion flag.
- const wall=confirmedState.p[0].x<=65.001?'left':
-  confirmedState.p[0].x>=894.999?'right':'';
+const wallOf=x=>x<=65.001?'left':x>=894.999?'right':'';
+function scoreProjection(tickEvents,beforePlayerAction,confirmedState,wallBeforeTick){
+ // Actions begin BEFORE this frame's movement; contacts and crossings
+ // resolve AFTER movement. Mixing those two timings loses real wall
+ // pressure if the defender quicksteps off the wall on the same tick.
+ const wallAfterTick=wallOf(confirmedState.p[0].x);
  return tickEvents.map(e=>({...e,
-  playerWall:wall,
+  playerWall:e.kind==='action'?wallBeforeTick:wallAfterTick,
   playerAirborne:confirmedState.p[0].y<HUNT_FLOOR,
   opponentAirborne:confirmedState.p[1].y<HUNT_FLOOR,
   playerStartedStunned:beforePlayerAction==='stun',
@@ -228,12 +230,13 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   const left=canonicalHuntInput(playerInput);
   const right=dummyInput();
   const beforePlayerAction=state.p[0].act;
+  const beforePlayerWall=wallOf(state.p[0].x);
   const tickEvents=[];
   // Dummy tape is prepared from player commands, never from an inferred win.
   replay.append([left,right]);
   huntStep(state,[left,right],tickEvents);
   // Training evidence is a read-only projection of the confirmed source step.
-  const scoreEvents=scoreProjection(tickEvents,beforePlayerAction,state);
+  const scoreEvents=scoreProjection(tickEvents,beforePlayerAction,state,beforePlayerWall);
   goalEvidence.push(...scoreEvents);
   if(goalEvidence.length>GOAL_HISTORY_LIMIT)
    goalEvidence=goalEvidence.slice(-GOAL_HISTORY_LIMIT);
@@ -327,9 +330,10 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   for(const inputs of capture.frames){
    writable.append(inputs);
    const priorAction=rebuilt.p[0].act;
+   const priorWall=wallOf(rebuilt.p[0].x);
    const tickEvents=[];
    huntStep(rebuilt,inputs,tickEvents);
-   const scoreEvents=scoreProjection(tickEvents,priorAction,rebuilt);
+   const scoreEvents=scoreProjection(tickEvents,priorAction,rebuilt,priorWall);
    restoredHistory.push({tick:rebuilt.tick,input:clone(inputs),
     events:tickEvents,scoreEvents});
    if(restoredHistory.length>HUNT_PRACTICE_HISTORY)restoredHistory.shift();
