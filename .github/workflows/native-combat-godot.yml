@@ -30,6 +30,8 @@ on:
       - 'scripts/native-hunt-godot-vectors.mjs'
       - 'experiments/godot-native-4.7/tests/verify_native_hunt.gd'
       - 'experiments/godot-native-4.7/tests/verify_native_hunt_practice.gd'
+      - 'experiments/godot-native-4.7/tests/verify_native_hunt_controls.gd'
+      - 'experiments/godot-native-4.7/scripts/native_hunt_controls.gd'
       - 'experiments/godot-native-4.7/scripts/native_hunt_practice.gd'
       - '.github/workflows/native-combat-godot.yml'
   pull_request:
@@ -62,6 +64,8 @@ on:
       - 'scripts/native-hunt-godot-vectors.mjs'
       - 'experiments/godot-native-4.7/tests/verify_native_hunt.gd'
       - 'experiments/godot-native-4.7/tests/verify_native_hunt_practice.gd'
+      - 'experiments/godot-native-4.7/tests/verify_native_hunt_controls.gd'
+      - 'experiments/godot-native-4.7/scripts/native_hunt_controls.gd'
       - 'experiments/godot-native-4.7/scripts/native_hunt_practice.gd'
       - '.github/workflows/native-combat-godot.yml'
   workflow_dispatch:
@@ -106,6 +110,7 @@ jobs:
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hunt.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hunt_practice.gd --quit-after 300
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hunt_controls.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_practice.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_hunt_rig_contract.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hud_menu.gd --quit-after 300
@@ -184,6 +189,7 @@ jobs:
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hunt.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hunt_practice.gd --quit-after 300
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hunt_controls.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_practice.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_hunt_rig_contract.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hud_menu.gd --quit-after 300

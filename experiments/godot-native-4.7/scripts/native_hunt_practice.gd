@@ -151,13 +151,8 @@ func _physics_process(_delta: float) -> void:
 	var graphics: CanvasLayer=get_parent().get_node("GraphicsSettings")
 	if menu.visible or settings.visible or graphics.visible:
 		return
-	var legacy_input: Array=get_parent().get_node("NativeControls").encoded_input()
-	# Transitional bindings: legacy cut/heavy/shot/step/feint become genuine
-	# Hunt actions. Guard is ALWAYS discarded. New trick/blood/heal bindings
-	# need their own approved remappable UI before public release.
-	var mapping: Array=[0,1,2,5,6,7]
-	if legacy_input.size()!=4 or int(legacy_input[2])<0 or int(legacy_input[2])>=mapping.size():
+	var source_input: Array=get_parent().get_node("HuntControls").encoded_input()
+	# Every Hunt v3 verb is remappable; no legacy block or action translation.
+	if not _valid(source_input):
 		return
-	var local: Array=[int(legacy_input[0]),int(legacy_input[1]),
-		mapping[int(legacy_input[2])],0]
-	step_manual(local,_dummy_input())
+	step_manual(source_input,_dummy_input())
