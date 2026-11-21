@@ -47,9 +47,16 @@ test('side-view 1v1 observer seats cap at six and rematch remains host and guest
  const state=await watchers[0].get(m=>m.t==='state'&&m.s.tick>=3);
  assert.equal(state.s.p.length,2);
  watchers[0].ws.close();
- await host.get(m=>m.t==='audience'&&m.viewers===5);
- const roomListing=(await (await fetch(origin+'/fight/lobbies.json')).json()).lobbies;
- assert.equal(roomListing.length,1);
+ // Earlier audience messages (1..6) can remain buffered in the host client.
+ // Do not mistake a stale historical 'viewers: 5' event for proof that the
+ // server has processed the actual WebSocket close handshake.
+ let roomListing=[];
+ for(let i=0;i<120;i++){
+  roomListing=(await (await fetch(origin+'/fight/lobbies.json')).json()).lobbies;
+  if(roomListing.length===1&&roomListing[0].spectators===5)break;
+  await sleep(20);
+ }
+ assert.equal(roomListing.length,1,'one vacated watch seat must restore public discoverability');
  assert.equal(roomListing[0].watchPath,'/fight/side/?watch='+open.code);
  assert.equal(roomListing[0].spectators,5);
  // No observer may become the third fighter or claim fighter's rematch vote.
