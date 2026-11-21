@@ -38,7 +38,7 @@ func _ready() -> void:
 		var polling := Timer.new()
 		polling.wait_time=15.0
 		polling.autostart=true
-		polling.timeout.connect(func(): if visible: live.refresh())
+		polling.timeout.connect(_poll_court_status)
 		add_child(polling)
 
 func _style(color: Color, margin: int=12) -> StyleBoxFlat:
@@ -243,6 +243,10 @@ func _build() -> void:
 	status=_label("Local training requires the compiled C++ combat extension. F1 toggles this menu.",14,MUTED)
 	status.name="Status"
 	column.add_child(status)
+
+func _poll_court_status() -> void:
+	if visible:
+		get_parent().get_node("CourtStatus").refresh()
 
 func _on_court_activity(_snapshot: Dictionary) -> void:
 	if court_activity!=null:
