@@ -1,6 +1,10 @@
 # Seamless Fight — original 3D animation, universal controls and premium practice production charter
 21 November 2026 | Draft PR #1 | Current fighting grammar: `sf-hunt-lab/3`
 
+## Final language and multiplayer constraint (supersedes earlier planning)
+
+**English only. Exactly two fighters (1v1) per duel.** No Russian option, other locales, 2v2, tag/team combat or 4-player matches. Room viewers can spectate but never fill a third fighter slot. Future friend lists and invitations require an authenticated independent game service; never share the live BBSC account database without a separately reviewed integration. The implemented Court web hub provides truthful connection counts and host-open 1v1 spectator links; see [Court product and API contract](ENGLISH-ONLY-1V1-COURT-2026-11-21.md).
+
 ## The release bar
 
 The final Windows 2.5D Gothic PvP game must not merely display a handful of common action poses. It needs a substantial, genuinely authored and polished animation repertoire across each original trick weapon/form, body silhouette, combat state, character personality, and match presentation. The objective is to **match or exceed the breadth of Bloodborne's meaningful animation categories where appropriate**, not falsely claim an unverified number or simply rename copied Bloodborne clips. DMC and competitive fighters may inform cinematic transitions, cancels, clarity, practice, control feel and training presentation, **only when consistent with the Bloodborne-first no-block/no-grab/no-double-jump/no-air-step core**.
