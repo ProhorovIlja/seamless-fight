@@ -56,7 +56,7 @@ test('2.5D private 1v1 duel supports six host-approved read-only public spectato
  const audience=await host.get(m=>m.t==='audience'&&m.viewers===1);
  assert.equal(audience.limit,6);
  const before=(await status());
- assert.equal(before.connectedClients,3,'host, rejected watcher, and approved viewer are active sockets until close');
+ assert(before.connectedClients>=2&&before.connectedClients<=3,'rejected unauthorized socket may already be closed');
  assert.equal(before.spectators,1);
  assert.equal(before.sideDuels,0);
  // No one can use a watch token as the private invite for the second fighter.
