@@ -1,0 +1,10 @@
+; Native portable C++ simulation. Binary built by native-combat-godot.yml.
+; Source is experiments/godot-native-4.7/extension/side_native.cpp.
+[configuration]
+entry_symbol="sf_combat_library_init"
+compatibility_minimum="4.7"
+reloadable=false
+
+[libraries]
+linux.x86_64="res://bin/libsf_combat.linux.template_release.x86_64.so"
+windows.x86_64="res://bin/sf_combat.windows.template_release.x86_64.dll"
