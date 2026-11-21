@@ -325,7 +325,7 @@ function canStrike(p,q){
 }
 // Firearms interrupt attacks/heals into a time-limited visceral opening.
 // Unlike conventional fighters, there are no low/mid/high guards or block-parries.
-function resolveHit(s,actor,target,moveName,events){
+function resolveHit(s,actor,target,moveName,events,preContactRally=0){
  const a=s.p[actor],b=s.p[target],m=huntMoveSpec(a,moveName);
  a.spent=true;
  const prior=b.hp;
@@ -382,7 +382,9 @@ function resolveHit(s,actor,target,moveName,events){
  const combo=b.act==='stun'?b.combo+1:1;
  const damage=Math.max(5,Math.ceil(m.damage*Math.max(.45,1-.13*(combo-1))));
  // Rally recovery happens only on successful melee contact; never from gunfire.
- const regain=Math.min(a.rally,damage);
+ // Rally created by the OTHER hit in the same tick cannot be consumed
+ // retroactively during a simultaneous melee trade. This is slot-neutral.
+ const regain=Math.min(a.rally,damage,preContactRally);
  a.hp=Math.min(100,a.hp+regain);a.rally-=regain;
  if(!a.rally)a.rallyLife=0;
  if(regain)events?.push({tick:s.tick,kind:'rally',actor,health:regain});
@@ -391,7 +393,10 @@ function resolveHit(s,actor,target,moveName,events){
  b.combo=combo;b.act='stun';b.age=0;b.crouch=false;
  b.queue='';b.queueLife=0;b.chain=0;b.hitConfirmed=false;b.exposed=0;
  b.vx=a.dir*(m.damage>=27?6.1:4.4);
- a.hitConfirmed=true;a.focus=Math.min(100,a.focus+9);
+ // The source can itself be stunned in the same-tick trade. Neither
+ // stunned participant may finish with a phantom hit-confirm cancel.
+ a.hitConfirmed=a.act===moveName;
+ a.focus=Math.min(100,a.focus+9);
  // A charged heavy connecting from behind creates a distinct visceral window.
  const rear=(a.x-b.x)*b.dir<0;
  if(moveName.endsWith('Charged')&&rear&&b.y===HUNT_FLOOR){
@@ -439,6 +444,9 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
     stamina:me.st,side:old<=140?'left':'right'});
  }
  // Gun counters resolve before utility payoffs; melee trades remain simultaneous.
+ // Freeze both fighters' recoverable HP before any contact of this tick.
+ // Otherwise slot 1 can Rally the damage just dealt by slot 0.
+ const rallyBeforeContact=[a.rally,b.rally];
  const gunHits=[['shot','airShot'].includes(a.act)&&canStrike(a,b),
   ['shot','airShot'].includes(b.act)&&canStrike(b,a)];
  const gunMoves=[a.act,b.act];
@@ -448,7 +456,7 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
   !['shot','airShot'].includes(b.act)&&canStrike(b,a)];
  const names=[a.act,b.act];
  for(let slot=0;slot<2;slot++)if(hits[slot])
-  resolveHit(s,slot,1-slot,names[slot],events);
+  resolveHit(s,slot,1-slot,names[slot],events,rallyBeforeContact[slot]);
  for(let slot=0;slot<2;slot++)settleUtility(s.p[slot],events,s.tick,slot);
  for(let slot=0;slot<2;slot++){
   const p=s.p[slot],m=huntMoveSpec(p);
