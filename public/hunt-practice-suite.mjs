@@ -100,7 +100,7 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
  let replay=createHuntReplay({initialState:start,maxFrames:MAX_FRAMES,checkpointEvery:30});
  let state=clone(start),paused=false,mode='passive',activeSlot=0;
  let recordingSlot=-1,playStart=0,selectedSlot=0,randomState=seed>>>0;
- let reversalArmed=false,reversalPlaying=false;
+ let reversalArmed=false,reversalPlaying=false,reviewTape=[];
  const tapes=Array.from({length:HUNT_DUMMY_SLOTS},()=>[]);
  if(drill!=='free'){
   // Recorded inputs run through the regular player-2 action graph. We NEVER
@@ -113,7 +113,7 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
  }
  let history=[],events=[],goalEvidence=[];
  function inspect(){return clone(state);}
- function record(slot){validateSlot(slot);recordingSlot=slot;mode='passive';tapes[slot]=[];return true;}
+ function record(slot){validateSlot(slot);recordingSlot=slot;mode='passive';reviewTape=[];tapes[slot]=[];return true;}
  function recordInput(input){
   if(recordingSlot<0)return false;
   const pair=canonicalHuntInput(input);
@@ -141,7 +141,7 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   });
   for(let i=0;i<HUNT_DUMMY_SLOTS;i++)tapes[i]=safe[i];
   recordingSlot=-1;mode='passive';selectedSlot=0;activeSlot=0;
-  reversalArmed=false;reversalPlaying=false;playStart=state.tick;
+  reversalArmed=false;reversalPlaying=false;reviewTape=[];playStart=state.tick;
   return true;
  }
  function setMode(next,slot=0){
@@ -150,7 +150,7 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   if(next!=='passive'&&!tapes.some(t=>t.length))return false;
   if(next==='loop'&&!tapes[slot].length)return false;
   mode=next;selectedSlot=slot;activeSlot=slot;playStart=state.tick;recordingSlot=-1;
-  reversalArmed=false;reversalPlaying=false;
+  reversalArmed=false;reversalPlaying=false;reviewTape=[];
   return true;
  }
  function chooseRandom(){
@@ -160,6 +160,12 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   return nonempty[randomState%nonempty.length];
  }
  function dummyInput(){
+  if(mode==='takeover'){
+   // Reproduce the actual source-recorded opponent actions after a rewind.
+   const offset=state.tick-playStart;
+   if(offset>=reviewTape.length){mode='passive';reviewTape=[];return neutral();}
+   return canonicalHuntInput(reviewTape[offset]);
+  }
   if(mode==='passive')return neutral();
   if(mode==='reversal'){
    const p=state.p[1];
@@ -224,14 +230,45 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   events=history.flatMap(x=>x.events);
   goalEvidence=history.flatMap(x=>x.scoreEvents||[]).slice(-GOAL_HISTORY_LIMIT);
   paused=true;mode='passive';recordingSlot=-1;playStart=state.tick;
-  reversalArmed=false;reversalPlaying=false;
+  reversalArmed=false;reversalPlaying=false;reviewTape=[];
   return true;
+ }
+ function reviewLastAttempt({leadFrames=12}={}){
+  if(!Number.isInteger(leadFrames)||leadFrames<0||leadFrames>60)
+   throw RangeError('Review lead must be 0..60 source frames');
+  if(drill==='free'||history.length<2)return null;
+  // Find genuine source-defined opportunities from confirmed Hunt tick events.
+  // This is only run on deliberate review, not on every render frame.
+  const recorded=[];
+  let previousAttempts=0,previousSuccesses=0,latest=null;
+  for(const frame of history){
+   for(const event of frame.scoreEvents||[]){
+    recorded.push(event);
+    const result=evaluateHuntTrainingGoal(drill,recorded);
+    if(result.attempts>previousAttempts)latest={tick:event.tick,confirmed:false};
+    if(result.successes>previousSuccesses&&latest)latest.confirmed=true;
+    previousAttempts=result.attempts;
+    previousSuccesses=result.successes;
+   }
+  }
+  if(!latest)return null;
+  const earliest=history[0].tick-1;
+  const target=Math.max(earliest,latest.tick-leadFrames);
+  const frames=state.tick-target;
+  if(frames<1||frames>HUNT_PRACTICE_HISTORY)return null;
+  const future=history.filter(item=>item.tick>target)
+   .map(item=>canonicalHuntInput(item.input[1]));
+  if(future.length!==frames)return null;
+  if(!rewind(frames))return null;
+  reviewTape=future;mode='takeover';playStart=state.tick;
+  return Object.freeze({drill,attemptTick:latest.tick,rewoundTo:target,
+   frames,confirmed:latest.confirmed,mode:'takeover'});
  }
  function restart(){
   replay=createHuntReplay({initialState:start,maxFrames:MAX_FRAMES,checkpointEvery:30});
   state=clone(start);history=[];events=[];goalEvidence=[];playStart=0;
   paused=true;mode='passive';recordingSlot=-1;
-  reversalArmed=false;reversalPlaying=false;
+  reversalArmed=false;reversalPlaying=false;reviewTape=[];
  }
  function save(){return replay.capture();}
  function inputHistory(limit=HUNT_PRACTICE_INPUT_HISTORY){
@@ -279,11 +316,11 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   replay=writable;state=rebuilt;
   history=restoredHistory;events=restoredEvents;goalEvidence=restoredGoalEvents;
   paused=true;mode='passive';recordingSlot=-1;playStart=state.tick;
-  reversalArmed=false;reversalPlaying=false;
+  reversalArmed=false;reversalPlaying=false;reviewTape=[];
   return true;
  }
  return Object.freeze({inspect,record,recordInput,finish,setMode,append,step,
-  pause,resume,rewind,restart,save,load,frame,stats,
+  pause,resume,rewind,reviewLastAttempt,restart,save,load,frame,stats,
   saveDummyLibrary,loadDummyLibrary,
   goal:()=>evaluateHuntTrainingGoal(drill,goalEvidence),
   metrics:()=>analyzeHuntReplay(replay.capture()),inputHistory,eventHistory,

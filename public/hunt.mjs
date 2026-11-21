@@ -170,6 +170,8 @@ function updateButtons(){
  $('pause').textContent=data.paused?'Resume':'Pause';
  $('step').disabled=!data.paused||practice.inspect().over;
  $('rewind').disabled=data.tick<60;
+ $('review-attempt').disabled=data.drill==='free'||data.tick===0;
+ if($('dummy-mode').value!==data.mode)$('dummy-mode').value=data.mode;
  $('record-frames').textContent='Slot '+(Number($('dummy-slot').value)+1)+
   ': '+data.dummyFrames[Number($('dummy-slot').value)]+
   ' / 600 frames · '+data.mode+' dummy'+(data.paused?' · paused':'');
@@ -383,6 +385,18 @@ $('rewind').addEventListener('click',()=>{
  if(practice.rewind(60)){before=practice.inspect();after=practice.inspect();clearInput();acc=0;last=0;
   status('Rewound exactly 60 frames. Resume to take over the new timeline.');}
  else status('At least 60 recorded source frames are required for rewind.');
+ updateHud();
+});
+$('review-attempt').addEventListener('click',()=>{
+ const r=practice.reviewLastAttempt();
+ if(r){
+  before=practice.inspect();after=practice.inspect();
+  clearInput();acc=0;last=0;
+  $('dummy-mode').value='takeover';
+  status('Source review: rewound to tick '+r.rewoundTo+
+   ' before opportunity '+r.attemptTick+
+   '. Resume or advance frames to try new actions against the original opponent tape.');
+ }else status('No source-valid training opportunity is available within the recent 720 frames.');
  updateHud();
 });
 $('restart').addEventListener('click',()=>{reset();status('Hunt v3 practice restarted with two original 1v1 weapons.');});

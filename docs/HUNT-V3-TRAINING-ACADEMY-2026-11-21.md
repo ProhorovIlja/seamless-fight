@@ -81,3 +81,13 @@ Regression files:
 No `seamlesshunt.com` production deployment, independent account service, signed leaderboard, persistent authenticated friend invite/spectate, Windows public release, finished 546 3D animation clips or native `sf-hunt-lab/3` GGPO authority is implied by this documentation. The older online and Godot/C++ prototype still use their separate legacy rules and cannot be labeled Hunt v3 parity.
 
 Next hard quality gates are native Hunt v3 source parity, real 1v1 online authority/rollback, licensed original animated assets and verified frame pacing on Windows GPUs, followed by authorized integration with the existing protected site via the isolated VPS cohost plan.
+
+## Source-situation review and opponent-tape takeover (2026-11-21)
+
+The offline browser Practice Mode now offers **Review Last Attempt**. Source-confirmed training events determine the most recently observed attempt. Review rewinds up to 12 preparatory frames before its trigger, forks the replay, and replays the **exact previously recorded opponent commands** while allowing completely new player inputs.
+
+A new attempt is adjudicated by the original 60Hz Hunt v3 action rules, so former successes after the rewind are discarded; they can become failures and vice versa. When the recorded opponent segment ends, the dummy becomes passive. Choosing another dummy mode cancels the temporary takeover tape. Verified imported replay JSON can also be used for review.
+
+Availability is restricted to an observed training opportunity in the last 720 retained source ticks. The feature is offline, unrated, English-only and 1v1; it does not add block, grabs, air-steps, infinite ammunition, remote rollback, or authenticated competitive evidence.
+
+Regression checks: `test/hunt-review-takeover.test.mjs` validates exact opponent input parity and changed outcomes; `test/hunt-browser-practice.test.mjs` checks the served English UI.

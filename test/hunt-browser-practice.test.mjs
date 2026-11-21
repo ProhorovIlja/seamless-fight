@@ -51,6 +51,8 @@ test('real Node HTTP server exposes English-only interactive Hunt laboratory and
  assert.match(html,/id="goal-progress"/);
  assert.match(html,/id="goal-description"/);
  assert.match(html,/id="goal-feedback"/);
+ assert.match(html,/id="review-attempt"/);
+ assert.match(html,/value="takeover" disabled/);
  assert.match(html,/id="display-cap"/);
  assert.match(html,/id="export"/);
  assert.match(html,/id="import"/);
