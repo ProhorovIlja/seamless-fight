@@ -182,3 +182,27 @@ func encoded_input() -> Array[int]:
 	elif Input.is_action_just_pressed("sf_feint"):
 		action=5
 	return [x,y,action,1 if Input.is_action_pressed("sf_guard") else 0]
+
+func with_device_rebinding(profile: Dictionary, action: String, entry: Dictionary, device_family: String) -> Dictionary:
+	if action not in ACTIONS or device_family not in ["kbm","pad"]:
+		return {}
+	if not validate_profile(profile).is_empty():
+		return {}
+	var kind := str(entry.get("kind",""))
+	if device_family=="kbm" and kind not in ["key","mouse"]:
+		return {}
+	if device_family=="pad" and kind not in ["pad_button","pad_axis"]:
+		return {}
+	var result := profile.duplicate(true)
+	var entries: Array = result["actions"][action]
+	var position := -1
+	for index in range(entries.size()):
+		var existing_kind := str(entries[index].get("kind",""))
+		if (existing_kind in ["key","mouse"]) == (device_family=="kbm"):
+			position=index
+			break
+	if position>=0:
+		entries[position]=entry
+	else:
+		entries.append(entry)
+	return result if validate_profile(result).is_empty() else {}
