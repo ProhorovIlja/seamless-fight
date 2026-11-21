@@ -126,6 +126,8 @@ export function createSideHub(expectedOrigin,{maxRooms=64}={}){
    for(const c of ws.clients){send(c,{t:'error',message:'Side-view server restarting. Rooms are not retained.'});c.close(1012,'restarting');}
    setTimeout(()=>{for(const c of ws.clients)c.terminate();},1500).unref();
   },
-  stats(){return {rooms:rooms.size,clients:ws.clients.size};}
+  stats(){return {rooms:rooms.size,clients:ws.clients.size,
+   duels:[...rooms.values()].filter(r=>r.peers.length===2).length,
+   fighters:[...rooms.values()].reduce((n,r)=>n+r.peers.length,0)};}
  };
 }
