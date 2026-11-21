@@ -36,6 +36,23 @@ func _test() -> void:
 	if not t.spectating or t.local_slot!=-1 or t.send_fighter_input(1,0,"hew",false):
 		_fail("Spectator can become a fighter or send an attack")
 		return
+	var received: Array[int]=[]
+	t.authoritative_state.connect(func(state: Dictionary, _ack: int, _events: Array):
+		received.append(int(state["tick"])))
+	var newer: Dictionary=snapshot.duplicate(true)
+	newer["tick"]=30
+	t._handle_message({"t":"state","rules":"seamless-side/1","s":newer,"ack":-1})
+	if t.latest_tick!=28 or not received.is_empty():
+		_fail("Malformed server acknowledgement poisoned spectator tick order")
+		return
+	t._handle_message({"t":"state","rules":"seamless-side/1","s":newer,"ack":0})
+	if t.latest_tick!=30 or received!=[30]:
+		_fail("Authoritative spectator state lost after invalid earlier packet")
+		return
+	t._handle_message({"t":"state","rules":"seamless-side/1","s":newer,"ack":0})
+	if received.size()!=1:
+		_fail("Duplicate spectator tick was applied twice")
+		return
 	if t.change_public_gallery(true):
 		_fail("Spectator can open someone else's public lobby")
 		return
