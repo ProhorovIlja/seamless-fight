@@ -11,6 +11,7 @@ const surfaces=[
  '../public/hunt-render.mjs',
  '../public/hunt-browser-input.mjs',
  '../public/hunt-practice-suite.mjs',
+ '../public/hunt-training-goals.mjs',
  '../public/hub.html',
  '../public/hub.mjs',
  '../public/side.html',
