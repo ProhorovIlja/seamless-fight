@@ -15,6 +15,8 @@ const ACTIONS := ["sf_left","sf_right","sf_jump","sf_crouch","sf_guard",
 
 func _ready() -> void:
 	apply_profile(load_profile())
+	# Prevent background gamepads or arcade sticks issuing combat commands.
+	Input.ignore_joypad_on_unfocused_application=true
 	Input.joy_connection_changed.connect(_device_connection_changed)
 
 func _key(code: int) -> Dictionary:
@@ -252,6 +254,9 @@ func resolve_directions(left: bool,right: bool,jump: bool,crouch: bool) -> Vecto
 	return Vector2i(int(right)-int(left),int(crouch)-int(jump))
 
 func encoded_input() -> Array[int]:
+	if DisplayServer.get_name()!="headless" and not DisplayServer.window_is_focused():
+		previous_pressed.clear()
+		return [0,0,0,0]
 	if active_device_id==DEVICE_AUTO:
 		var direction: Vector2i=resolve_directions(
 			Input.is_action_pressed("sf_left"),Input.is_action_pressed("sf_right"),
