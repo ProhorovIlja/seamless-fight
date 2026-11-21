@@ -19,6 +19,7 @@ var pending_action := ""
 var pending_device := ""
 var feedback: Label
 var device_info: Label
+var device_selector: OptionButton
 var buttons: Dictionary={}
 
 func _ready() -> void:
@@ -86,6 +87,12 @@ func _build() -> void:
 	device_info=_label("Scanning native controller mappings...",13,COLORS["muted"])
 	device_info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(device_info)
+	device_selector=OptionButton.new()
+	device_selector.name="ActiveInputDevice"
+	device_selector.add_theme_color_override("font_color",COLORS["bone"])
+	device_selector.item_selected.connect(_select_active_device)
+	_line(content,"Active input device",device_selector)
+	content.add_child(_label("Input device selection prevents another controller from driving your fighter. Neutral SOCD on opposite directions.",13,COLORS["muted"]))
 	content.add_child(_label("Legacy C++ prototype bindings shown; Hunt v3 has no guard.",13,COLORS["muted"]))
 	var banner := TextureRect.new()
 	banner.texture=load("res://assets/site/divider.webp") as Texture2D
@@ -129,9 +136,33 @@ func _build() -> void:
 func _refresh_devices() -> void:
 	var info: Dictionary=controls.controller_diagnostics()
 	var summary := PackedStringArray()
+	device_selector.clear()
+	device_selector.add_item("Automatic — all mapped inputs")
+	device_selector.set_item_metadata(0,controls.DEVICE_AUTO)
+	device_selector.add_item("Keyboard and mouse only")
+	device_selector.set_item_metadata(1,controls.DEVICE_KBM)
 	for item in info["devices"]:
-		summary.append("%s (#%d)" % [str(item["name"]),int(item["id"])])
-	device_info.text="SDL controllers: %d  ·  %s. Arcade sticks and leverless boards use the pad column when recognized; per-device lock and Windows hardware QA are pending." % [int(info["connected"]),", ".join(summary) if not summary.is_empty() else "none detected"]
+		var id: int=int(item["id"])
+		summary.append("%s (#%d)" % [str(item["name"]),id])
+		var index: int=device_selector.item_count
+		device_selector.add_item(str(item["name"])+" (#"+str(id)+")")
+		device_selector.set_item_metadata(index,id)
+	for index in range(device_selector.item_count):
+		if int(device_selector.get_item_metadata(index))==controls.active_device_id:
+			device_selector.select(index)
+			break
+	device_info.text="Connected controllers: %d  ·  %s. Select an arcade stick, leverless controller or gamepad to isolate its combat inputs; hardware QA is still required." % [
+		int(info["connected"]),", ".join(summary) if not summary.is_empty() else "none detected"]
+
+func _select_active_device(index: int) -> void:
+	if index<0 or index>=device_selector.item_count:
+		return
+	var device: int=int(device_selector.get_item_metadata(index))
+	if controls.select_input_device(device):
+		feedback.text="Active device: "+controls.device_label()+". Direction conflicts resolve to neutral."
+	else:
+		feedback.text="The selected controller is disconnected. Choose another device."
+		_refresh_devices()
 
 func _on_device_connection(_device: int, _connected: bool) -> void:
 	if is_inside_tree():
