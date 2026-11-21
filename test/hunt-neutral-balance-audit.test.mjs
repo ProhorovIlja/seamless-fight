@@ -36,6 +36,13 @@ test('all 4 weapon pairings, both walls and three stamina budgets are audited',(
    scenario.initialStamina===0&&scenario.defenderHP===0);
  }
  assert.equal(cases.size,24);
+ const exhausted=result.cornerMatrix.filter(x=>x.initialStamina===0);
+ assert.equal(exhausted.length,8);
+ // Scenario-specific anti-loop guardrail. Does not assert universal PvP safety.
+ assert.equal(result.riskCases.length,0,
+  'generic heavy animation cancels accidentally restored a wall 100-to-0');
+ assert(exhausted.every(x=>x.defenderHP>0&&x.neutralAfterDamageFrames>0),
+  'every tested zero-resource wall scenario must expose a real neutral opportunity');
  assert(result.riskCases.every(x=>x.initialStamina===0&&x.roundFinished));
  // These risks are reported, NOT reclassified as a finished balanced design.
  console.log('HUNT_NEUTRAL_PRESSURE_AUDIT='+JSON.stringify({
