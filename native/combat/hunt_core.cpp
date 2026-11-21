@@ -53,9 +53,9 @@ int main(int argc,char**argv){
    // to walk through the opponent, but the solid body solver must preserve
    // the original order and leave both facing inward, for either slot.
    s.ready=0;
-   const bool second=scenario=="--face-cross-p1";
-   s.p[0].x=second?480.5:479.5;
-   s.p[1].x=second?479.5:480.5;
+   const bool moving_second_slot=scenario=="--face-cross-p1";
+   s.p[0].x=moving_second_slot?480.5:479.5;
+   s.p[1].x=moving_second_slot?479.5:480.5;
    s.p[0].vx=0;s.p[1].vx=0;
   }else return 7;
  }
