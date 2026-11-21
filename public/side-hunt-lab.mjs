@@ -4,7 +4,9 @@
 // Research mechanics only: DO NOT feed this state to seamless-side/1 clients,
 // the existing Node authority, the GGPO prototype or ranked matchmaking.
 // Pure and deterministic; no wall clock, rendering, sound or networking.
-export const HUNT_RULESET='sf-hunt-lab/1';
+export const HUNT_RULESET='sf-hunt-lab/2';
+export const HUNT_DEFAULT_RULES=Object.freeze({allowAirStep:false});
+// Optional air-step is a custom-room research toggle; default duels have one jump and no air dodge.
 export const HUNT_HZ=60, HUNT_FLOOR=436, HUNT_W=960;
 export const HUNT_WEAPON='mournweave';
 export const HUNT_WEAPONS=Object.freeze(['mournweave','thornwake']);
@@ -29,6 +31,7 @@ export const HUNT_MOVES=Object.freeze({
  shiftOut:move(6,0,13,6,0,0),
  shiftIn:move(6,0,13,6,0,0),
  shot:move(9,1,25,9,275,4,-111,-77),
+ airShot:move(10,1,27,11,265,4,-93,30),
  visceral:move(6,2,29,0,75,42,-117,-21),
  heal:move(21,1,25,0,0,0),
  blood:move(16,1,23,0,0,0),
@@ -77,7 +80,7 @@ const TRANSFORMS=new Set(['unfurl','refold']);
 // Reuses existing step/airStep motion, stamina costs and per-airtime limits.
 export const HUNT_PURSUIT_FOCUS=25;
 export const HUNT_VIAL_HEAL=35;
-export const HUNT_BLOOD_COST=20;
+export const HUNT_BLOOD_COST=30; // 30% of 100 maximum HP, subject to future PvP balance.
 export const HUNT_BLOOD_BULLETS=5;
 export const HUNT_RALLY_WINDOW=100;
 export const HUNT_VISCERAL_WINDOW=40;
@@ -99,10 +102,11 @@ export function huntFighter(slot,weapon=HUNT_WEAPON){
   crouch:false,jumpHeld:false,jumps:0,airSteps:0,regen:0,
   combo:0,chain:0,queue:'',queueLife:0};
 }
-export function huntMatch({weapons=[HUNT_WEAPON,HUNT_WEAPON]}={}){
+export function huntMatch({weapons=[HUNT_WEAPON,HUNT_WEAPON],allowAirStep=HUNT_DEFAULT_RULES.allowAirStep}={}){
+ if(typeof allowAirStep!=='boolean')throw TypeError('allowAirStep must be boolean');
  if(!Array.isArray(weapons)||weapons.length!==2||weapons.some(x=>!HUNT_WEAPONS.includes(x)))
   throw TypeError('Two original trick weapons required');
- return {rules:HUNT_RULESET,tick:0,clock:65*HUNT_HZ,ready:90,end:0,round:1,
+ return {rules:HUNT_RULESET,options:{allowAirStep},tick:0,clock:65*HUNT_HZ,ready:90,end:0,round:1,
   winner:null,over:false,score:[0,0],p:[huntFighter(0,weapons[0]),huntFighter(1,weapons[1])]};
 }
 export const huntCanAct=p=>!p.act||p.age>=total(huntMoveSpec(p));
@@ -124,6 +128,7 @@ const motion=(p,input)=>{
   return !p.act?(p.form==='folded'?'shiftOut':'shiftIn'):
    (p.form==='folded'?'unfurl':'refold');
  if(input==='step')return p.y<HUNT_FLOOR?'airStep':'step';
+ if(input==='shot')return p.y<HUNT_FLOOR?'airShot':'shot';
  return input;
 };
 export function huntHurtbox(p){
@@ -144,11 +149,13 @@ function buffer(p,input){
   if(!p.queueLife)p.queue='';
  }
 }
-function starts(p,other,requested){
+function starts(p,other,requested,options){
  if(!requested)return false;
  const m=huntMoveSpec(p,requested);
  if(!m||p.st<m.cost)return false;
- if(requested==='shot'&&!p.ammo&&!p.bloodAmmo)return false;
+ if((requested==='shot'||requested==='airShot')&&!p.ammo&&!p.bloodAmmo)return false;
+ if(requested==='airShot'&&p.y>=HUNT_FLOOR)return false;
+ if(requested==='airStep'&&!options.allowAirStep)return false;
  if(requested==='blood'&&(p.hp<=HUNT_BLOOD_COST||p.bloodAmmo))return false;
  if(requested==='heal'&&(!p.vials||p.hp>=100))return false;
  if(requested==='visceral'&&(!other.exposed||p.y<HUNT_FLOOR||
@@ -193,12 +200,16 @@ function starts(p,other,requested){
  p.chain=chained?p.chain+1:1;
  p.st=clamp(p.st-m.cost,0,100);p.regen=27;
  p.crouch=false;p.guardAge=0;
- if(requested==='shot'){
+ if(requested==='shot'||requested==='airShot'){
   if(p.bloodAmmo)p.bloodAmmo--;
   else p.ammo--;
  }
  if(requested==='heal')p.vials--;
- if(requested==='blood')p.hp-=HUNT_BLOOD_COST;
+ if(requested==='blood'){
+  p.hp-=HUNT_BLOOD_COST;
+  p.rally=Math.min(100,p.rally+HUNT_BLOOD_COST);
+  p.rallyLife=HUNT_RALLY_WINDOW;
+ }
  if(requested==='visceral'){
   p.visceralTarget=1; // scalar opponent marker; never store object refs in replay state
   other.act='visceralVictim';other.age=0;other.exposed=0;other.queue='';other.queueLife=0;
@@ -211,7 +222,7 @@ function starts(p,other,requested){
  }
  return true;
 }
-function drive(p,q,input,events,tick,actor){
+function drive(p,q,input,events,tick,actor,options){
  const wasGround=p.y>=HUNT_FLOOR;
  if(p.exposed>0)p.exposed--;
  if(p.rallyLife>0)p.rallyLife--;
@@ -220,10 +231,10 @@ function drive(p,q,input,events,tick,actor){
  if(!p.act)p.dir=q.x>=p.x?1:-1;
  const jumping=input.y===-1;
  p.crouch=wasGround&&input.y===1&&!p.act;
- if(jumping&&!p.jumpHeld&&p.jumps<2&&!p.act&&p.st>=6){
-  p.vy=p.jumps===0?-12.6:-10.9;
+ if(jumping&&!p.jumpHeld&&p.jumps<1&&!p.act&&p.st>=6){
+  p.vy=-12.6;
   p.y-=.01;p.jumps++;p.st-=6;p.regen=15;p.crouch=false;
-  events?.push({tick,kind:p.jumps===2?'doubleJump':'jump',actor,x:p.x,y:p.y});
+  events?.push({tick,kind:'jump',actor,x:p.x,y:p.y});
  }
  p.jumpHeld=jumping;
  buffer(p,input);
@@ -234,20 +245,12 @@ function drive(p,q,input,events,tick,actor){
   const requested=motion(p,p.queue);
   // One queued attack is consumed only when permitted. No free neutral inputs.
   // A transform queued during an attack is morph; otherwise it's a slow shift.
-  if(starts(p,q,requested)){
+  if(starts(p,q,requested,options)){
    events?.push({tick,kind:'action',actor,move:requested,form:p.form,x:p.x,y:p.y-80});
    p.queue='';p.queueLife=0;
   }
  }
  const m=huntMoveSpec(p);
- if(p.act==='heal'&&p.age===m.startup){
-  p.hp=Math.min(100,p.hp+HUNT_VIAL_HEAL);p.rally=0;p.rallyLife=0;
-  events?.push({tick,kind:'heal',actor,health:p.hp});
- }
- if(p.act==='blood'&&p.age===m.startup){
-  p.bloodAmmo=HUNT_BLOOD_BULLETS;
-  events?.push({tick,kind:'bloodBullets',actor,bullets:p.bloodAmmo});
- }
  if(m&&(TRANSFORMS.has(p.act)||p.act==='shiftOut'||p.act==='shiftIn')&&p.age===m.startup-1){
   p.form=p.form==='folded'?'unfurled':'folded';
   events?.push({tick,kind:'transform',actor,form:p.form,move:p.act,x:p.x,y:p.y-72});
@@ -271,6 +274,26 @@ function drive(p,q,input,events,tick,actor){
  if(p.regen)p.regen--;
  else if(!p.act&&!guarding)p.st=Math.min(100,p.st+.69);
 }
+function settleUtility(p,events,tick,actor){
+ const m=huntMoveSpec(p);
+ if(p.act==='heal'&&p.age===m.startup){
+  p.hp=Math.min(100,p.hp+HUNT_VIAL_HEAL);p.rally=0;p.rallyLife=0;
+  events?.push({tick,kind:'heal',actor,health:p.hp});
+ }
+ if(p.act==='blood'&&p.age===m.startup){
+  p.bloodAmmo=HUNT_BLOOD_BULLETS;
+  events?.push({tick,kind:'bloodBullets',actor,bullets:p.bloodAmmo});
+ }
+}
+function huntParryableAction(p){
+ const m=huntMoveSpec(p);
+ if(!m)return false;
+ // Aimed shots interrupt committed offense and visible utility windups,
+ // not idle/movement/another firearm, stun, or invulnerable quicksteps.
+ if(p.act==='heal'||p.act==='blood')return p.age>=3&&p.age<=m.startup;
+ const attackable=ORDINARY.has(p.act)||p.act==='unfurl'||p.act==='refold';
+ return attackable&&p.age>=Math.max(2,m.startup-6)&&p.age<m.startup+m.active;
+}
 function canStrike(p,q){
  const m=huntMoveSpec(p);
  if(!m?.damage||p.spent||p.age<m.startup||p.age>=m.startup+m.active)return false;
@@ -285,13 +308,8 @@ function resolveHit(s,actor,target,moveName,events){
  const a=s.p[actor],b=s.p[target],m=huntMoveSpec(a,moveName);
  a.spent=true;
  const prior=b.hp;
- if(moveName==='shot'){
-  const targetSpec=huntMoveSpec(b);
-  const parryable=(ORDINARY.has(b.act)||b.act==='unfurl'||b.act==='refold'||
-    b.act==='heal'||b.act==='foldedCharged'||b.act==='unfurledCharged')&&
-    b.age>=Math.max(0,targetSpec.startup-4)&&
-    b.age<targetSpec.startup+targetSpec.active&&
-    b.y===HUNT_FLOOR;
+ if(moveName==='shot'||moveName==='airShot'){
+  const parryable=huntParryableAction(b);
   b.hp=Math.max(0,b.hp-m.damage);
   b.rally=Math.min(100,b.rally+(prior-b.hp));b.rallyLife=HUNT_RALLY_WINDOW;
   a.hitConfirmed=true;
@@ -336,7 +354,8 @@ function resolveHit(s,actor,target,moveName,events){
  events?.push({tick:s.tick,kind:'hit',actor,target,move:moveName,damage:prior-b.hp,combo});
 }
 export function huntStep(s,inputs=[huntInput(),huntInput()],events){
- if(s?.rules!==HUNT_RULESET||!Array.isArray(s.p)||s.p.length!==2)
+ if(s?.rules!==HUNT_RULESET||!Array.isArray(s.p)||s.p.length!==2||
+   typeof s.options?.allowAirStep!=='boolean')
   throw TypeError('Incompatible versioned trick lab state');
  const commands=[canonicalHuntInput(inputs[0]),canonicalHuntInput(inputs[1])];
  s.tick++;
@@ -348,23 +367,27 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  }
  if(s.ready){s.ready--;return s;}
  const a=s.p[0],b=s.p[1];
- drive(a,b,commands[0],events,s.tick,0);
- drive(b,a,commands[1],events,s.tick,1);
+ drive(a,b,commands[0],events,s.tick,0,s.options);
+ drive(b,a,commands[1],events,s.tick,1,s.options);
  if(Math.abs(a.y-b.y)<55&&Math.abs(a.x-b.x)<38){
   const dir=a.x<=b.x?-1:1,d=(38-Math.abs(a.x-b.x))/2;
   a.x=clamp(a.x+dir*d,65,HUNT_W-65);b.x=clamp(b.x-dir*d,65,HUNT_W-65);
  }
- // Gun counterplay is checked before melee; same-tick melee trades remain simultaneous.
- const gunHits=[a.act==='shot'&&canStrike(a,b),b.act==='shot'&&canStrike(b,a)];
+ // Gun counters resolve before utility payoffs; melee trades remain simultaneous.
+ const gunHits=[['shot','airShot'].includes(a.act)&&canStrike(a,b),
+  ['shot','airShot'].includes(b.act)&&canStrike(b,a)];
+ const gunMoves=[a.act,b.act];
  for(let slot=0;slot<2;slot++)if(gunHits[slot])
-  resolveHit(s,slot,1-slot,'shot',events);
- const hits=[a.act!=='shot'&&canStrike(a,b),b.act!=='shot'&&canStrike(b,a)];
+  resolveHit(s,slot,1-slot,gunMoves[slot],events);
+ const hits=[!['shot','airShot'].includes(a.act)&&canStrike(a,b),
+  !['shot','airShot'].includes(b.act)&&canStrike(b,a)];
  const names=[a.act,b.act];
  for(let slot=0;slot<2;slot++)if(hits[slot])
   resolveHit(s,slot,1-slot,names[slot],events);
+ for(let slot=0;slot<2;slot++)settleUtility(s.p[slot],events,s.tick,slot);
  for(let slot=0;slot<2;slot++){
   const p=s.p[slot],m=huntMoveSpec(p);
-  if(p.act==='shot'&&p.age===huntMoveSpec(p,'shot').startup)
+  if((p.act==='shot'||p.act==='airShot')&&p.age===m.startup)
    events?.push({tick:s.tick,kind:'fire',actor:slot,move:p.act});
   if(m?.damage&&!p.spent&&p.age===m.startup+m.active-1)
    events?.push({tick:s.tick,kind:'whiff',actor:slot,move:p.act});
@@ -384,6 +407,7 @@ export function huntInspector(state,slot=0){
  if(state?.rules!==HUNT_RULESET||![0,1].includes(slot))throw TypeError('Wrong ruleset or player slot');
  const p=state.p[slot],moveInfo=huntMoveSpec(p);
  return Object.freeze({tick:state.tick,weapon:p.weapon,form:p.form,action:p.act,
+  airStepAllowed:state.options.allowAirStep,
   phase:huntPhase(p),startup:moveInfo?.startup??0,active:moveInfo?.active??0,
   recovery:moveInfo?.recovery??0,age:p.age,chain:p.chain,
   hitConfirmed:p.hitConfirmed,queued:p.queue,bufferFrames:p.queueLife,
