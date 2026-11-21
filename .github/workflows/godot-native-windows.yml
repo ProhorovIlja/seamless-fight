@@ -39,6 +39,21 @@ jobs:
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_graphics.gd --quit-after 240
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_controls.gd --quit-after 240
+      - name: Exercise actual native-renderer private 1v1 against Node room server
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts --no-audit --no-fund
+          HOST=127.0.0.1 PORT=18893 PUBLIC_ORIGIN=http://127.0.0.1:18893 node server.mjs > "$RUNNER_TEMP/native-room-server.log" 2>&1 &
+          SID=$!
+          trap 'kill "$SID" 2>/dev/null || true; tail -c 1500 "$RUNNER_TEMP/native-room-server.log"' EXIT
+          for i in {1..70}; do
+            if curl -fsS http://127.0.0.1:18893/fight/health >/dev/null; then break; fi
+            sleep .1
+          done
+          curl -fsS http://127.0.0.1:18893/fight/health
+          G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_online.gd --quit-after 720
       - name: Cross-build native x86-64 Windows PE and resource pack
         shell: bash
         run: |
