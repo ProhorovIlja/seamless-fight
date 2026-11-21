@@ -9,7 +9,7 @@ const BONE := Color("#efe1c4")
 const MUTED := Color("#b5a89a")
 const SLATE := Color(0.06,0.065,0.08,0.985)
 const BORDER := Color("#69583f")
-const FPS_OPTIONS := [0,60,90,120,144,165,240]
+const FPS_OPTIONS := [0,60,80,90,100,120,144,165,180,200,240,360]
 const OPTION_FIELDS := {"Upscaling":"upscale","VSync":"vsync","WindowMode":"display","FpsCap":"fps_cap"}
 var controller: Node
 var profile: Dictionary
