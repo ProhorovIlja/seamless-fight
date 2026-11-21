@@ -191,7 +191,10 @@ function showMeter(slot){
    d.quickstepVulnerableTail?'DODGE VULNERABLE TAIL · I-FRAMES ENDED':
    d.quickstepRecoveryPunishable?
     'DODGE RECOVERY · '+d.quickstepRemainingRecovery+'F REMAINING · PUNISHABLE':
-    'Dodge: no active quickstep window');
+    'Dodge: no active quickstep window')+'\n'+
+  (d.whiffRecoveryArmExposed?
+   'WHIFF RECOVERY · EXPOSED WEAPON ARM +'+d.whiffRecoveryArmUnits+'U':
+   'Whiff arm: no extra exposure');
  $('meter-'+slot).parentElement.classList.toggle('counter-open',d.firearmCounterWindowOpen);
  $('meter-'+slot).parentElement.classList.toggle('escape-open',d.groundedHitstunEscapeReady);
 }
