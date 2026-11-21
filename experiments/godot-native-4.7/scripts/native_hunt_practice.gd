@@ -9,7 +9,7 @@ var active := false
 var paused := false
 var profile := "passive"
 var last_state: Dictionary={}
-var input_history: Array[Dictionary]=[]
+var input_history: Array=[]
 var first_retained_tick := 0
 var game: Object
 
