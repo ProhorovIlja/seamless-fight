@@ -366,7 +366,13 @@ function resolveHit(s,actor,target,moveName,events){
  const interruptedMove=hitDuringStartup?b.act:'';
  const remainingStartup=hitDuringStartup?huntMoveSpec(b).startup-b.age:0;
  const dodgeSpec=huntMoveSpec(b);
- const punishedDodgeRecovery=b.act==='step'&&b.age>=7&&b.age<total(dodgeSpec);
+ // Step has six i-frames (ages 1-6), but its active phase lasts to age 9.
+ // Ages 7-8 are vulnerable active tail, NOT actual recovery. Keep these
+ // separate so training never teaches a false recovery punish window.
+ const stepAfterIframes=b.act==='step'&&b.age>=7&&b.age<total(dodgeSpec);
+ const punishedDodgeRecovery=stepAfterIframes&&
+  b.age>=dodgeSpec.startup+dodgeSpec.active;
+ const punishedDodgeVulnerableTail=stepAfterIframes&&!punishedDodgeRecovery;
  const dodgeRecoveryFrames=punishedDodgeRecovery?total(dodgeSpec)-b.age:0;
  const recovery=huntMoveSpec(b);
  const punishedRecovery=ATTACKS.has(b.act)&&!b.spent&&
@@ -395,7 +401,7 @@ function resolveHit(s,actor,target,moveName,events){
  }
  events?.push({tick:s.tick,kind:'hit',actor,target,move:moveName,damage:prior-b.hp,combo,
   punishedRecovery,punishedMove,remainingRecovery,
-  punishedDodgeRecovery,dodgeRecoveryFrames,
+  punishedDodgeRecovery,punishedDodgeVulnerableTail,dodgeRecoveryFrames,
   hitDuringStartup,interruptedMove,remainingStartup});
 }
 export function huntStep(s,inputs=[huntInput(),huntInput()],events){
