@@ -442,6 +442,13 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
   const dir=a.x<=b.x?-1:1,d=(38-Math.abs(a.x-b.x))/2;
   a.x=clamp(a.x+dir*d,65,HUNT_W-65);b.x=clamp(b.x-dir*d,65,HUNT_W-65);
  }
+ // An idle hunter must face the FINAL opponent position after simultaneous
+ // movement/body separation. Reusing the opponent's partially updated
+ // position from drive(a) then drive(b) creates a player-slot-dependent
+ // one-frame wrong-way facing when both bodies reverse order at point blank.
+ // Committed attacks/quicksteps retain their authored facing during action.
+ if(!a.act)a.dir=b.x>=a.x?1:-1;
+ if(!b.act)b.dir=a.x>=b.x?1:-1;
  // Training may observe a real physical position reversal near the wall.
  // This is read-only event evidence, not a scripted escape or hitbox override.
  for(let slot=0;slot<2;slot++){
