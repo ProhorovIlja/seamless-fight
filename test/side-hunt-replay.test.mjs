@@ -54,6 +54,6 @@ test('versioned export/import detects incompatible and modified tapes without ac
  assert.deepEqual(read.getState(),r.getState());
  assert.throws(()=>loadHuntReplay({...cap,rules:'sf-trick-lab/3'}),/Invalid|incompatible/);
  const changed=structuredClone(cap);
- changed.frames[5][0].act='visceral';
+ changed.startState.p[0].hp=42; // Guaranteed semantic divergence, not an ignored early input.
  assert.throws(()=>loadHuntReplay(changed),/diverged|integrity/i);
 });
