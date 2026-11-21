@@ -225,6 +225,8 @@ func apply_hunt_snapshot(snapshot: Dictionary,frame_meter: Dictionary) -> bool:
 			windows.append("DODGE RECOVERY: %dF" % [int(frame_meter.get("quickstepRemainingRecovery",0))])
 		if bool(frame_meter.get("firearmCounterWindowOpen",false)):
 			windows.append("VULNERABLE TO GUN PARRY")
+		if bool(frame_meter.get("whiffRecoveryArmExposed",false)):
+			windows.append("WHIFF RECOVERY ARM: +%dU" % [int(frame_meter.get("whiffRecoveryArmUnits",0))])
 		if bool(frame_meter.get("groundedHitstunEscapeReady",false)):
 			windows.append("HITSTUN QUICKSTEP READY")
 		if not windows.is_empty():
