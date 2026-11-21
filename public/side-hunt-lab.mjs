@@ -480,6 +480,15 @@ export function huntInspector(state,slot=0){
   bloodAmmo:p.bloodAmmo,vials:p.vials,rally:p.rally,rallyLife:p.rallyLife,
   visceralWindow:p.exposed,exposeCause:p.exposeCause,
   firearmCounterWindowOpen:huntParryableAction(p),
+  // These describe source-simulation frames, never speculative network state.
+  quickstepIframes:p.act==='step'&&p.age>=1&&p.age<7,
+  quickstepVulnerableTail:p.act==='step'&&p.age>=7&&
+   p.age<moveInfo.startup+moveInfo.active,
+  quickstepRecoveryPunishable:p.act==='step'&&
+   p.age>=moveInfo.startup+moveInfo.active&&p.age<total(moveInfo),
+  quickstepRemainingRecovery:p.act==='step'&&
+   p.age>=moveInfo.startup+moveInfo.active&&p.age<total(moveInfo)
+   ?total(moveInfo)-p.age:0,
   groundedHitstunEscapeReady:p.act==='stun'&&p.y>=HUNT_FLOOR&&
    p.age>=HUNT_HITSTUN_ESCAPE_START&&
    p.age<total(huntMoveSpec(p))-5&&
