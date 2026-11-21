@@ -171,8 +171,27 @@ test('whiff punishment counts a real attacker hit only after the dummy heavy whi
  const s=play('whiff-punish',t=>cmd(t===88?'light':'',
   t>=69&&t<88?1:0),135);
  assert(s.eventHistory(140).some(e=>e.kind==='whiff'&&e.actor===1&&e.move==='foldedHeavy'));
- assert(s.eventHistory(140).some(e=>e.kind==='hit'&&e.actor===0&&e.target===1));
+ const punish=s.eventHistory(140).find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
+ assert(punish,'real melee hit must connect');
+ assert.equal(punish.punishedRecovery,true,'opponent is still locked in heavy recovery');
+ assert.equal(punish.punishedMove,'foldedHeavy');
+ assert(punish.remainingRecovery>0);
  assert.equal(s.goal().successes,1);
+});
+test('late melee hit is NOT a whiff punish even within old 25-frame heuristic',()=>{
+ const late=play('whiff-punish',t=>{
+  const age=t-56;
+  return cmd(age===39?'light':'',age>=0&&age<6?-1:
+   age>=6&&age<39?1:0);
+ },130);
+ const events=late.eventHistory(180);
+ const whiff=events.find(e=>e.kind==='whiff'&&e.actor===1&&e.move==='foldedHeavy');
+ const hit=events.find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
+ assert(whiff&&hit);
+ assert(hit.tick-whiff.tick<=25,'previous scoring heuristic would have falsely awarded this hit');
+ assert.equal(hit.punishedRecovery,false,'at contact, the target was ALREADY actionable');
+ assert.equal(hit.punishedMove,'');
+ assert.equal(late.goal().successes,0,'no points for a late hit after recovery finished');
 });
 test('actual two-contact hit confirm is counted, without importing traditional guard or throw',()=>{
  const s=play('hit-confirm',t=>cmd([1,11].includes(t)?'light':''),70);

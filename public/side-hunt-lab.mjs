@@ -333,6 +333,14 @@ function resolveHit(s,actor,target,moveName,events){
   return;
  }
  if(!m.damage)return;
+ // A true whiff punish must CONNECT while the target remains committed
+ // to recovery of a genuinely missed attack. Time since a whiff alone
+ // is insufficient: the opponent may already be able to attack/evade.
+ const recovery=huntMoveSpec(b);
+ const punishedRecovery=ATTACKS.has(b.act)&&!b.spent&&
+  b.age>=recovery.startup+recovery.active&&b.age<total(recovery);
+ const punishedMove=punishedRecovery?b.act:'';
+ const remainingRecovery=punishedRecovery?total(recovery)-b.age:0;
  const combo=b.act==='stun'?b.combo+1:1;
  const damage=Math.max(5,Math.ceil(m.damage*Math.max(.45,1-.13*(combo-1))));
  // Rally recovery happens only on successful melee contact; never from gunfire.
@@ -353,7 +361,8 @@ function resolveHit(s,actor,target,moveName,events){
   b.exposeCause='chargedRear';b.vx=0;
   events?.push({tick:s.tick,kind:'rearStagger',actor,target,opening:b.exposed});
  }
- events?.push({tick:s.tick,kind:'hit',actor,target,move:moveName,damage:prior-b.hp,combo});
+ events?.push({tick:s.tick,kind:'hit',actor,target,move:moveName,damage:prior-b.hp,combo,
+  punishedRecovery,punishedMove,remainingRecovery});
 }
 export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  if(s?.rules!==HUNT_RULESET||!Array.isArray(s.p)||s.p.length!==2)

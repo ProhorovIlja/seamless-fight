@@ -13,7 +13,7 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'dodge-shot':{category:'Defense',goal:'Quickstep during an incoming firearm shot without taking the hit.',trigger:'shot',success:'dodgeShot'},
  'anti-air':{category:'Defense',goal:'Connect a legal attack against a genuine airborne opponent.',trigger:'jump',success:'airHit'},
  'air-parry':{category:'Defense',goal:'Jump once and land an airborne firearm parry on a committed heavy action.',trigger:'heavy',success:'airParry'},
- 'whiff-punish':{category:'Offense',goal:'Strike the enemy after their heavy attack misses during its recovery.',trigger:'whiff',success:'whiffPunish'},
+ 'whiff-punish':{category:'Offense',goal:'Bait a real heavy miss and strike while the opponent is STILL in its locked recovery.',trigger:'whiff',success:'whiffPunish'},
  'hit-confirm':{category:'Offense',goal:'Follow an actual melee hit with a second confirmed melee contact.',trigger:'hit',success:'hitConfirm'},
  'transform-pressure':{category:'Offense',goal:'Land a real melee hit shortly after your weapon transforms.',trigger:'transform',success:'transformHit'},
  'rally-reclaim':{category:'Resources',goal:'Take a real melee hit, then reclaim health through a confirmed melee strike.',trigger:'hit',success:'rally'},
@@ -103,7 +103,9 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
     if(is(e,'gunParry',0)&&e.playerAirborne===true)success(e);
     break;
    case 'whiff-punish':
-    if(is(e,'hit',0)&&earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),0,25))
+    if(is(e,'hit',0)&&e.punishedRecovery===true&&
+       e.punishedMove==='foldedHeavy'&&e.remainingRecovery>0&&
+       earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),0,25))
      success(e);
     break;
    case 'hit-confirm':{

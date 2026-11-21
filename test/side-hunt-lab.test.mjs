@@ -485,3 +485,37 @@ test('forward body-crossing escape works symmetrically at the RIGHT wall',()=>{
  assert.equal(crossed[0].side,'right');
  assert.equal(s.p[0].st,81);
 });
+
+
+test('footsies: bait heavy with six frames back, approach, then strike inside its recovery',()=>{
+ const s=live(182),events=[];
+ const a=s.p[0],b=s.p[1];
+ for(let frame=0;frame<54;frame++){
+  const move=frame===26?'light':'';
+  const direction=frame<6?-1:frame<26?1:0;
+  huntStep(s,[cmd(move,direction),cmd(frame===0?'heavy':'')],events);
+ }
+ const whiff=events.find(e=>e.kind==='whiff'&&e.actor===1&&e.move==='foldedHeavy');
+ const punish=events.find(e=>e.kind==='hit'&&e.actor===0);
+ assert(whiff&&punish,'actual neutral hit follows a miss');
+ assert(punish.tick>whiff.tick);
+ assert.equal(punish.punishedRecovery,true);
+ assert.equal(punish.punishedMove,'foldedHeavy');
+ assert(punish.remainingRecovery>0);
+ assert.equal(a.hp,100);
+ assert.equal(b.hp,85);
+});
+test('late whiff response after enemy recovery is a hit but NOT a recovery punish',()=>{
+ const s=live(182),events=[];
+ for(let frame=0;frame<55;frame++){
+  const move=frame===39?'light':'';
+  const direction=frame<6?-1:frame<39?1:0;
+  huntStep(s,[cmd(move,direction),cmd(frame===0?'heavy':'')],events);
+ }
+ const whiff=events.find(e=>e.kind==='whiff'&&e.actor===1);
+ const hit=events.find(e=>e.kind==='hit'&&e.actor===0);
+ assert(whiff&&hit);
+ assert(hit.tick-whiff.tick<=25);
+ assert.equal(hit.punishedRecovery,false);
+ assert.equal(hit.remainingRecovery,0);
+});
