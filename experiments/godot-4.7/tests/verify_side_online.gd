@@ -70,14 +70,15 @@ func _run() -> void:
 	guest.match_started.connect(_guest_started)
 	host.authoritative_state.connect(_host_state)
 	guest.authoritative_state.connect(_guest_state)
-	host.connection_failed.connect(_issue)
-	guest.connection_failed.connect(_issue)
 	if host.open_private_room("ws://127.0.0.1:18893/invalid", ORIGIN):
 		_issue("Invalid WebSocket destination accepted")
 	if host.open_private_room(ENDPOINT, "http://wrong.example"):
 		_issue("Mismatched origin accepted")
 	if host.open_private_room(ENDPOINT, ORIGIN, "incorrect-code"):
 		_issue("Malformed invitation accepted")
+	# Reject invalid endpoints before subscribing to expected negative-probe signals.
+	host.connection_failed.connect(_issue)
+	guest.connection_failed.connect(_issue)
 	if not host.open_private_room(ENDPOINT, ORIGIN):
 		_issue("Host could not open local 1v1 socket")
 	var started := Time.get_ticks_msec()
