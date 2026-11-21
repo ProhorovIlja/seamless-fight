@@ -259,58 +259,71 @@ try{
  assert.equal(directedTradeScenarios,8);
  // Real melee whiff punishment through the bounded recovering arm hurtbox,
  // not the whole weapon blade: two defender weapons x two mirrored sides.
+ // Recovery-limb geometry has a bonus hurtbox ONLY for true WHIFFS.
+ // A previous successful hit must retain its ordinary torso while its
+ // normal recovery is still hittable by correctly spaced actual body contact.
  let limbScenarios=0,limbTicks=0;
  for(const [v,weapon] of [[0,'mournweave'],[1,'thornwake']]){
   for(const mirror of [false,true]){
-   const source=huntMatch({weapons:['mournweave',weapon]});
-   source.ready=0;
-   source.p[0].x=mirror?580:380;
-   source.p[1].x=mirror?460:500;
-   source.p[0].dir=mirror?-1:1;
-   source.p[1].dir=-source.p[0].dir;
-   source.p[0].act='foldedLight';
-   source.p[0].age=huntMoveSpec(source.p[0]).startup;
-   source.p[1].act='unfurledHeavy';
-   const targetMove=huntMoveSpec(source.p[1]);
-   source.p[1].age=targetMove.startup+targetMove.active;
-   const frames=Array.from({length:24},()=>[huntInput(),huntInput()]);
-   const mode=mirror?'--limb-right':'--limb-left';
-   const packet='0 '+v+'\n'+frames.map(pair=>pair.flatMap(
-    i=>[i.x,i.y,REQUEST[i.act],Number(i.guard)]).join(' ')).join('\n')+'\n';
-   const run=spawnSync(exe,[mode],{input:packet,encoding:'utf8',
-    timeout:90000,maxBuffer:4*1024*1024});
-   assert.equal(run.status,0,'Native limb fixture failed: '+run.stderr);
-   const lines=run.stdout.trim().split('\n');
-   assert.equal(lines.length,frames.length);
-   for(let t=0;t<frames.length;t++){
-    const events=[];
-    huntStep(source,frames[t],events);
-    if(t===0){
-     const punish=events.find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
-     assert(punish,'Actual recovering-limb melee contact required');
-     assert.equal(punish.punishedRecovery,true);
-     assert.equal(punish.punishedMove,'unfurledHeavy');
+   for(const previousHit of [false,true]){
+    const source=huntMatch({weapons:['mournweave',weapon]});
+    source.ready=0;
+    source.p[0].x=mirror?580:380;
+    source.p[1].x=mirror?460:500;
+    source.p[0].dir=mirror?-1:1;
+    source.p[1].dir=-source.p[0].dir;
+    source.p[0].act='foldedLight';
+    source.p[0].age=huntMoveSpec(source.p[0]).startup;
+    source.p[1].act='unfurledHeavy';
+    const targetMove=huntMoveSpec(source.p[1]);
+    source.p[1].age=targetMove.startup+targetMove.active;
+    source.p[1].spent=previousHit;
+    const frames=Array.from({length:24},()=>[huntInput(),huntInput()]);
+    const mode=previousHit?(mirror?'--limb-hit-right':'--limb-hit-left'):
+      (mirror?'--limb-right':'--limb-left');
+    const packet='0 '+v+'\n'+frames.map(pair=>pair.flatMap(
+     i=>[i.x,i.y,REQUEST[i.act],Number(i.guard)]).join(' ')).join('\n')+'\n';
+    const run=spawnSync(exe,[mode],{input:packet,encoding:'utf8',
+     timeout:90000,maxBuffer:4*1024*1024});
+    assert.equal(run.status,0,'Native limb fixture failed: '+run.stderr);
+    const lines=run.stdout.trim().split('\n');
+    assert.equal(lines.length,frames.length);
+    for(let t=0;t<frames.length;t++){
+     const events=[];
+     huntStep(source,frames[t],events);
+     if(t===0){
+      const punish=events.find(e=>e.kind==='hit'&&e.actor===0&&e.target===1);
+      if(previousHit){
+       assert.equal(punish,undefined,
+        'Already-successful heavy must NOT grant speculative extra arm contact');
+      }else{
+       assert(punish,'Actual recovering-limb melee WHIFF contact required');
+       assert.equal(punish.punishedRecovery,true);
+       assert.equal(punish.punishedMove,'unfurledHeavy');
+      }
+     }
+     const values=lines[t].trim().split(/\s+/).map(Number);
+     assert.equal(values.length,totalFields);
+     let k=0;
+     const compare=(field,value)=>{
+      const actual=values[k++],expected=number(field,value);
+      if(!Number.isFinite(actual)||!Number.isFinite(expected)||
+         Math.abs(expected-actual)>1e-8)
+       throw Error('Native limb state mismatch '+mode+' weapon='+weapon+
+        ' tick='+t+' field='+field+' JS='+expected+' C++='+actual);
+      checks++;maxError=Math.max(maxError,Math.abs(expected-actual));
+     };
+     for(const field of GLOBAL)compare(field,source[field]);
+     compare('score0',source.score[0]);compare('score1',source.score[1]);
+     for(const fighter of source.p)
+      for(const field of FIELDS)compare(field,fighter[field]);
     }
-    const values=lines[t].trim().split(/\s+/).map(Number);
-    assert.equal(values.length,totalFields);
-    let k=0;
-    const compare=(field,value)=>{
-     const actual=values[k++],expected=number(field,value);
-     if(!Number.isFinite(actual)||!Number.isFinite(expected)||
-        Math.abs(expected-actual)>1e-8)
-      throw Error('Native limb recovery mismatch '+mode+' weapon='+weapon+
-       ' tick='+t+' field='+field+' JS='+expected+' C++='+actual);
-     checks++;maxError=Math.max(maxError,Math.abs(expected-actual));
-    };
-    for(const field of GLOBAL)compare(field,source[field]);
-    compare('score0',source.score[0]);compare('score1',source.score[1]);
-    for(const fighter of source.p)for(const field of FIELDS)compare(field,fighter[field]);
+    limbScenarios++;
+    limbTicks+=frames.length;
    }
-   limbScenarios++;
-   limbTicks+=frames.length;
   }
  }
- assert.equal(limbScenarios,4);
+ assert.equal(limbScenarios,8);
  // The two participant slots must settle BOTH neutral facings from
  // post-collision positions. A one-unit gap and one forward walk command
  // must NOT cross an opponent's solid body or reverse the initial ordering.
