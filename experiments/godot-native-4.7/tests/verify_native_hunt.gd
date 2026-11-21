@@ -20,6 +20,33 @@ func _same(a: Variant,b: Variant) -> bool:
 	if (a is int or a is float) and (b is int or b is float):
 		return absf(float(a)-float(b))<=0.00000001
 	return typeof(a)==typeof(b) and a==b
+# Diagnose the first exact field, not only the frame, so parity failures are repairable.
+func _first_difference(expected: Variant, actual: Variant, path: String) -> String:
+	if expected is Dictionary:
+		if not actual is Dictionary:
+			return path+" expected Dictionary; actual="+str(typeof(actual))
+		if expected.size()!=actual.size():
+			return path+" Dictionary size "+str(expected.size())+" vs "+str(actual.size())
+		for key in expected.keys():
+			if not actual.has(key): return path+" missing key "+str(key)
+			var found: String=_first_difference(expected[key],actual[key],path+"."+str(key))
+			if not found.is_empty(): return found
+		return ""
+	if expected is Array:
+		if not actual is Array:
+			return path+" expected Array; actual="+str(typeof(actual))
+		if expected.size()!=actual.size():
+			return path+" Array size "+str(expected.size())+" vs "+str(actual.size())
+		for index in range(expected.size()):
+			var found: String=_first_difference(expected[index],actual[index],path+"["+str(index)+"]")
+			if not found.is_empty(): return found
+		return ""
+	if (expected is int or expected is float) and (actual is int or actual is float):
+		if absf(float(expected)-float(actual))<=0.00000001:return ""
+	elif typeof(expected)==typeof(actual) and expected==actual:
+		return ""
+	return path+" expected="+str(expected)+" actual="+str(actual)
+
 func _step(game: Object, values: Array) -> bool:
 	return game.step_encoded(values[0],values[1],values[2],values[3],
 	 values[4],values[5],values[6],values[7])
@@ -61,7 +88,8 @@ func _verify() -> void:
 			return
 		var actual: Dictionary=game.get_state()
 		if not _same(actual,row["s"]):
-			_fail("JS source/native GDExtension mismatch at frame "+str(index))
+			_fail("JS source/native GDExtension mismatch at frame "+str(index)+\
+				" "+_first_difference(row["s"],actual,"state"))
 			return
 		if actual["p"].size()!=2 or actual["p"][0].size()!=30:
 			_fail("Expected two full Hunt fighters with 30 fields each")
