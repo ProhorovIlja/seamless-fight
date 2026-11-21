@@ -43,6 +43,7 @@ export function huntPracticeSession({weapons,seed=1}={}){
  let replay=createHuntReplay({initialState:start,maxFrames:MAX_FRAMES,checkpointEvery:30});
  let state=clone(start),paused=false,mode='passive',activeSlot=0;
  let recordingSlot=-1,playStart=0,selectedSlot=0,randomState=seed>>>0;
+ let reversalArmed=false,reversalPlaying=false;
  const tapes=Array.from({length:HUNT_DUMMY_SLOTS},()=>[]);
  let history=[],events=[];
  function inspect(){return clone(state);}
@@ -62,6 +63,7 @@ export function huntPracticeSession({weapons,seed=1}={}){
   if(next!=='passive'&&!tapes.some(t=>t.length))return false;
   if(next==='loop'&&!tapes[slot].length)return false;
   mode=next;selectedSlot=slot;activeSlot=slot;playStart=state.tick;recordingSlot=-1;
+  reversalArmed=false;reversalPlaying=false;
   return true;
  }
  function chooseRandom(){
@@ -72,10 +74,24 @@ export function huntPracticeSession({weapons,seed=1}={}){
  }
  function dummyInput(){
   if(mode==='passive')return neutral();
-  if(mode==='reversal'&&!huntCanAct(state.p[1]))return neutral();
-  if(mode==='reversal'&&state.p[1].act==='')playStart=state.tick;
+  if(mode==='reversal'){
+   const p=state.p[1];
+   // A reversal is not a periodic free bot attack: arm only after taking a hit.
+   if(p.act==='stun'||p.act==='stagger'){
+    reversalArmed=true;reversalPlaying=false;return neutral();
+   }
+   if(!reversalArmed||!huntCanAct(p))return neutral();
+   const tape=tapes[selectedSlot];
+   if(!tape?.length)return neutral();
+   if(!reversalPlaying){playStart=state.tick;reversalPlaying=true;}
+   const position=state.tick-playStart;
+   if(position>=tape.length){
+    reversalArmed=false;reversalPlaying=false;return neutral();
+   }
+   return opposite(tape[position]);
+  }
   if(mode==='random'&&state.tick===playStart)activeSlot=chooseRandom();
-  const tape=tapes[mode==='loop'||mode==='reversal'?selectedSlot:activeSlot];
+  const tape=tapes[mode==='loop'?selectedSlot:activeSlot];
   if(!tape?.length)return neutral();
   const age=state.tick-playStart;
   if(mode==='random'&&age>0&&age%tape.length===0){
@@ -114,12 +130,14 @@ export function huntPracticeSession({weapons,seed=1}={}){
   history=history.filter(x=>x.tick<=tick);
   events=history.flatMap(x=>x.events);
   paused=true;mode='passive';recordingSlot=-1;playStart=state.tick;
+  reversalArmed=false;reversalPlaying=false;
   return true;
  }
  function restart(){
   replay=createHuntReplay({initialState:start,maxFrames:MAX_FRAMES,checkpointEvery:30});
   state=clone(start);history=[];events=[];playStart=0;
   paused=true;mode='passive';recordingSlot=-1;
+  reversalArmed=false;reversalPlaying=false;
  }
  function save(){return replay.capture();}
  function inputHistory(limit=HUNT_PRACTICE_INPUT_HISTORY){
