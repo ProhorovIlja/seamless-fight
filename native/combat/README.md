@@ -6,4 +6,6 @@ The authoritative reference is `public/side-engine.mjs`. Each input tick (x, y, 
 
 Run on a machine with Node 22+ and g++: `node scripts/native-combat-parity.mjs`. GitHub Actions runs a separate CI job for this path. If states differ, the job fails at the earliest field and simulation tick.
 
+The CLI also saves native state checkpoints and **replays eight real input frames from a prior checkpoint every 157 ticks**, comparing the reconstructed state against its canonical linear counterpart. The test runner rejects any missing rewind checks and compares both the original and replayed C++ simulation with JavaScript. This is a **local rollback resimulation prerequisite**, not a P2P/UDP/relay rollback implementation.
+
 This gives Unreal C++ and native Godot GDExtension a testable combat-model starting point. It **does not** prove cross-platform deterministic bit-for-bit parity on Windows/MSVC, x64 vs ARM, or an optimized rollback implementation. Such claims require further compilers/platforms, serialized save/load-state validation, input delay and rollback stress tests, and identical event traces.
