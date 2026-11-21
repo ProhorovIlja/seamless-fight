@@ -108,7 +108,7 @@ public:
  int save_local_checkpoint(){
   // Testable exact C++ value-state rollback, not canonical network bytes.
   checkpoints[current.tick]=current;
-  if(checkpoints.size()>120)checkpoints.erase(checkpoints.begin());
+  if(checkpoints.size()>121)checkpoints.erase(checkpoints.begin()); // 120 completed frames + the pre-step state
   return current.tick;
  }
  bool restore_local_checkpoint(int tick){

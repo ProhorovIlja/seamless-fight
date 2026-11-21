@@ -25,7 +25,7 @@ func _verify() -> void:
 		return
 	var practice: Node=stage.get_node("HuntPractice")
 	practice.set_physics_process(false)
-	var hud: CanvasLayer=stage.get_node("CombatHud")
+	var hud: Variant=stage.get_node("CombatHud")
 	if not practice.active or practice.last_state.get("rules","")!="sf-hunt-lab/3":
 		fail("Local research combat uses legacy rules or is inactive")
 		return

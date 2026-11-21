@@ -146,9 +146,9 @@ func _dummy_input() -> Array:
 func _physics_process(_delta: float) -> void:
 	if not active or paused:
 		return
-	var menu: Node=get_parent().get_node("NativeMenu")
-	var settings: Node=get_parent().get_node("InputSettings")
-	var graphics: Node=get_parent().get_node("GraphicsSettings")
+	var menu: CanvasLayer=get_parent().get_node("NativeMenu")
+	var settings: CanvasLayer=get_parent().get_node("InputSettings")
+	var graphics: CanvasLayer=get_parent().get_node("GraphicsSettings")
 	if menu.visible or settings.visible or graphics.visible:
 		return
 	var legacy_input: Array=get_parent().get_node("NativeControls").encoded_input()
