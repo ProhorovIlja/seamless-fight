@@ -15,7 +15,9 @@ func _verify() -> void:
 		_fail("Native rig clip requirements disagree with current Hunt rules")
 		return
 	var required: Array[String]=rig.required_clips("mournweave")
-	if required.size()!=46 or not required.has("airShot") or required.has("airStep") or required.has("guard"):
+	if required.size()!=46 or not required.has("airShot") or required.has("airStep") or required.has("guard") or \
+	 not required.has("backstep") or not required.has("foldedBackstepLight") or \
+	 not required.has("unfurledBackstepLight"):
 		_fail("Hunt v3 must require all 28 combat actions plus 18 shared original performances")
 		return
 	if not rig.required_clips("fake-weapon").is_empty():
@@ -86,8 +88,30 @@ func _verify() -> void:
 	if rig.apply_confirmed_pose(snapshot):
 		_fail("Duplicate tick should never resample an animation")
 		return
+	var backstep=snapshot.duplicate(true)
+	backstep["tick"]=2
+	backstep["p"][0]["act"]="backstep"
+	backstep["p"][0]["age"]=7
+	if not rig.apply_confirmed_pose(backstep) or player.current_animation!="backstep" or \
+	 absf(player.current_animation_position-7.0/60.0)>0.001:
+		_fail("Real backstep clip did not sample authoritative Hunt action age")
+		return
+	var folded=backstep.duplicate(true)
+	folded["tick"]=3
+	folded["p"][0]["act"]="foldedBackstepLight"
+	folded["p"][0]["age"]=9
+	if not rig.apply_confirmed_pose(folded) or player.current_animation!="foldedBackstepLight":
+		_fail("Folded backstep R1 animation not required or failed to play")
+		return
+	var unfurled=folded.duplicate(true)
+	unfurled["tick"]=4
+	unfurled["p"][0]["act"]="unfurledBackstepLight"
+	unfurled["p"][0]["age"]=15
+	if not rig.apply_confirmed_pose(unfurled) or player.current_animation!="unfurledBackstepLight":
+		_fail("Unfurled backstep R1 animation not required or failed to play")
+		return
 	var next=snapshot.duplicate(true)
-	next["tick"]=2
+	next["tick"]=5
 	next["p"][0]["act"]="airShot"
 	next["p"][0]["age"]=10
 	if not rig.apply_confirmed_pose(next) or player.current_animation!="airShot":
@@ -96,7 +120,7 @@ func _verify() -> void:
 	if absf(player.current_animation_position-10.0/60.0)>0.001:
 		_fail("Airborne firearm sampled wall-clock instead of game frame")
 		return
-	next["tick"]=3
+	next["tick"]=6
 	next["p"][0]["act"]="guard"
 	if rig.apply_confirmed_pose(next):
 		_fail("Forbidden conventional guard animation accepted in Hunt v3")
