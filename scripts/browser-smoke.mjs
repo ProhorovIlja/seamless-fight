@@ -435,6 +435,23 @@ try{
  await hunt.locator('#controller-select').selectOption('auto');
  assert.match(await hunt.locator('#input-device').textContent(),/QA Standard Pad/);
  await hunt.locator('#input-family').selectOption('keyboard-mouse');
+ // Apply a true input-profile rebind and confirm the 60Hz source records
+ // the newly mapped key, including after a full browser page reload.
+ await hunt.locator('#rebind-action').selectOption('shot');
+ await hunt.locator('#rebind-token').selectOption('key:KeyJ');
+ await hunt.locator('#apply-binding').click();
+ assert.match(await hunt.locator('#binding-message').textContent(),/Firearm bound to key:KeyJ/);
+ assert.deepEqual(await hunt.evaluate(()=>JSON.parse(localStorage.getItem('sf-hunt-practice.browser-bindings.v1'))['keyboard-mouse'].binds.shot),['key:KeyJ']);
+ await hunt.reload();
+ assert.match(await hunt.locator('#active-bindings').textContent(),/Firearm: key:KeyJ/);
+ await hunt.locator('#canvas-wrap').click();
+ await hunt.keyboard.down('j');
+ await sleep(100);
+ await hunt.keyboard.up('j');
+ await until(async()=>/action.*shot/.test(await hunt.locator('#events').textContent()),
+   'user-rebound firearm key actually reaches the 60Hz Hunt simulation');
+ await hunt.locator('#reset-bindings').click();
+ assert.deepEqual(await hunt.evaluate(()=>JSON.parse(localStorage.getItem('sf-hunt-practice.browser-bindings.v1'))['keyboard-mouse'].binds.shot),['key:KeyE']);
  await until(async()=>Number((await hunt.locator('#tick').textContent()).replace(/\D/g,''))>=10,'Hunt v3 60Hz simulation advances');
  assert.match(await hunt.locator('#meter-0').textContent(),/startup \/ /);
  await hunt.locator('#pause').click();
