@@ -72,7 +72,7 @@ export function createSideHub(expectedOrigin,{maxRooms=64}={}){
     clearTimeout(timeout);
     slot=room.peers.length;room.peers.push(c);room.looks[slot]=look;
     send(c,{t:'room',slot,code:room.code,stage:room.stage,looks:room.looks,rules:SIDE_RULESET});
-    if(room.peers.length===2){reset(room);for(const peer of room.peers)send(peer,{t:'start',rules:SIDE_RULESET,looks:room.looks,s:room.s});}
+    if(room.peers.length===2){reset(room);for(const peer of [...room.peers,...room.viewers])send(peer,{t:'start',rules:SIDE_RULESET,looks:room.looks,s:room.s});}
     return;
    }
    if(m.t==='ping'&&Number.isFinite(m.id)){send(c,{t:'pong',id:m.id});return;}
