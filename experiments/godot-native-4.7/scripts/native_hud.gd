@@ -100,10 +100,13 @@ func _build() -> void:
 	fighters.add_theme_constant_override("separation",10)
 	column.add_child(fighters)
 	fighters.add_child(_fighter_panel(0))
+	var gap_left := Control.new()
+	gap_left.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	fighters.add_child(gap_left)
 	var mid_panel := PanelContainer.new()
 	mid_panel.add_theme_stylebox_override("panel",_surface())
 	mid_panel.custom_minimum_size=Vector2(200,104)
-	mid_panel.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	mid_panel.size_flags_horizontal=Control.SIZE_SHRINK_CENTER
 	fighters.add_child(mid_panel)
 	var mid := VBoxContainer.new()
 	mid.alignment=BoxContainer.ALIGNMENT_CENTER
@@ -117,6 +120,9 @@ func _build() -> void:
 	phase_label=_text("ROUND 1",12,DIM)
 	phase_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	mid.add_child(phase_label)
+	var gap_right := Control.new()
+	gap_right.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	fighters.add_child(gap_right)
 	fighters.add_child(_fighter_panel(1))
 	move_label=_text("",13,DIM)
 	move_label.name="PracticeFrameData"

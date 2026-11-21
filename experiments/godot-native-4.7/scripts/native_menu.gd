@@ -48,7 +48,7 @@ func _label(value: String,size: int=16,color: Color=BONE) -> Label:
 func _button(label_text: String) -> Button:
 	var b := Button.new()
 	b.text=label_text
-	b.custom_minimum_size=Vector2(188,42)
+	b.custom_minimum_size=Vector2(156,42)
 	b.add_theme_color_override("font_color",BONE)
 	b.add_theme_color_override("font_hover_color",GOLD)
 	b.add_theme_stylebox_override("normal",_style(Color("#222630"),7))
@@ -99,7 +99,13 @@ func _build() -> void:
 	center.add_child(panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation",13)
-	panel.add_child(column)
+	var scroll := ScrollContainer.new()
+	scroll.name="MenuScroll"
+	scroll.custom_minimum_size=Vector2(710,770)
+	scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL
+	panel.add_child(scroll)
+	column.custom_minimum_size=Vector2(684,0)
+	scroll.add_child(column)
 	var title := _label("S E A M L E S S   F I G H T",32,GOLD)
 	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
