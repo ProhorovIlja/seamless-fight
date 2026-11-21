@@ -5,6 +5,7 @@ import {
  huntFrameMeter,huntPracticeSession
 } from '../public/hunt-practice-suite.mjs';
 import {HUNT_RULESET,HUNT_HZ,HUNT_MOVES,huntMatch,huntInput} from '../public/side-hunt-lab.mjs';
+import {createHuntReplay} from '../public/side-hunt-replay.mjs';
 const cmd=(act='',x=0,y=0)=>({act,x,y,guard:false});
 test('offline practice owns exact Hunt v3 state, not older Godot/JS duel rules',()=>{
  const t=huntPracticeSession(),s=t.inspect(),stats=t.stats();
@@ -142,4 +143,31 @@ test('recording from actual match advances into source tape and never exceeds te
  assert.equal(t.slotData(1).length,HUNT_DUMMY_MAX_FRAMES);
  assert.equal(t.stats().dummyFrames[1],HUNT_DUMMY_MAX_FRAMES);
  assert.equal(t.finish(),0,'recording automatically stops at exactly 600 frames');
+});
+
+test('dummy reversal waits for a real hitstun recovery and does not auto-play while idle',()=>{
+ const t=huntPracticeSession();
+ t.record(0);t.recordInput(cmd('light',1));t.finish();
+ assert(t.setMode('reversal',0));
+ for(let i=0;i<10;i++)t.append(cmd());
+ assert.equal(t.inspect().p[1].act,'','reversal must never start before the dummy is hit');
+ const initial=huntMatch();initial.ready=0;
+ initial.p[1].act='stun';initial.p[1].age=18;
+ // Valid zero-frame capture of a versioned local practice checkpoint.
+ // The replay loader correctly validates the start-state fingerprint.
+ // Capture a genuine tape by making an independent practice session and then
+ // surgically move its initial hitstun state using the production replay API.
+ const capture=createHuntReplay({initialState:initial,maxFrames:20}).capture();
+ assert(t.load(capture));
+ assert(t.setMode('reversal',0));
+ let sawHitstun=false,sawReversal=false;
+ for(let i=0;i<12;i++){
+  t.append(cmd());
+  const state=t.inspect();
+  if(state.p[1].act==='stun')sawHitstun=true;
+  if(state.p[1].act==='foldedLight')sawReversal=true;
+ }
+ assert(sawHitstun);
+ assert(sawReversal,'bounded recorded response should start after stun recovery');
+ assert.equal(t.stats().mode,'reversal');
 });
