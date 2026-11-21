@@ -11,7 +11,7 @@ func _verify() -> void:
 	await process_frame
 	var profile: Dictionary = c.default_profile()
 	if not c.validate_profile(profile).is_empty() or not c.apply_profile(profile):
-		_fail("Default keyboard and controller profiles rejected")
+		_fail("Default keyboard and controller profiles rejected: "+str(c.validate_profile(profile)))
 		return
 	for action in c.ACTIONS:
 		if not InputMap.has_action(action) or InputMap.action_get_events(action).is_empty():
