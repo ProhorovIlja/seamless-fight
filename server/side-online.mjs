@@ -6,21 +6,31 @@ import {SIDE_TAPE_LIMIT,packSideTick} from '../public/side-replay.mjs';
 import {SIDE_STAGES} from '../public/side-art.mjs';
 import {outfit} from '../public/wardrobe.mjs';
 
-// Side-view only. The legacy duel transport and replay rules are untouched.
-// No persistent user identity, rated play, global queue or region claims.
+// Legacy side-view rules unchanged; only host-opt-in, read-only observers added.
+// No persistent identity, ranked accounts, rollback or spectator chat.
 export function createSideHub(expectedOrigin,{maxRooms=64}={}){
  if(!Number.isSafeInteger(maxRooms)||maxRooms<1||maxRooms>64)
   throw new RangeError('Side-room capacity must be 1..64');
  const ws=new WebSocketServer({noServer:true,maxPayload:512,perMessageDeflate:false});
- const rooms=new Map(),token=()=>randomBytes(9).toString('base64url');
+ const rooms=new Map(),galleries=new Map(),token=()=>randomBytes(9).toString('base64url');
+ const MAX_VIEWERS=6;
  let stopping=false,simTicks=0;
  const send=(c,m)=>{if(c.readyState!==1)return;if(c.bufferedAmount>65536){c.terminate();return;}c.send(JSON.stringify(m));};
  function createRoom(stage,look){
-  let code;do{code=token();}while(rooms.has(code));
+  let code;do{code=token();}while(rooms.has(code)||galleries.has(code));
   const r={code,stage:Object.hasOwn(SIDE_STAGES,stage)?stage:'reliquary',
    looks:[outfit(look),outfit()],s:sideMatch(),peers:[],acks:[0,0],
-   tape:[],events:[],votes:new Set(),created:performance.now()};
+   tape:[],events:[],votes:new Set(),viewers:new Set(),watchCode:null,created:performance.now()};
   rooms.set(code,r);return r;
+ }
+ function closeGallery(r,message='The host closed this spectator gallery.'){
+  if(r.watchCode)galleries.delete(r.watchCode);
+  r.watchCode=null;
+  for(const viewer of r.viewers){send(viewer,{t:'error',message});viewer.close(1000,'gallery closed');}
+  r.viewers.clear();
+ }
+ function announceViewers(r){
+  if(r.peers[0])send(r.peers[0],{t:'audience',viewers:r.viewers.size,limit:MAX_VIEWERS});
  }
  function reset(r){
   r.s=sideMatch();r.tape=[];r.events=[];r.acks=[0,0];r.votes.clear();
@@ -38,6 +48,17 @@ export function createSideHub(expectedOrigin,{maxRooms=64}={}){
    let m;try{m=JSON.parse(data);}catch{return;}
    if(!m||typeof m!=='object'||Array.isArray(m))return;
    if(!room){
+    if(m.t==='watch'){
+     const target=typeof m.code==='string'&&galleries.get(m.code);
+     if(!target||target.viewers.size>=MAX_VIEWERS||target.watchCode!==m.code){
+      send(c,{t:'error',message:'This 1v1 gallery is closed or full.'});c.close(1008);return;
+     }
+     clearTimeout(timeout);room=target;slot=-1;room.viewers.add(c);
+     send(c,{t:'watching',rules:SIDE_RULESET,stage:room.stage,looks:room.looks,
+      s:room.s,viewerCount:room.viewers.size});
+     announceViewers(room);
+     return;
+    }
     if(m.t!=='hello')return;
     const look=outfit(m.look);
     if(m.code==null){
@@ -55,6 +76,17 @@ export function createSideHub(expectedOrigin,{maxRooms=64}={}){
     return;
    }
    if(m.t==='ping'&&Number.isFinite(m.id)){send(c,{t:'pong',id:m.id});return;}
+   // Observers cannot become fighters, vote, open a gallery or fetch private
+   // replays. They only receive server-controlled frames.
+   if(slot===-1)return;
+   if(slot===0&&m.t==='gallery'&&typeof m.open==='boolean'){
+    if(m.open&&!room.watchCode){
+     let code;do{code=token();}while(galleries.has(code)||rooms.has(code));
+     room.watchCode=code;galleries.set(code,room);
+    }else if(!m.open&&room.watchCode)closeGallery(room);
+    send(c,{t:'gallery',code:room.watchCode});
+    return;
+   }
    if(m.t==='replay'){
     if(!room.s.over){send(c,{t:'notice',message:'Replay unlocks at the end of the bout.'});return;}
     if(now-(c.lastReplay??-Infinity)<1500)return;c.lastReplay=now;
@@ -62,7 +94,7 @@ export function createSideHub(expectedOrigin,{maxRooms=64}={}){
    }
    if(m.t==='rematch'&&room.s.over){
     room.votes.add(slot);
-    if(room.votes.size===2){reset(room);for(const peer of room.peers)send(peer,{t:'start',rules:SIDE_RULESET,looks:room.looks,s:room.s});}
+    if(room.votes.size===2){reset(room);for(const peer of [...room.peers,...room.viewers])send(peer,{t:'start',rules:SIDE_RULESET,looks:room.looks,s:room.s});}
     else for(const peer of room.peers)send(peer,{t:'notice',message:'Rematch requested. Waiting for opponent.'});
     return;
    }
@@ -75,7 +107,12 @@ export function createSideHub(expectedOrigin,{maxRooms=64}={}){
   });
   c.on('close',()=>{
    clearTimeout(timeout);
-   if(!room||!rooms.delete(room.code)||stopping)return;
+   if(!room)return;
+   if(slot===-1){
+    room.viewers.delete(c);announceViewers(room);return;
+   }
+   if(!rooms.delete(room.code)||stopping)return;
+   closeGallery(room,'The duel ended because a fighter disconnected.');
    for(const other of room.peers)if(other!==c){
     send(other,{t:'error',message:'Opponent disconnected. Create a new room.'});other.close(1000);
    }
@@ -117,6 +154,7 @@ export function createSideHub(expectedOrigin,{maxRooms=64}={}){
     if(simTicks%3===0){
      const frame={t:'state',rules:SIDE_RULESET,s:r.s,events:r.events};
      for(let i=0;i<r.peers.length;i++)send(r.peers[i],{...frame,ack:r.acks[i]});
+     for(const viewer of r.viewers)send(viewer,frame);
      r.events.length=0;
     }
    }
@@ -128,6 +166,18 @@ export function createSideHub(expectedOrigin,{maxRooms=64}={}){
   },
   stats(){return {rooms:rooms.size,clients:ws.clients.size,
    duels:[...rooms.values()].filter(r=>r.peers.length===2).length,
-   fighters:[...rooms.values()].reduce((n,r)=>n+r.peers.length,0)};}
+   fighters:[...rooms.values()].reduce((n,r)=>n+r.peers.length,0),
+   spectators:[...rooms.values()].reduce((n,r)=>n+r.viewers.size,0),
+   publicGalleries:galleries.size};},
+  publicGalleries(){
+   return [...galleries.entries()].filter(([code,r])=>r.watchCode===code&&r.viewers.size<MAX_VIEWERS)
+    .map(([code,r])=>({
+     watchCode:code,watchPath:'/fight/side/?watch='+encodeURIComponent(code),
+     arena:r.stage,format:'casual-1v1',
+     status:r.peers.length<2?'waiting':r.s.over?'complete':'in-progress',
+     fighters:r.peers.length,spectators:r.viewers.size,
+     spectatorCapacity:MAX_VIEWERS,protocol:'seamless-side/1'
+    })).slice(0,32);
+  }
  };
 }
