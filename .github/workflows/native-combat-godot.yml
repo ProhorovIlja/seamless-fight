@@ -8,6 +8,7 @@ on:
       - 'experiments/godot-native-4.7/extension/**'
       - 'experiments/godot-native-4.7/tests/verify_native_combat.gd'
       - 'experiments/godot-native-4.7/tests/verify_native_practice.gd'
+      - 'experiments/godot-native-4.7/tests/verify_native_dummy_record.gd'
       - 'experiments/godot-native-4.7/scripts/native_practice.gd'
       - 'experiments/godot-native-4.7/scenes/stage.tscn'
       - 'scripts/native-godot-vectors.mjs'
@@ -20,6 +21,7 @@ on:
       - 'experiments/godot-native-4.7/extension/**'
       - 'experiments/godot-native-4.7/tests/verify_native_combat.gd'
       - 'experiments/godot-native-4.7/tests/verify_native_practice.gd'
+      - 'experiments/godot-native-4.7/tests/verify_native_dummy_record.gd'
       - 'experiments/godot-native-4.7/scripts/native_practice.gd'
       - 'experiments/godot-native-4.7/scenes/stage.tscn'
       - 'scripts/native-godot-vectors.mjs'
@@ -63,6 +65,7 @@ jobs:
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_practice.gd --quit-after 300
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_dummy_record.gd --quit-after 300
           echo 'NATIVE_CPP_60HZ_GODOT_JS_PARITY=PASS (1350 ticks * 41 fields)' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
@@ -128,6 +131,7 @@ jobs:
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_practice.gd --quit-after 300
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_dummy_record.gd --quit-after 300
           mkdir -p artifacts/native-cpp-windows
           "$G" --headless --path experiments/godot-native-4.7 --export-release "Windows Desktop" "$PWD/artifacts/native-cpp-windows/SeamlessFight-NativeCombatResearch.exe"
           test -s artifacts/native-cpp-windows/SeamlessFight-NativeCombatResearch.exe

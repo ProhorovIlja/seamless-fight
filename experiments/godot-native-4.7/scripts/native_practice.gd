@@ -7,6 +7,11 @@ signal practice_stopped()
 const ALLOWED_BOTS := ["passive","easy","normal","hard"]
 const HZ := 60
 const MAX_HISTORY_FRAMES := 720
+const DUMMY_TAPE_LIMIT := 600
+var dummy_tape: Array = []
+var dummy_recording := false
+var dummy_replaying := false
+var dummy_replay_start_tick := 0
 var snapshots: Array[PackedByteArray] = []
 var history_start_tick := 0
 var paused := false
@@ -28,6 +33,9 @@ func start_training(profile: String = "normal") -> bool:
 	bot=profile
 	active=true
 	paused=false
+	dummy_tape.clear()
+	dummy_recording=false
+	dummy_replaying=false
 	last_state=_combat.get_state()
 	snapshots.clear()
 	history_start_tick=0
@@ -47,6 +55,9 @@ func start_training(profile: String = "normal") -> bool:
 func stop_training() -> void:
 	active=false
 	paused=false
+	dummy_tape.clear()
+	dummy_recording=false
+	dummy_replaying=false
 	snapshots.clear()
 	history_start_tick=0
 	set_physics_process(false)
@@ -59,6 +70,8 @@ func reset_rounds() -> bool:
 	if not active or _combat==null:
 		return false
 	_combat.reset()
+	dummy_recording=false
+	dummy_replaying=false
 	last_state=_combat.get_state()
 	snapshots.clear()
 	history_start_tick=0
@@ -75,6 +88,10 @@ func _bot_input(state: Dictionary) -> Array[int]:
 	var target: Dictionary=players[1]
 	if state["ready"]>0 or state["end"]>0 or state["over"]:
 		return [0,0,0,0]
+	if dummy_replaying and not dummy_tape.is_empty():
+		var elapsed: int=maxi(0,int(state["tick"])-dummy_replay_start_tick)
+		var sample: Array=dummy_tape[elapsed%dummy_tape.size()]
+		return [-int(sample[0]),int(sample[1]),int(sample[2]),int(sample[3])]
 	if bot=="passive":
 		return [0,0,0,0]
 	var distance: float=float(hero["x"])-float(target["x"])
@@ -97,6 +114,33 @@ func _bot_input(state: Dictionary) -> Array[int]:
 	elif bot=="normal":
 		guarding=hero["act"]=="hew" and tick%23<5
 	return [x,0,action,1 if guarding else 0]
+
+func begin_dummy_recording() -> bool:
+	if not active or _combat==null or last_state.get("over",false):
+		return false
+	dummy_tape.clear()
+	dummy_recording=true
+	dummy_replaying=false
+	return true
+
+func finish_dummy_recording() -> int:
+	if not active or not dummy_recording:
+		return 0
+	dummy_recording=false
+	return dummy_tape.size()
+
+func play_dummy_recording() -> bool:
+	if not active or dummy_recording or dummy_tape.is_empty() or last_state.get("over",false):
+		return false
+	dummy_replay_start_tick=int(last_state.get("tick",0))
+	dummy_replaying=true
+	return true
+
+func stop_dummy_replay() -> void:
+	dummy_replaying=false
+
+func dummy_tape_frames() -> int:
+	return dummy_tape.size()
 
 func pause_training() -> bool:
 	if not active:
@@ -125,6 +169,7 @@ func rewind_frames(frames: int) -> bool:
 	var index: int=destination-history_start_tick
 	if index<0 or index>=snapshots.size():
 		return false
+	dummy_recording=false
 	var original: PackedByteArray=_combat.save_checkpoint()
 	if not _combat.load_checkpoint(snapshots[index]):
 		if original.size()==228:
@@ -163,6 +208,11 @@ func _advance_state(command: Array[int]) -> bool:
 		push_error("Native combat state exceeded bounded canonical checkpoint format")
 		return false
 	last_state=_combat.get_state()
+	if dummy_recording and not last_state.get("over",false) and int(last_state.get("ready",0))==0 and int(last_state.get("end",0))==0:
+		if dummy_tape.size()<DUMMY_TAPE_LIMIT:
+			dummy_tape.append(command.duplicate())
+		if dummy_tape.size()>=DUMMY_TAPE_LIMIT:
+			dummy_recording=false
 	snapshots.append(encoded)
 	if snapshots.size()>MAX_HISTORY_FRAMES+1:
 		snapshots.pop_front()

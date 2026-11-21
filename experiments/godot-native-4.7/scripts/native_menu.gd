@@ -139,6 +139,14 @@ func _build() -> void:
 	var restart := _button("Restart training")
 	restart.pressed.connect(_restart_training)
 	_action_row(column,[rewind,forward,restart])
+	column.add_child(_label("TRAINING DUMMY RECORDING",18,GOLD))
+	var record := _button("Record my inputs")
+	record.pressed.connect(_record_dummy)
+	var finish := _button("Finish recording")
+	finish.pressed.connect(_finish_dummy)
+	var replay := _button("Replay dummy loop")
+	replay.pressed.connect(_play_dummy)
+	_action_row(column,[record,finish,replay])
 	column.add_child(_label("PRIVATE 1V1   ·   UNRATED",18,GOLD))
 	endpoint=_field("wss://host.example/fight/side/socket")
 	endpoint.name="ServerEndpoint"
@@ -246,6 +254,22 @@ func _restart_training() -> void:
 		return
 	get_parent().get_node("Practice").pause_training()
 	status.text="Native fight and checkpoint timeline reset to the start."
+
+func _record_dummy() -> void:
+	if not get_parent().get_node("Practice").begin_dummy_recording():
+		status.text="Start offline training before recording."
+		return
+	status.text="Recording your real 60Hz inputs, up to ten seconds. Resume with F1."
+
+func _finish_dummy() -> void:
+	var frames: int=get_parent().get_node("Practice").finish_dummy_recording()
+	status.text="Recorded %d input frames. Select Replay dummy loop." % [frames]
+
+func _play_dummy() -> void:
+	if not get_parent().get_node("Practice").play_dummy_recording():
+		status.text="Record at least one active-gameplay frame first."
+		return
+	status.text="Dummy now repeats your input tape, horizontally mirrored. No AI learning."
 
 func _connect_private(code: String) -> void:
 	if active_mode=="training" or get_parent().get_node("Practice").active:
