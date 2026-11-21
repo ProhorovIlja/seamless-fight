@@ -4,7 +4,7 @@ const VERSION := 1
 const UPSCALE := ["native", "fsr1", "fsr2"]
 const VSYNC := ["off", "on", "adaptive"]
 const DISPLAY := ["windowed", "borderless", "fullscreen"]
-const CAPS := [0, 60, 90, 120, 144, 165, 240]
+const CAPS := [0, 60, 80, 90, 100, 120, 144, 165, 180, 200, 240, 360]
 const SAVE_PATH := "user://sf_native_display_v1.json"
 
 func default_profile() -> Dictionary:
