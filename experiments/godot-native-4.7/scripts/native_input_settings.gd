@@ -1,4 +1,5 @@
 extends CanvasLayer
+const BRAND_FONT=preload("res://assets/fonts/EBGaramond.ttf")
 ## User-facing native input screen. Mirrors Seamless Hunt slate/bone/gold tokens.
 ## Escape toggles settings. No network requests or arbitrary file imports.
 const COLORS={
@@ -48,6 +49,7 @@ func _label(message: String,size: int = 18, color: Color = COLORS["bone"]) -> La
 	label.text=message
 	label.add_theme_color_override("font_color",color)
 	label.add_theme_font_size_override("font_size",size)
+	label.add_theme_font_override("font",BRAND_FONT)
 	return label
 
 func _button(message: String) -> Button:
@@ -55,6 +57,7 @@ func _button(message: String) -> Button:
 	button.text=message
 	button.custom_minimum_size=Vector2(158,38)
 	button.add_theme_color_override("font_color",COLORS["bone"])
+	button.add_theme_font_override("font",BRAND_FONT)
 	button.add_theme_color_override("font_hover_color",COLORS["gold"])
 	button.add_theme_stylebox_override("normal",_button_style(COLORS["raised"]))
 	button.add_theme_stylebox_override("hover",_button_style(Color("#34343b")))

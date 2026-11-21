@@ -1,4 +1,5 @@
 extends CanvasLayer
+const BRAND_FONT=preload("res://assets/fonts/EBGaramond.ttf")
 const WireNumbers=preload("res://scripts/native_wire_numbers.gd")
 ## Display-only combat HUD in the website's charcoal/bone/old-gold language.
 ## Only consumes validated, complete 60Hz local or server-authoritative states.
@@ -48,6 +49,7 @@ func _text(value: String, points: int, tint: Color=BONE) -> Label:
 	label.text=value
 	label.add_theme_color_override("font_color",tint)
 	label.add_theme_font_size_override("font_size",points)
+	label.add_theme_font_override("font",BRAND_FONT)
 	return label
 
 func _bar(kind: String,side: int) -> ProgressBar:

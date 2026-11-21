@@ -1,4 +1,5 @@
 extends CanvasLayer
+const BRAND_FONT=preload("res://assets/fonts/EBGaramond.ttf")
 ## Functional native Windows entry screen. Original-site colors and divider;
 ## no fictional ranked buttons or inaccessible engine options.
 const GOLD := Color("#d6b67b")
@@ -43,6 +44,7 @@ func _label(value: String,size: int=16,color: Color=BONE) -> Label:
 	l.text=value
 	l.add_theme_color_override("font_color",color)
 	l.add_theme_font_size_override("font_size",size)
+	l.add_theme_font_override("font",BRAND_FONT)
 	return l
 
 func _button(label_text: String) -> Button:
@@ -50,6 +52,7 @@ func _button(label_text: String) -> Button:
 	b.text=label_text
 	b.custom_minimum_size=Vector2(156,42)
 	b.add_theme_color_override("font_color",BONE)
+	b.add_theme_font_override("font",BRAND_FONT)
 	b.add_theme_color_override("font_hover_color",GOLD)
 	b.add_theme_stylebox_override("normal",_style(Color("#222630"),7))
 	b.add_theme_stylebox_override("hover",_style(Color("#303540"),7))
