@@ -58,20 +58,23 @@
   <section class="panel" aria-labelledby="training-title">
    <p class="eyebrow">COMBAT TRAINING</p><h2 id="training-title">Dummy & frame data</h2>
    <div class="field-grid">
-    <label>Training scenario<select id="drill">
-     <option value="free">Free Practice</option>
-     <option value="parry-heavy">Firearm: Counter Heavy Windup</option>
-     <option value="parry-heal">Firearm: Counter Vial Healing</option>
-     <option value="parry-blood">Firearm: Counter Blood Rounds</option>
-     <option value="escape-stun">Quickstep: Escape Normal Hitstun</option>
-     <option value="dodge-shot">Quickstep: Evade Gunfire</option>
-    </select></label>
+    <label>Training scenario<select id="drill"><option value="free">Free Practice</option></select></label>
     <label>My weapon<select id="my-weapon"><option value="mournweave">Mournweave</option><option value="thornwake">Thornwake</option></select></label>
     <label>Dummy weapon<select id="dummy-weapon"><option value="mournweave">Mournweave</option><option value="thornwake">Thornwake</option></select></label>
     <label>Recording slot<select id="dummy-slot"><option value="0">Slot 1</option><option value="1">Slot 2</option><option value="2">Slot 3</option><option value="3">Slot 4</option><option value="4">Slot 5</option><option value="5">Slot 6</option><option value="6">Slot 7</option><option value="7">Slot 8</option></select></label>
     <label>Dummy response<select id="dummy-mode"><option value="passive">Passive</option><option value="loop">Loop Recording</option><option value="random">Seeded Random Recordings</option><option value="reversal">Reversal after Recovery</option></select></label>
    </div>
-   <p class="tiny-note" id="drill-help">Free Practice starts at neutral spacing. Counter drills use only real timed dummy actions in the source combat simulation.</p>
+   <p class="tiny-note" id="drill-help">Training scenarios execute real, source-valid fighter inputs. No block, throw, tag or high/low guard system.</p>
+   <div class="objective" aria-label="Confirmed offline training objective">
+    <h3 class="subhead">Current training objective</h3>
+    <p id="goal-description">Explore original Hunt v3 combat freely.</p>
+    <div class="goal-row">
+     <span id="goal-category">OPEN PRACTICE</span>
+     <output id="goal-progress" aria-live="polite">0 confirmed · 0 observed</output>
+    </div>
+    <p id="goal-feedback" role="status">Explore the combat system.</p>
+    <p class="tiny-note">Objectives count real events from this local 60Hz duel. They are not ranked, scripted wins, or opponent AI.</p>
+   </div>
    <div class="button-row"><button id="record" type="button">Record Dummy</button><button id="stop-record" type="button">Stop Recording</button><span id="record-frames">8 slots · up to 600 frames each</span></div>
    <div class="button-row">
     <button id="export-dummy" type="button">Export Dummy Library</button>
