@@ -1,5 +1,5 @@
 // Offline trick-weapon replay, seek and takeover. No server trust, no player data.
-// Same pure rules as the separately versioned sf-trick-lab/2 simulator.
+// Same pure rules as the separately versioned sf-trick-lab/3 simulator.
 import {TRICK_RULESET,trickMatch,trickStep,canonicalTrickInput} from './side-trick-lab.mjs';
 
 export const TRICK_CAPTURE_SCHEMA='sf-trick-replay/1';
