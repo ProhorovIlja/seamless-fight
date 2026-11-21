@@ -506,7 +506,7 @@ try{
  await hunt.locator('#drill').selectOption('parry-heal');
  assert.equal(await hunt.locator('#p1-health').getAttribute('style'),'width: 60%;');
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Counter Vial Healing/);
- assert.equal(await hunt.locator('#drill option').count(),15,'all 15 genuine Hunt drills must appear');
+ assert.equal(await hunt.locator('#drill option').count(),16,'all 16 genuine Hunt drills must appear');
  assert.match(await hunt.locator('#goal-category').textContent(),/DEFENSE/);
  assert.match(await hunt.locator('#goal-description').textContent(),/vial-healing/);
  // Actual jump and missed weapon swing are observable without awarding fake
