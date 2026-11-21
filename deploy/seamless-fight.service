@@ -1,6 +1,8 @@
 [Unit]
 Description=Seamless Fight duel server (Debian 13)
 After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -12,8 +14,6 @@ ExecStartPre=/opt/seamless-fight/runtime/bin/node /opt/seamless-fight/current/sc
 ExecStart=/opt/seamless-fight/runtime/bin/node /opt/seamless-fight/current/server.mjs
 Restart=on-failure
 RestartSec=5s
-StartLimitIntervalSec=60
-StartLimitBurst=5
 TimeoutStopSec=15s
 # Compete at lower priority than the existing BBSC/Caddy services.
 # MemoryMax is the last-resort safety cap, not a verified capacity claim.
