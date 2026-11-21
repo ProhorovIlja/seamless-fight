@@ -253,13 +253,16 @@ function starts(p,other,requested,input){
  }
  return true;
 }
-function drive(p,q,input,events,tick,actor){
+function drive(p,q,input,events,tick,actor,opponentStartX){
  const wasGround=p.y>=HUNT_FLOOR;
  if(p.exposed>0)p.exposed--;
  if(p.rallyLife>0)p.rallyLife--;
  else p.rally=0;
  if(huntCanAct(p)){p.act='';p.age=0;p.chain=0;p.hitConfirmed=false;}
- if(!p.act)p.dir=q.x>=p.x?1:-1;
+ // Both hunters choose the facing of NEW actions from the same
+ // pre-movement positions. Otherwise player slot 1 sees slot 0's partial
+ // movement and can start R2 facing the wrong way at point-blank range.
+ if(!p.act)p.dir=opponentStartX>=p.x?1:-1;
  const jumping=input.y===-1;
  // Reserved versioned checkpoint field, not a playable stance.
  p.crouch=false;
@@ -433,8 +436,8 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
  if(s.ready){s.ready--;return s;}
  const a=s.p[0],b=s.p[1];
  const beforeX=[a.x,b.x];
- drive(a,b,commands[0],events,s.tick,0);
- drive(b,a,commands[1],events,s.tick,1);
+ drive(a,b,commands[0],events,s.tick,0,beforeX[1]);
+ drive(b,a,commands[1],events,s.tick,1,beforeX[0]);
  // During paid forward quickstep i-frames, pass the opponent's body to exit
  // a wall trap. No teleport, wall jump, air dodge or free defensive guard.
  // Collision resumes immediately when the dodge window closes.
