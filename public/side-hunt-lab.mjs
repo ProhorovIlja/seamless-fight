@@ -42,7 +42,6 @@ export const HUNT_MOVES=Object.freeze({
  feint:move(0,0,12,9,0,0),
  sync:move(0,0,5,0,0,0),
  stun:move(0,0,22,0,0,0),
- guardBreak:move(0,0,29,0,0,0)
 });
 // Distinct original arsenals. Both share the same deterministic action graph.
 export const THORNWAKE_MOVES=Object.freeze({...HUNT_MOVES,
@@ -98,7 +97,7 @@ export function huntFighter(slot,weapon=HUNT_WEAPON){
  return {x:slot?705:255,y:HUNT_FLOOR,vx:0,vy:0,dir:slot?-1:1,weapon,
   hp:100,st:100,ammo:7,bloodAmmo:0,vials:2,focus:0,form:'folded',
   rally:0,rallyLife:0,exposed:0,exposeCause:'',visceralTarget:-1,
-  act:'',age:0,spent:false,hitConfirmed:false,guardAge:0,
+  act:'',age:0,spent:false,hitConfirmed:false,
   crouch:false,jumpHeld:false,jumps:0,airSteps:0,regen:0,
   combo:0,chain:0,queue:'',queueLife:0};
 }
@@ -111,7 +110,6 @@ export function huntMatch({weapons=[HUNT_WEAPON,HUNT_WEAPON],allowAirStep=HUNT_D
 }
 export const huntCanAct=p=>!p.act||p.age>=total(huntMoveSpec(p));
 export const huntPhase=p=>{
- if(p.guardAge)return 'guard';
  if(p.crouch)return 'crouch';
  if(!p.act)return p.y<HUNT_FLOOR?'airborne':'neutral';
  const m=huntMoveSpec(p);
@@ -156,6 +154,7 @@ function starts(p,other,requested,options){
  if((requested==='shot'||requested==='airShot')&&!p.ammo&&!p.bloodAmmo)return false;
  if(requested==='airShot'&&p.y>=HUNT_FLOOR)return false;
  if(requested==='airStep'&&!options.allowAirStep)return false;
+ if(['blood','heal'].includes(requested)&&p.y<HUNT_FLOOR)return false;
  if(requested==='blood'&&(p.hp<=HUNT_BLOOD_COST||p.bloodAmmo))return false;
  if(requested==='heal'&&(!p.vials||p.hp>=100))return false;
  if(requested==='visceral'&&(!other.exposed||p.y<HUNT_FLOOR||
@@ -199,7 +198,7 @@ function starts(p,other,requested,options){
  p.act=requested;p.age=0;p.spent=false;p.hitConfirmed=false;
  p.chain=chained?p.chain+1:1;
  p.st=clamp(p.st-m.cost,0,100);p.regen=27;
- p.crouch=false;p.guardAge=0;
+ p.crouch=false;
  if(requested==='shot'||requested==='airShot'){
   if(p.bloodAmmo)p.bloodAmmo--;
   else p.ammo--;
@@ -238,10 +237,8 @@ function drive(p,q,input,events,tick,actor,options){
  }
  p.jumpHeld=jumping;
  buffer(p,input);
- const guarding=false; // Bloodborne-aligned: survive with quicksteps, firearm parry and spacing.
- p.guardAge=guarding?Math.min(999,p.guardAge+1):0;
- if(guarding){p.st=Math.max(0,p.st-.18);p.regen=8;}
- if(p.queue&&!guarding){
+ // Bloodborne-aligned: no conventional block; evasions and firearms define defense.
+ if(p.queue){
   const requested=motion(p,p.queue);
   // One queued attack is consumed only when permitted. No free neutral inputs.
   // A transform queued during an attack is morph; otherwise it's a slow shift.
@@ -260,7 +257,7 @@ function drive(p,q,input,events,tick,actor,options){
   p.vx*=.74;
   if(m.damage&&p.age===m.startup-1)p.vx+=p.dir*(p.act.includes('Heavy')?4.0:2.4);
  }else{
-  const speed=guarding?0:p.crouch?1.15:wasGround?3.9:3.5;
+  const speed=p.crouch?1.15:wasGround?3.9:3.5;
   const accel=wasGround?.33:.14;
   p.vx+=(input.x*speed-p.vx)*accel;
  }
@@ -272,7 +269,7 @@ function drive(p,q,input,events,tick,actor,options){
   }
  }else{p.y=HUNT_FLOOR;p.vy=0;}
  if(p.regen)p.regen--;
- else if(!p.act&&!guarding)p.st=Math.min(100,p.st+.69);
+ else if(!p.act)p.st=Math.min(100,p.st+.69);
 }
 function settleUtility(p,events,tick,actor){
  const m=huntMoveSpec(p);
@@ -316,7 +313,7 @@ function resolveHit(s,actor,target,moveName,events){
   if(parryable){
    b.act='stagger';b.age=0;b.exposed=HUNT_VISCERAL_WINDOW;
    b.exposeCause='gun';b.vx=0;b.queue='';b.queueLife=0;b.chain=0;
-   b.hitConfirmed=false;b.guardAge=0;
+   b.hitConfirmed=false;
    events?.push({tick:s.tick,kind:'gunParry',actor,target,opening:b.exposed});
   }else events?.push({tick:s.tick,kind:'bulletHit',actor,target,damage:prior-b.hp});
   return;
@@ -340,7 +337,7 @@ function resolveHit(s,actor,target,moveName,events){
  if(regain)events?.push({tick:s.tick,kind:'rally',actor,health:regain});
  b.hp=Math.max(0,b.hp-damage);
  b.rally=Math.min(100,b.rally+(prior-b.hp));b.rallyLife=HUNT_RALLY_WINDOW;
- b.combo=combo;b.act='stun';b.age=0;b.crouch=false;b.guardAge=0;
+ b.combo=combo;b.act='stun';b.age=0;b.crouch=false;
  b.queue='';b.queueLife=0;b.chain=0;b.hitConfirmed=false;b.exposed=0;
  b.vx=a.dir*(m.damage>=27?6.1:4.4);
  a.hitConfirmed=true;a.focus=Math.min(100,a.focus+9);
