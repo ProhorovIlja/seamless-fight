@@ -38,6 +38,14 @@ const neutral=()=>huntInput();
 const opposite=input=>({...input,x:-input.x});
 const MAX_FRAMES=7200;
 const GOAL_HISTORY_LIMIT=1200;
+function scoreProjection(tickEvents,beforePlayerAction,confirmedState){
+ return tickEvents.map(e=>({...e,
+  playerAirborne:confirmedState.p[0].y<HUNT_FLOOR,
+  opponentAirborne:confirmedState.p[1].y<HUNT_FLOOR,
+  playerStartedStunned:beforePlayerAction==='stun',
+  distance:Math.abs(confirmedState.p[0].x-confirmedState.p[1].x)
+ }));
+}
 function makeDrillTape(scenario,variation=0){
  const tape=Array.from({length:150},neutral);
  tape[scenario.startAt]=canonicalHuntInput({act:scenario.action});
@@ -189,14 +197,8 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   // Dummy tape is prepared from player commands, never from an inferred win.
   replay.append([left,right]);
   huntStep(state,[left,right],tickEvents);
-  // Annotation reads only confirmed post-step source state and previous source
-  // action; these fields are NOT injected into combat or persisted as rank.
-  const scoreEvents=tickEvents.map(e=>({...e,
-   playerAirborne:state.p[0].y<HUNT_FLOOR,
-   opponentAirborne:state.p[1].y<HUNT_FLOOR,
-   playerStartedStunned:beforePlayerAction==='stun',
-   distance:Math.abs(state.p[0].x-state.p[1].x)
-  }));
+  // Training evidence is a read-only projection of the confirmed source step.
+  const scoreEvents=scoreProjection(tickEvents,beforePlayerAction,state);
   goalEvidence.push(...scoreEvents);
   if(goalEvidence.length>GOAL_HISTORY_LIMIT)
    goalEvidence=goalEvidence.slice(-GOAL_HISTORY_LIMIT);
@@ -247,16 +249,37 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   dummyFrames:tapes.map(t=>t.length),historyFrames:history.length,
   recordedFrames:replay.stats().frames});}
  function load(capture){
+  // Rejected/old/corrupt imports cannot change the active practice.
   const imported=loadHuntReplay(capture);
   if(imported.getState().rules!==HUNT_RULESET)throw TypeError('Different Hunt rules');
-  // Imported playback is already integrity-checked, but the generic replay
-  // loader conservatively sizes maxFrames to the imported tape length. Rebuild
-  // it as a writable practice timeline so frame advance/takeover can continue.
+  // Rebuild the verified inputs into a new *writable* source timeline,
+  // retaining frame-step, rewind and takeover after JSON import.
   const writable=createHuntReplay({initialState:capture.startState,
    maxFrames:MAX_FRAMES,checkpointEvery:30});
-  for(const inputs of capture.frames)writable.append(inputs);
-  replay=writable;state=replay.getState();history=[];events=[];goalEvidence=[];paused=true;
-  mode='passive';recordingSlot=-1;playStart=state.tick;
+  const rebuilt=clone(capture.startState);
+  let restoredHistory=[],restoredEvents=[],restoredGoalEvents=[];
+  for(const inputs of capture.frames){
+   writable.append(inputs);
+   const priorAction=rebuilt.p[0].act;
+   const tickEvents=[];
+   huntStep(rebuilt,inputs,tickEvents);
+   const scoreEvents=scoreProjection(tickEvents,priorAction,rebuilt);
+   restoredHistory.push({tick:rebuilt.tick,input:clone(inputs),
+    events:tickEvents,scoreEvents});
+   if(restoredHistory.length>HUNT_PRACTICE_HISTORY)restoredHistory.shift();
+   restoredEvents.push(...tickEvents);
+   if(restoredEvents.length>400)restoredEvents=restoredEvents.slice(-400);
+   restoredGoalEvents.push(...scoreEvents);
+   if(restoredGoalEvents.length>GOAL_HISTORY_LIMIT)
+    restoredGoalEvents=restoredGoalEvents.slice(-GOAL_HISTORY_LIMIT);
+  }
+  if(JSON.stringify(rebuilt)!==JSON.stringify(imported.getState()))
+   throw Error('Reconstructed practice diverged from verified Hunt replay');
+  // Commit atomically ONLY after validation and event resimulation succeed.
+  replay=writable;state=rebuilt;
+  history=restoredHistory;events=restoredEvents;goalEvidence=restoredGoalEvents;
+  paused=true;mode='passive';recordingSlot=-1;playStart=state.tick;
+  reversalArmed=false;reversalPlaying=false;
   return true;
  }
  return Object.freeze({inspect,record,recordInput,finish,setMode,append,step,
