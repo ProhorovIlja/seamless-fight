@@ -33,3 +33,16 @@ blender -b --python tools/art/build_hunter_base.py -- \
 - A preset's license acknowledgement is not independent commercial legal clearance. Preserve pack version, source URLs, exact file hashes, creator rights and public redistribution permissions before public release.
 - MPFB is a serious zero-cost human base and customization pipeline, not a shortcut to AAA-ready Gothic characters. No professionally authored finished fighter art, weapon animation, performance facial rigs or mastered voices are claimed.
 - Production Windows builds must not bundle the Blender MPFB application, its GPL scripts, research game assets or unfinished body preview meshes.
+
+## GLB preflight and legal animation-source selection
+
+Once a fully **animated** and art-director-reviewed GLB exists, run `python3 tools/art/audit_glb.py path/to/hunter.glb --report artifacts/hunter-qa.json`. This pure-standard-library, file-size-bounded glTF2 structural scanner requires a real 24+ joint skin, 1,800+ skinned body vertices, embedded resources, at least one material, and all twelve 2+-keyframe skeletal clips. It will reject fake named-but-empty animations. It is a **technical metadata filter only**: it cannot judge visual beauty, deformation, animation quality or source-license clearance, and its report explicitly marks human art and redistribution as *not approved*. A real Godot import and GPU/animation review are still mandatory.
+
+CC0 and permissively licensed motion **candidates** to review and retarget into original keyframe sequences; **none are imported or shipped here**:
+
+- [Quaternius Universal Animation Library](https://quaternius.com/packs/universalanimationlibrary.html): CC0, broad locomotion, attacks, gunplay and movements. Good technical starting point, not automatically polished for side-on Mournweave or Thornwake trick transformations.
+- [KinemIQ free game animations](https://github.com/Kinemiq/free-game-animations): first free 35 are described as Quaternius-derived CC0 GLB/FBX. Its larger 460-pack mixes CC BY and other sources; preserve authors and each asset's required attribution. Do not blindly mark the entire library CC0.
+- [Adobe Mixamo](https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html): generally usable royalty-free in personal and commercial games, but original raw file redistribution restrictions apply. It is *not* CC0 and should not be uploaded to the public source repo unreviewed.
+- [CMU Motion Capture Database](https://mocap.cs.cmu.edu/): official site explicitly states free for **research**. Do not treat that as blanket approval for distributing a commercial game.
+
+Use [Godot's official humanoid retargeting workflow](https://docs.godotengine.org/en/stable/tutorials/assets_pipeline/retargeting_3d_skeletons.html) with compatible humanoid rest poses and SkeletonProfileHumanoid, then art-direct every active attack/recovery and test foot plants, weapon-hand IK, cloth and eyelines. Do not ship generic identical attack clips for two different weapons simply because the clips have the required filenames.

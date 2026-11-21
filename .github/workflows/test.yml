@@ -14,8 +14,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check original MakeHuman-based character-creation input and asset-root safety
         run: |
-          python3 -m py_compile tools/art/hunter_preset.py tools/art/build_hunter_base.py
-          python3 -m unittest discover -s test/python -p 'test_hunter_preset.py' -v
+          python3 -m py_compile tools/art/hunter_preset.py tools/art/build_hunter_base.py tools/art/audit_glb.py
+          python3 -m unittest discover -s test/python -p 'test_hunter_*.py' -v
           python3 tools/art/hunter_preset.py tools/art/presets/veil_studio_base.json
           echo 'STUDIO_ART_PRESET_VALIDATE_ONLY=PASS (No Blender, model, game-ready rig or license certification was produced)' >> "$GITHUB_STEP_SUMMARY"
   test:
