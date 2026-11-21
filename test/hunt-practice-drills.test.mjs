@@ -105,3 +105,26 @@ test('eight dummy recordings export/import atomically with exact-version inputs 
  assert.throws(()=>other.loadDummyLibrary(excessive),/600 frames/);
  assert.deepEqual(other.saveDummyLibrary(),before);
 });
+
+test('frame inspector announces only genuine frame-specific parry windows and paid escape eligibility',()=>{
+ const heavy=huntPracticeSession({drill:'parry-heavy'});
+ const vulnerable=[];
+ for(let i=1;i<=83;i++){
+  heavy.append(cmd());
+  const defender=heavy.frame(1);
+  assert.equal(typeof defender.firearmCounterWindowOpen,'boolean');
+  assert.equal(typeof defender.groundedHitstunEscapeReady,'boolean');
+  if(defender.firearmCounterWindowOpen)vulnerable.push(i);
+ }
+ assert(vulnerable.length>0,'source heavy action must have a counter timing window');
+ assert(vulnerable[0]>55,'idle before actual attack must never be parryable');
+ assert(vulnerable.length<40,'counter opportunity must be finite rather than always parryable');
+ const escape=huntPracticeSession({drill:'escape-stun'});
+ let readyAt=-1;
+ for(let i=1;i<=95;i++){
+  escape.append(cmd());
+  if(escape.frame(0).groundedHitstunEscapeReady&&readyAt<0)readyAt=i;
+ }
+ assert(readyAt>55,'source hit must happen before the escape window appears');
+ assert.equal(escape.frame(0).firearmCounterWindowOpen,false);
+});
