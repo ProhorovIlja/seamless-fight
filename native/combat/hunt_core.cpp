@@ -48,6 +48,15 @@ int main(int argc,char**argv){
    s.p[1].act=UNFURLED_HEAVY;
    const Spec victim=spec(s.p[1].weapon,UNFURLED_HEAVY);
    s.p[1].age=victim.startup+victim.active;
+  }else if(scenario=="--face-cross-p0"||scenario=="--face-cross-p1"){
+   // Directed parity: at almost zero spacing an idle hunter moves through
+   // the other before the body solver separates them. Both fighters must
+   // re-face after final coordinates settle, independent of slot order.
+   s.ready=0;
+   const bool second=scenario=="--face-cross-p1";
+   s.p[0].x=second?480.5:479.5;
+   s.p[1].x=second?479.5:480.5;
+   s.p[0].vx=0;s.p[1].vx=0;
   }else return 7;
  }
  std::vector<State> checkpoints;
