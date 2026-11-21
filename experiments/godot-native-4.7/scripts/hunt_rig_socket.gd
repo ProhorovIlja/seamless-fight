@@ -208,7 +208,7 @@ func apply_confirmed_pose(snapshot: Dictionary,slot: int=0) -> bool:
 	if next_clip!=visual_clip:
 		visual_clip=next_clip
 		animator.play(next_clip,VISUAL_BLEND_SECONDS)
-	if not next_clip in contract["shared"]:
+	if next_clip not in contract["shared"]:
 		var age: int=maxi(0,int(fighter.get("age",0)))
 		var clip_length: float=animator.get_animation(next_clip).length
 		# Confirmed 60 Hz pose time is independent from 60/120/240/uncapped display refresh.
