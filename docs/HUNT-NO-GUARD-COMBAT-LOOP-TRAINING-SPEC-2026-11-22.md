@@ -197,3 +197,18 @@ The quickstep has a **0 / 9 / 12** startup/active/recovery phase breakdown in th
 These numbers come from `public/side-hunt-lab.mjs` and `native/combat/hunt_core.hpp`, not from copyrighted Bloodborne frame data. The table illustrates fast short-range interrupts, slower long-range control, and recoverable whiff commitments. They are pending live 1v1 playtests and genuine rollback/human reaction tests; changing them requires cross-language 60Hz parity and frame-aligned original animations.
 
 The rank-safe design rule is that a high-quality practice mode can explain exact training damage while a competitive match exposes only fairly observable animation, sound, effects, and player-confirmed game events. Do not show a live opponent's secret vulnerability flags to the local player outside practice, even if they are technically available in state.
+
+## 2026-11-22 — Same-frame melee trade fairness (implemented in isolated JS + C++ source)
+
+**Problem and verified code path:** A no-block fighting game expects real mutual-hit trades. The source previously resolved two colliding melee attacks in slot order. The first strike gave fighter 1 a new Rally pool; when fighter 1's simultaneously active attack was resolved next, they could immediately reclaim HP from the *same incoming trade*, while fighter 0 could not. Fighter 1 also risked retaining `hitConfirmed=true` after being stunned. The imbalance was a simulation ordering artifact, not a move-frame or geometry difference.
+
+**Source/native correction:** Before resolving contact for a 60Hz tick, freeze each fighter's *pre-contact* rally allowance. Only that old pool can be reclaimed by a qualifying melee hit on the current tick; new damage taken during the tick becomes Rally for **future** contact. If a fighter's action was already interrupted by simultaneous impact, they cannot emerge from the trade with a phantom hit-confirm while stunned. Preserve real damage, shot priority, momentum, focus, target hitstun, and source/native state layout. Ordinary one-sided Rally behavior is unchanged.
+
+**Directed verification:**
+- `test/hunt-simultaneous-trade-fairness.test.mjs` tests genuine two-hit 60Hz source collisions at the same tick for both slots, both mirrored original-weapon orders, empty Rally and existing Rally. It checks equal neutral HP results, symmetric resources, actual collision events and no extra hit confirm after stun.
+- `native/combat/hunt_core.cpp` exposes isolated *test-only* `--trade` and `--trade-rally` starting states with real active hitboxes. `scripts/native-hunt-parity.mjs` now compares all 69 JS/C++ state fields for **eight** directed same-frame trade scenarios (2 Rally conditions × 4 weapon pairs), 32 simulated ticks each, alongside its existing full parity, corner and visceral suite.
+- The Godot native GDExtension uses the same portable C++ source. Full CI results on the final commit are required before declaring the Windows build or native integration healthy.
+
+**Game-design invariant:** `Player0(weapon A) vs Player1(weapon B)` and `Player0(weapon B) vs Player1(weapon A)` must produce mirror-equivalent HP/resource state under matching mirrored attacks. Neither side may gain more health from an identical simultaneous contact due solely to array iteration order. Real parry counters, attack-specific superarmor, 2.5D cross-through and future rollback hit arbitration must respect this principle.
+
+**Release gate:** Gameplay semantics have changed without a binary state-layout change; before public online interoperability, explicitly version the full ruleset/rollback protocol and reject mismatched clients. This isolated experimental branch is not presently the production Bloodborne or Seamless Hunt server.
