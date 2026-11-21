@@ -60,6 +60,8 @@ test('versioned local capture reload reproduces unchanged state and refuses edit
  json.startState.p[0].hp=42;
  assert.throws(()=>loadTrickReplay(json),/integrity|diverged/i);
  assert.throws(()=>loadTrickReplay({...json,rules:'seamless-side\/1'}),/Invalid|incompatible/);
+ assert.throws(()=>loadTrickReplay({...json,rules:'sf-trick-lab/2'}),/Invalid|incompatible/,
+  'v2 tapes must not silently be interpreted under v3 pursuit costs and timing');
 });
 test('input and memory limits reject malformed operations without mutating confirmed history',()=>{
  const source=trickMatch();
