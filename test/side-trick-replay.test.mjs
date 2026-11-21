@@ -52,7 +52,7 @@ test('versioned local capture reload reproduces unchanged state and refuses edit
  for(let i=0;i<160;i++)tape.append(scripted(i));
  const json=JSON.parse(JSON.stringify(tape.capture()));
  assert.equal(json.schema,TRICK_CAPTURE_SCHEMA);
- assert.equal(json.rules,'sf-trick-lab/2');
+ assert.equal(json.rules,'sf-trick-lab/3');
  assert(!('playerId' in json)&&!('voice' in json)&&!('email' in json));
  const read=loadTrickReplay(json,{checkpointEvery:11});
  assert.deepEqual(read.getState(),tape.getState());
