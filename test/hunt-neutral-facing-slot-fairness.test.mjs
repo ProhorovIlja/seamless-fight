@@ -13,19 +13,36 @@ function pointBlank(swap=false){
  huntStep(s,swap?[huntInput(),move(1)]:[move(1),huntInput()],events);
  return {s,events};
 }
-test('neutral auto-facing follows final body-separation coordinates for both player slots',()=>{
+test('solid-body footsies forbid neutral walk-through and settle both facings symmetrically',()=>{
  for(const swap of [false,true]){
   const {s,events}=pointBlank(swap);
   const a=s.p[0],b=s.p[1];
-  assert(swap?a.x<b.x:a.x>b.x,
-   'the movement and collision solver must actually reverse fighter sides');
+  assert(swap?a.x>b.x:a.x<b.x,
+   'ordinary neutral movement must NOT tunnel through the opponent');
   assert.equal(a.dir,b.x>=a.x?1:-1,'player 0 faces final opponent position');
   assert.equal(b.dir,a.x>=b.x?1:-1,'player 1 faces final opponent position');
   assert.equal(a.dir,-b.dir,'neutral fighters cannot both face away or same way');
   assert.equal(events.some(e=>e.kind==='cornerEscape'),false,
    'point-blank collision does not trigger a fake corner escape');
-  assert.equal(Math.abs(a.x-b.x)>=37.999,true,
-   'body separation must still stop uninvincible overlap');
+  assert.equal(Math.abs(Math.abs(a.x-b.x)-38)<1e-8,true,
+   'solid fighters must be separated by exactly 38 units');
+ }
+});
+test('wall-constrained bodies resolve their entire separation without free crossing',()=>{
+ for(const wall of ['left','right']){
+  const s=huntMatch();s.ready=0;
+  s.p[0].x=wall==='left'?65:895;
+  s.p[1].x=wall==='left'?68:892;
+  s.p[0].vx=0;s.p[1].vx=0;
+  const events=[];
+  huntStep(s,[huntInput(),huntInput()],events);
+  const [a,b]=s.p;
+  assert.equal(wall==='left'?a.x: b.x,wall==='left'?65:857);
+  assert.equal(wall==='left'?b.x: a.x,wall==='left'?103:895);
+  assert.equal(Math.abs(a.x-b.x),38);
+  assert.equal(a.dir,b.x>=a.x?1:-1);
+  assert.equal(b.dir,a.x>=b.x?1:-1);
+  assert.equal(events.filter(e=>e.kind==='cornerEscape').length,0);
  }
 });
 test('committed attack direction is not retroactively flipped by neutral facing fix',()=>{
