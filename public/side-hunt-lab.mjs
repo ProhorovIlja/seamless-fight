@@ -1,4 +1,5 @@
-// Seamless Fight — original, separately versioned 60 Hz trick-weapon lab.
+// Seamless Fight — isolated 60 Hz Bloodborne-inspired hunt-combat research.
+// Bloodborne's dodge/gun counter/visceral/resource loop inspires original implementation.
 // No Bloodborne animation, textures, models or proprietary game data.
 // Research mechanics only: DO NOT feed this state to seamless-side/1 clients,
 // the existing Node authority, the GGPO prototype or ranked matchmaking.
@@ -199,7 +200,7 @@ function starts(p,other,requested){
  if(requested==='heal')p.vials--;
  if(requested==='blood')p.hp-=HUNT_BLOOD_COST;
  if(requested==='visceral'){
-  p.visceralTarget=other;
+  p.visceralTarget=1; // scalar opponent marker; never store object refs in replay state
   other.act='visceralVictim';other.age=0;other.exposed=0;other.queue='';other.queueLife=0;
  }
  if(requested==='step'||requested==='airStep'){
