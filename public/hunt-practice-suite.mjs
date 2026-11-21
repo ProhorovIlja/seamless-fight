@@ -6,6 +6,7 @@ import {
  huntInspector,huntFrameTable,canonicalHuntInput,huntCanAct
 } from './side-hunt-lab.mjs';
 import {createHuntReplay,loadHuntReplay} from './side-hunt-replay.mjs';
+import {analyzeHuntReplay} from './hunt-match-analytics.mjs';
 
 export const HUNT_PRACTICE_SCHEMA='sf-hunt-practice/1';
 export const HUNT_DUMMY_SLOTS=8,HUNT_DUMMY_MAX_FRAMES=600;
@@ -168,7 +169,8 @@ export function huntPracticeSession({weapons,seed=1}={}){
   return true;
  }
  return Object.freeze({inspect,record,recordInput,finish,setMode,append,step,
-  pause,resume,rewind,restart,save,load,frame,stats,inputHistory,eventHistory,
+  pause,resume,rewind,restart,save,load,frame,stats,
+  metrics:()=>analyzeHuntReplay(replay.capture()),inputHistory,eventHistory,
   slotData:i=>{validateSlot(i);return clone(tapes[i]);},
   frameTable:weapon=>huntFrameTable(weapon)});
 }
