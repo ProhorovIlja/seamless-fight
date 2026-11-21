@@ -142,7 +142,8 @@ export function huntHurtbox(p){
  // the entire blade/hitbox. This gives true whiff punishment meaningful
  // spatial counterplay against long pokes without block or grabs.
  const spec=huntMoveSpec(p);
- const recoveringMelee=ORDINARY.has(p.act)&&p.age>=spec.startup+spec.active&&
+ const recoveringMelee=ORDINARY.has(p.act)&&!p.spent&&
+  p.age>=spec.startup+spec.active&&
   p.age<total(spec);
  const arm=recoveringMelee?Math.min(24,Math.floor(spec.reach/5)):0;
  return {left:p.x-18-(p.dir<0?arm:0),
