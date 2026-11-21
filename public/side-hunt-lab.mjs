@@ -40,6 +40,10 @@ export const HUNT_MOVES=Object.freeze({
  feint:move(0,0,12,9,0,0),
  sync:move(0,0,5,0,0,0),
  stun:move(0,0,22,0,0,0),
+ // Neutral Circle without directional input: a non-invincible backstep.
+ backstep:move(0,8,9,10,0,0),
+ foldedBackstepLight:move(9,4,17,11,104,18,-110,-24),
+ unfurledBackstepLight:move(14,6,21,16,180,20,-122,-25),
 });
 // Distinct original arsenals. Both share the same deterministic action graph.
 export const THORNWAKE_MOVES=Object.freeze({...HUNT_MOVES,
@@ -56,7 +60,9 @@ export const THORNWAKE_MOVES=Object.freeze({...HUNT_MOVES,
  unfurl:move(13,6,19,20,188,17,-117,-24),
  refold:move(8,5,16,16,108,18,-103,-27),
  shiftOut:move(8,0,13,7,0,0),
- shiftIn:move(4,0,11,5,0,0)
+ shiftIn:move(4,0,11,5,0,0),
+ foldedBackstepLight:move(7,4,18,10,107,16,-99,-24),
+ unfurledBackstepLight:move(15,6,22,18,199,19,-121,-25)
 });
 export const HUNT_WEAPON_SPECS=Object.freeze({
  mournweave:HUNT_MOVES,thornwake:THORNWAKE_MOVES
@@ -71,7 +77,7 @@ export function huntFrameTable(weapon=HUNT_WEAPON){
 const ATTACKS=new Set(Object.keys(HUNT_MOVES).filter(x=>HUNT_MOVES[x].damage>0));
 const ORDINARY=new Set(['foldedLight','foldedHeavy','unfurledLight','unfurledHeavy',
  'airFoldedLight','airFoldedHeavy','airUnfurledLight','airUnfurledHeavy',
- 'foldedCharged','unfurledCharged']);
+ 'foldedCharged','unfurledCharged','foldedBackstepLight','unfurledBackstepLight']);
 const TRANSFORMS=new Set(['unfurl','refold']);
 // Meter-backed grounded pursuit cancel: only after confirmed contact, never on whiff.
 // Never grants an aerial dodge.
@@ -114,17 +120,19 @@ export const huntPhase=p=>{
  const m=huntMoveSpec(p);
  return p.age<m.startup?'startup':p.age<m.startup+m.active?'active':'recovery';
 };
-const motion=(p,input)=>{
+const motion=(p,input,direction=0)=>{
  const airborne=p.y<HUNT_FLOOR;
  const form=p.form==='folded'
   ?(airborne?'Folded':'folded'):(airborne?'Unfurled':'unfurled');
+ if(input==='light'&&p.act==='backstep'&&!airborne)
+  return p.form==='folded'?'foldedBackstepLight':'unfurledBackstepLight';
  if(input==='light'||input==='heavy'||input==='charge')
   return input==='charge'?(airborne?'':p.form)+'Charged':
    (airborne?'air':'')+form+input[0].toUpperCase()+input.slice(1);
  if(input==='trick')
   return !p.act?(p.form==='folded'?'shiftOut':'shiftIn'):
    (p.form==='folded'?'unfurl':'refold');
- if(input==='step')return p.y<HUNT_FLOOR?'':'step';
+ if(input==='step')return p.y<HUNT_FLOOR?'':direction===0?'backstep':'step';
  if(input==='shot')return p.y<HUNT_FLOOR?'airShot':'shot';
  return input;
 };
@@ -172,6 +180,10 @@ function starts(p,other,requested,input){
   // Bloodborne-like recovery: the hit still lands, but a costly dodge can
   // escape ordinary hitstun before it expires. Parry/visceral stagger is NOT escapable.
   chained=false;
+ }else if(p.act==='backstep'&&
+   ['foldedBackstepLight','unfurledBackstepLight'].includes(requested)&&
+   p.age>=5&&p.age<total(old)-3){
+  chained=true;
  }else if(requested==='feint'&&p.act.endsWith('Heavy')&&
    p.age>=5&&p.age<old.startup-3){
   chained=true;
@@ -222,6 +234,7 @@ function starts(p,other,requested,input){
   p.visceralTarget=1; // scalar opponent marker; never store object refs in replay state
   other.act='visceralVictim';other.age=0;other.exposed=0;other.queue='';other.queueLife=0;
  }
+ if(requested==='backstep')p.vx=-7.8*p.dir;
  if(requested==='step'){
   // Respect directional input: quickstep away or through the opponent.
   // A neutral step defaults toward the current facing direction.
@@ -249,7 +262,7 @@ function drive(p,q,input,events,tick,actor){
  buffer(p,input);
  // Bloodborne-aligned: no conventional block; evasions and firearms define defense.
  if(p.queue){
-  const requested=motion(p,p.queue);
+  const requested=motion(p,p.queue,input.x);
   // One queued attack is consumed only when permitted. No free neutral inputs.
   // A transform queued during an attack is morph; otherwise it's a slow shift.
   if(starts(p,q,requested,input)){
@@ -263,6 +276,7 @@ function drive(p,q,input,events,tick,actor){
   events?.push({tick,kind:'transform',actor,form:p.form,move:p.act,x:p.x,y:p.y-72});
  }
  if(p.act==='step')p.vx*=.89;
+ else if(p.act==='backstep')p.vx*=.83;
  else if(p.act){
   p.vx*=.74;
   if(m.damage&&p.age===m.startup-1)p.vx+=p.dir*(p.act.includes('Heavy')?4.0:2.4);

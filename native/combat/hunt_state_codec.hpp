@@ -10,7 +10,7 @@
 #include <vector>
 namespace sf_hunt {
 namespace codec {
-constexpr uint32_t VERSION=2; // No crouch/duck semantics; reject old snapshot version.
+constexpr uint32_t VERSION=3; // Backstep state IDs; reject v2 snapshots.
 constexpr std::size_t CHECKPOINT_SIZE=348, PAYLOAD_END=340;
 constexpr uint64_t FNV_OFFSET=UINT64_C(14695981039346656037);
 constexpr uint64_t FNV_PRIME=UINT64_C(1099511628211);

@@ -314,7 +314,7 @@ test('committed attacks and quicksteps each consume limited stamina',()=>{
  huntStep(attack,[cmd('light'),huntInput()]);
  assert.equal(a.st,100-HUNT_MOVES.foldedLight.cost);
  const dodge=live(160),d=dodge.p[0];
- huntStep(dodge,[cmd('step'),huntInput()]);
+ huntStep(dodge,[cmd('step',1),huntInput()]);
  assert.equal(d.st,100-HUNT_MOVES.step.cost);
  assert(a.st<100&&d.st<100);
 });

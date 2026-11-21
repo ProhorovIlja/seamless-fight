@@ -20,7 +20,7 @@ enum Request{NOTHING,LIGHT,HEAVY,CHARGE,TRICK,FIRE,QUICKSTEP,FEINT_INPUT,
 enum Action{NONE,FOLDED_LIGHT,FOLDED_HEAVY,FOLDED_CHARGED,UNFURLED_LIGHT,
  UNFURLED_HEAVY,UNFURLED_CHARGED,AIR_FOLDED_LIGHT,AIR_FOLDED_HEAVY,
  AIR_UNFURLED_LIGHT,AIR_UNFURLED_HEAVY,UNFURL,REFOLD,SHIFT_OUT,SHIFT_IN,
- SHOT,AIR_SHOT,VISCERAL,HEAL,BLOOD,STAGGER,VISCERAL_VICTIM,STEP,FEINT,SYNC,STUN,COUNT};
+ SHOT,AIR_SHOT,VISCERAL,HEAL,BLOOD,STAGGER,VISCERAL_VICTIM,STEP,FEINT,SYNC,STUN,BACKSTEP,FOLDED_BACKSTEP_LIGHT,UNFURLED_BACKSTEP_LIGHT,COUNT};
 struct Spec {int startup,active,recovery,cost,reach,damage,top,bottom;};
 constexpr std::array<Spec,COUNT> BASE={{
  {0,0,0,0,0,0,0,0},
@@ -36,7 +36,9 @@ constexpr std::array<Spec,COUNT> BASE={{
  {16,1,23,0,0,0,-105,-26},{0,0,42,0,0,0,-105,-26},
  {0,0,46,0,0,0,-105,-26},{0,9,12,19,0,0,-105,-26},
  {0,0,12,9,0,0,-105,-26},{0,0,5,0,0,0,-105,-26},
- {0,0,22,0,0,0,-105,-26}
+ {0,0,22,0,0,0,-105,-26},
+ {0,8,9,10,0,0,-105,-26},{9,4,17,11,104,18,-110,-24},
+ {14,6,21,16,180,20,-122,-25}
 }};
 constexpr std::array<Spec,14> THORN={{
  {0,0,0,0,0,0,0,0},
@@ -49,6 +51,8 @@ constexpr std::array<Spec,14> THORN={{
  {8,0,13,7,0,0,-105,-26}
 }};
 constexpr Spec THORN_SHIFT_IN={4,0,11,5,0,0,-105,-26};
+constexpr Spec THORN_FOLDED_BACKSTEP_LIGHT={7,4,18,10,107,16,-99,-24};
+constexpr Spec THORN_UNFURLED_BACKSTEP_LIGHT={15,6,22,18,199,19,-121,-25};
 inline Spec spec(Weapon w,Action a){
  const int n=static_cast<int>(a);
  // Godot's official GDExtension toolchain disables C++ exceptions.
@@ -56,6 +60,8 @@ inline Spec spec(Weapon w,Action a){
  if(n<0||n>=COUNT)return BASE[NONE];
  if(w==THORNWAKE && n<static_cast<int>(THORN.size()))return THORN[n];
  if(w==THORNWAKE && a==SHIFT_IN)return THORN_SHIFT_IN;
+ if(w==THORNWAKE && a==FOLDED_BACKSTEP_LIGHT)return THORN_FOLDED_BACKSTEP_LIGHT;
+ if(w==THORNWAKE && a==UNFURLED_BACKSTEP_LIGHT)return THORN_UNFURLED_BACKSTEP_LIGHT;
  return BASE[n];
 }
 inline int total(Spec m){return m.startup+m.active+m.recovery;}
@@ -84,7 +90,8 @@ struct State{
 };
 inline bool ordinary(Action a){
  return (a>=FOLDED_LIGHT&&a<=UNFURLED_CHARGED)||
-   (a>=AIR_FOLDED_LIGHT&&a<=AIR_UNFURLED_HEAVY);
+   (a>=AIR_FOLDED_LIGHT&&a<=AIR_UNFURLED_HEAVY)||
+   a==FOLDED_BACKSTEP_LIGHT||a==UNFURLED_BACKSTEP_LIGHT;
 }
 inline bool transform(Action a){return a==UNFURL||a==REFOLD;}
 inline bool heavy(Action a){
@@ -93,10 +100,12 @@ inline bool heavy(Action a){
 }
 inline bool charged(Action a){return a==FOLDED_CHARGED||a==UNFURLED_CHARGED;}
 inline bool can_act(const Fighter&p){return p.act==NONE||p.age>=total(spec(p.weapon,p.act));}
-inline Action requested(const Fighter&p,Request r){
+inline Action requested(const Fighter&p,Request r,const Input&i){
  const bool air=p.y<FLOOR;
  switch(r){
- case LIGHT: return air?(p.form==FOLDED?AIR_FOLDED_LIGHT:AIR_UNFURLED_LIGHT):
+ case LIGHT: return p.act==BACKSTEP&&!air?
+                         (p.form==FOLDED?FOLDED_BACKSTEP_LIGHT:UNFURLED_BACKSTEP_LIGHT):
+                        air?(p.form==FOLDED?AIR_FOLDED_LIGHT:AIR_UNFURLED_LIGHT):
                          (p.form==FOLDED?FOLDED_LIGHT:UNFURLED_LIGHT);
  case HEAVY: return air?(p.form==FOLDED?AIR_FOLDED_HEAVY:AIR_UNFURLED_HEAVY):
                          (p.form==FOLDED?FOLDED_HEAVY:UNFURLED_HEAVY);
@@ -104,7 +113,7 @@ inline Action requested(const Fighter&p,Request r){
  case TRICK: return p.act==NONE?(p.form==FOLDED?SHIFT_OUT:SHIFT_IN):
                                  (p.form==FOLDED?UNFURL:REFOLD);
  case FIRE: return air?AIR_SHOT:SHOT;
- case QUICKSTEP: return air?NONE:STEP;
+ case QUICKSTEP: return air?NONE:(i.x==0?BACKSTEP:STEP);
  case FEINT_INPUT:return FEINT;case SYNC_INPUT:return SYNC;
  case VISCERAL_INPUT:return VISCERAL;case HEAL_INPUT:return HEAL;
  case BLOOD_INPUT:return BLOOD;
@@ -137,6 +146,10 @@ inline bool start(Fighter&p,Fighter&q,Action r,const Input&i){
   p.chain=0;
  }else if(escaping&&p.age>=8&&p.age<total(old)-5&&p.y>=FLOOR){
   chained=false;
+ }else if(p.act==BACKSTEP&&
+           (r==FOLDED_BACKSTEP_LIGHT||r==UNFURLED_BACKSTEP_LIGHT)&&
+           p.age>=5&&p.age<total(old)-3){
+  chained=true;
  }else if(r==FEINT&&heavy(p.act)&&p.age>=5&&p.age<old.startup-3){
   chained=true;
  }else if(transform(r)&&(ordinary(p.act)||p.act==STEP)&&
@@ -169,6 +182,7 @@ inline bool start(Fighter&p,Fighter&q,Action r,const Input&i){
   q.queue=NOTHING;q.queueLife=0;
  }
  if(r==STEP)p.vx=10.6*(i.x?i.x:p.dir);
+ if(r==BACKSTEP)p.vx=-7.8*p.dir;
  return true;
 }
 inline void drive(Fighter&p,Fighter&q,const Input&i){
@@ -185,13 +199,14 @@ inline void drive(Fighter&p,Fighter&q,const Input&i){
  p.jumpHeld=jump;
  buffer(p,i.act);
  if(p.queue!=NOTHING){
-  const Action req=requested(p,p.queue);
+  const Action req=requested(p,p.queue,i);
   if(start(p,q,req,i)){p.queue=NOTHING;p.queueLife=0;}
  }
  const Spec m=spec(p.weapon,p.act);
  if((transform(p.act)||p.act==SHIFT_OUT||p.act==SHIFT_IN)&&p.age==m.startup-1)
   p.form=p.form==FOLDED?UNFURLED:FOLDED;
  if(p.act==STEP)p.vx*=.89;
+ else if(p.act==BACKSTEP)p.vx*=.83;
  else if(p.act!=NONE){
   p.vx*=.74;
   if(m.damage&&p.age==m.startup-1)p.vx+=p.dir*(heavy(p.act)?4.0:2.4);

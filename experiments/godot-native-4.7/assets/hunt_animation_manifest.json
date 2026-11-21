@@ -298,6 +298,39 @@
         "activeEnd": null,
         "needsPairedPerformance": false,
         "mustNeverDrivePhysics": true
+      },
+      {
+        "clip": "backstep",
+        "frames": 17,
+        "startup": 0,
+        "active": 8,
+        "recovery": 9,
+        "activeStart": null,
+        "activeEnd": null,
+        "needsPairedPerformance": false,
+        "mustNeverDrivePhysics": true
+      },
+      {
+        "clip": "foldedBackstepLight",
+        "frames": 30,
+        "startup": 9,
+        "active": 4,
+        "recovery": 17,
+        "activeStart": 9,
+        "activeEnd": 13,
+        "needsPairedPerformance": false,
+        "mustNeverDrivePhysics": true
+      },
+      {
+        "clip": "unfurledBackstepLight",
+        "frames": 41,
+        "startup": 14,
+        "active": 6,
+        "recovery": 21,
+        "activeStart": 14,
+        "activeEnd": 20,
+        "needsPairedPerformance": false,
+        "mustNeverDrivePhysics": true
       }
     ],
     "thornwake": [
@@ -573,6 +606,39 @@
         "recovery": 22,
         "activeStart": null,
         "activeEnd": null,
+        "needsPairedPerformance": false,
+        "mustNeverDrivePhysics": true
+      },
+      {
+        "clip": "backstep",
+        "frames": 17,
+        "startup": 0,
+        "active": 8,
+        "recovery": 9,
+        "activeStart": null,
+        "activeEnd": null,
+        "needsPairedPerformance": false,
+        "mustNeverDrivePhysics": true
+      },
+      {
+        "clip": "foldedBackstepLight",
+        "frames": 29,
+        "startup": 7,
+        "active": 4,
+        "recovery": 18,
+        "activeStart": 7,
+        "activeEnd": 11,
+        "needsPairedPerformance": false,
+        "mustNeverDrivePhysics": true
+      },
+      {
+        "clip": "unfurledBackstepLight",
+        "frames": 43,
+        "startup": 15,
+        "active": 6,
+        "recovery": 22,
+        "activeStart": 15,
+        "activeEnd": 21,
         "needsPairedPerformance": false,
         "mustNeverDrivePhysics": true
       }

@@ -27,6 +27,8 @@ function classify(name){
  if(name==='heal')return 'vial-heal';
  if(name.endsWith('Charged'))return 'ground-charged-heavy';
  if(name==='step')return 'ground-mobility';
+ if(name==='backstep')return 'ground-backstep-no-iframes';
+ if(name.endsWith('BackstepLight'))return 'ground-backstep-counterattack';
  if(name.startsWith('air'))return 'aerial-attack';
  if(name.endsWith('Light')||name.endsWith('Heavy'))return 'ground-attack';
  return 'reactions-and-cancels';

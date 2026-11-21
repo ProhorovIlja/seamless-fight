@@ -15,7 +15,7 @@ test('checked-in Godot v3 animation contract is exactly generated from authorita
  assert.equal(artifact.clipsAreFinished,false);
  assert.equal(artifact.shared.length,HUNT_SHARED_SHOTS.length);
 });
-test('native animation manifest requires authored performances for all 50 weapon action clips',()=>{
+test('native animation manifest requires authored performances for all 56 weapon action clips',()=>{
  let total=0;
  for(const weapon of HUNT_WEAPONS){
   const m=artifact.weapons[weapon],table=huntFrameTable(weapon);
@@ -32,7 +32,7 @@ test('native animation manifest requires authored performances for all 50 weapon
    assert.equal(row.mustNeverDrivePhysics,true);
   }
  }
- assert.equal(total,50);
+ assert.equal(total,56);
  assert(!artifact.shared.includes('guard'));
  assert(!artifact.shared.includes('airStep'));
  assert(!artifact.shared.includes('doubleJump'));

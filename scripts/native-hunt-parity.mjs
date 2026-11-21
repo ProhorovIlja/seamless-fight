@@ -9,7 +9,8 @@ const REQUEST={'':0,light:1,heavy:2,charge:3,trick:4,shot:5,step:6,feint:7,sync:
 const MOVES=['','foldedLight','foldedHeavy','foldedCharged','unfurledLight','unfurledHeavy',
  'unfurledCharged','airFoldedLight','airFoldedHeavy','airUnfurledLight',
  'airUnfurledHeavy','unfurl','refold','shiftOut','shiftIn','shot','airShot',
- 'visceral','heal','blood','stagger','visceralVictim','step','feint','sync','stun'];
+ 'visceral','heal','blood','stagger','visceralVictim','step','feint','sync','stun',
+ 'backstep','foldedBackstepLight','unfurledBackstepLight'];
 const WEAPONS=['mournweave','thornwake'],FORMS=['folded','unfurled'],CAUSES=['','gun','chargedRear'];
 const FIELDS=['x','y','vx','vy','dir','weapon','hp','st','ammo','bloodAmmo','vials',
  'focus','form','rally','rallyLife','exposed','exposeCause','visceralTarget','act',
