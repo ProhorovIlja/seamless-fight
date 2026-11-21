@@ -138,14 +138,14 @@ func _build() -> void:
 	column.add_child(server_latency)
 
 func reset_mode(next_mode: String,frame_data: bool=false) -> void:
-	if next_mode not in ["TRAINING","PRIVATE 1V1"]:
+	if next_mode not in ["TRAINING","PRIVATE 1V1","SPECTATING"]:
 		return
 	mode=next_mode
 	last_tick=-1
 	frame_data_enabled=frame_data and mode=="TRAINING"
 	center_status.text=mode
 	move_label.visible=frame_data_enabled
-	server_latency.visible=mode=="PRIVATE 1V1"
+	server_latency.visible=mode in ["PRIVATE 1V1","SPECTATING"]
 	server_latency.text="SERVER RTT: MEASURING…"
 	visible=true
 
@@ -156,7 +156,7 @@ func clear() -> void:
 	last_tick=-1
 
 func show_server_latency(rtt_ms: int, variation_ms: int) -> void:
-	if mode!="PRIVATE 1V1" or rtt_ms<0 or rtt_ms>4000 or variation_ms<0 or variation_ms>4000:
+	if mode not in ["PRIVATE 1V1","SPECTATING"] or rtt_ms<0 or rtt_ms>4000 or variation_ms<0 or variation_ms>4000:
 		return
 	server_latency.text="SERVER RTT: %d ms   ·   VARIATION: %d ms" % [rtt_ms,variation_ms]
 
