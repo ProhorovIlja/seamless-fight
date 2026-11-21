@@ -36,6 +36,7 @@ func start_training(profile: String = "normal") -> bool:
 		stop_training()
 		return false
 	snapshots.append(initial)
+	get_parent().get_node("NativeAudio").reset_timeline()
 	get_parent().get_node("CombatHud").reset_mode("TRAINING",true)
 	get_parent().last_confirmed_tick=-1
 	get_parent().apply_authoritative_state(last_state)
@@ -155,6 +156,7 @@ func _advance_state(command: Array[int]) -> bool:
 	if not _combat.step_encoded(command[0],command[1],command[2],command[3],
 	 foe[0],foe[1],foe[2],foe[3]):
 		return false
+	var previous: Dictionary=last_state
 	var encoded: PackedByteArray=_combat.save_checkpoint()
 	if encoded.size()!=228:
 		stop_training()
@@ -166,6 +168,7 @@ func _advance_state(command: Array[int]) -> bool:
 		snapshots.pop_front()
 		history_start_tick+=1
 	get_parent().apply_authoritative_state(last_state)
+	get_parent().get_node("NativeAudio").accept_local_transition(previous,last_state)
 	practice_state.emit(last_state)
 	if last_state.get("over",false):
 		set_physics_process(false)

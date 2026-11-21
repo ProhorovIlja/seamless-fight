@@ -40,6 +40,7 @@ func _on_room(code: String, slot: int) -> void:
 func _on_match_start(snapshot: Dictionary) -> void:
 	started=true
 	latest_ack=0
+	get_parent().get_node("NativeAudio").reset_timeline()
 	get_parent().get_node("CombatHud").reset_mode("PRIVATE 1V1",false)
 	get_parent().last_confirmed_tick=-1
 	if not get_parent().apply_authoritative_state(snapshot):
@@ -48,7 +49,7 @@ func _on_match_start(snapshot: Dictionary) -> void:
 		return
 	connection_state.emit("Private unrated duel started")
 
-func _on_snapshot(snapshot: Dictionary, ack: int, _events: Array) -> void:
+func _on_snapshot(snapshot: Dictionary, ack: int, events: Array) -> void:
 	if not online or not started:
 		return
 	if ack < latest_ack:
@@ -58,6 +59,8 @@ func _on_snapshot(snapshot: Dictionary, ack: int, _events: Array) -> void:
 	latest_ack=ack
 	if not get_parent().apply_authoritative_state(snapshot):
 		_on_notice("Invalid or stale combat snapshot")
+	else:
+		get_parent().get_node("NativeAudio").accept_events(events,int(snapshot.get("tick",-1)))
 
 func _on_notice(message: String) -> void:
 	connection_state.emit(message)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/stage.gd" id="1_stage"]
 [ext_resource type="Script" path="res://scripts/native_controls.gd" id="2_controls"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/native_online_session.gd" id="6_online"]
 [ext_resource type="Script" path="res://scripts/native_hud.gd" id="7_hud"]
 [ext_resource type="Script" path="res://scripts/native_menu.gd" id="8_menu"]
+[ext_resource type="Script" path="res://scripts/native_audio.gd" id="9_audio"]
 
 [node name="Stage" type="Node3D"]
 script = ExtResource("1_stage")
@@ -44,3 +45,6 @@ script = ExtResource("7_hud")
 
 [node name="NativeMenu" type="CanvasLayer" parent="."]
 script = ExtResource("8_menu")
+
+[node name="NativeAudio" type="Node" parent="."]
+script = ExtResource("9_audio")

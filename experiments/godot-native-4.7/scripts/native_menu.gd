@@ -161,6 +161,25 @@ func _build() -> void:
 	moonlit.add_theme_color_override("font_color",BONE)
 	moonlit.toggled.connect(_toggle_scenery)
 	column.add_child(moonlit)
+	var sound_line := HBoxContainer.new()
+	sound_line.add_theme_constant_override("separation",14)
+	sound_line.add_child(_label("COMBAT FOLEY",14,GOLD))
+	var sound_slider := HSlider.new()
+	sound_slider.name="CombatVolume"
+	sound_slider.min_value=0
+	sound_slider.max_value=100
+	sound_slider.step=1
+	sound_slider.custom_minimum_size=Vector2(235,24)
+	sound_slider.value=get_parent().get_node("NativeAudio").volume
+	sound_slider.value_changed.connect(func(v: float): get_parent().get_node("NativeAudio").set_volume(int(v)))
+	sound_line.add_child(sound_slider)
+	var sound_mute := CheckButton.new()
+	sound_mute.name="MuteCombat"
+	sound_mute.text="Mute"
+	sound_mute.button_pressed=get_parent().get_node("NativeAudio").muted
+	sound_mute.toggled.connect(func(v: bool): get_parent().get_node("NativeAudio").set_muted(v))
+	sound_line.add_child(sound_mute)
+	column.add_child(sound_line)
 	var bar := HSeparator.new()
 	column.add_child(bar)
 	var controls := _button("Keybinds & controls")
