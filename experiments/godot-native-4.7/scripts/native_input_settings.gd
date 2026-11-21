@@ -18,6 +18,7 @@ var profile: Dictionary={}
 var pending_action := ""
 var pending_device := ""
 var feedback: Label
+var device_info: Label
 var buttons: Dictionary={}
 
 func _ready() -> void:
@@ -25,6 +26,7 @@ func _ready() -> void:
 	controls=get_parent().get_node("NativeControls")
 	profile=controls.load_profile()
 	_build()
+	Input.joy_connection_changed.connect(_on_device_connection)
 	visible=false
 
 func _panel_style() -> StyleBoxFlat:
@@ -80,7 +82,11 @@ func _build() -> void:
 	content.add_theme_constant_override("separation",12)
 	panel.add_child(content)
 	content.add_child(_label("HUNTER CONTROLS",30,COLORS["gold"]))
-	content.add_child(_label("Keyboard, mouse and gamepad · Escape to close",14,COLORS["muted"]))
+	content.add_child(_label("Keyboard, mouse, gamepad, fightstick and leverless inputs",14,COLORS["muted"]))
+	device_info=_label("Scanning native controller mappings...",13,COLORS["muted"])
+	device_info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(device_info)
+	content.add_child(_label("Legacy C++ prototype bindings shown; Hunt v3 has no guard.",13,COLORS["muted"]))
 	var banner := TextureRect.new()
 	banner.texture=load("res://assets/site/divider.webp") as Texture2D
 	banner.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
@@ -98,7 +104,7 @@ func _build() -> void:
 	scroll.add_child(grid)
 	grid.add_child(_label("ACTION",14,COLORS["gold"]))
 	grid.add_child(_label("KEYBOARD / MOUSE",13,COLORS["gold"]))
-	grid.add_child(_label("GAMEPAD",13,COLORS["gold"]))
+	grid.add_child(_label("PAD / ARCADE",13,COLORS["gold"]))
 	for action in controls.ACTIONS:
 		grid.add_child(_label(TITLES[action],16))
 		for family in ["kbm","pad"]:
@@ -118,6 +124,18 @@ func _build() -> void:
 	feedback=_label("Changes are saved locally; fighting simulation remains 60 Hz.",14,COLORS["muted"])
 	content.add_child(feedback)
 	_refresh()
+	_refresh_devices()
+
+func _refresh_devices() -> void:
+	var info: Dictionary=controls.controller_diagnostics()
+	var summary := []
+	for item in info["devices"]:
+		summary.append("%s (#%d)" % [str(item["name"]),int(item["id"])])
+	device_info.text="SDL controllers: %d  ·  %s. Arcade sticks and leverless boards use the pad column when recognized; per-device lock and Windows hardware QA are pending." % [int(info["connected"]),", ".join(summary) if not summary.is_empty() else "none detected"]
+
+func _on_device_connection(_device: int, _connected: bool) -> void:
+	if is_inside_tree():
+		_refresh_devices()
 
 func _describe(action: String,family: String) -> String:
 	for entry in profile["actions"][action]:
@@ -145,6 +163,7 @@ func open_settings() -> void:
 	pending_device=""
 	visible=true
 	_refresh()
+	_refresh_devices()
 
 func close_settings() -> void:
 	pending_action=""
