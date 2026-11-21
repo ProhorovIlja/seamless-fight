@@ -124,7 +124,8 @@ inline void buffer(Fighter&p,Request r){
  if(r!=NOTHING){p.queue=r;p.queueLife=6;}
  else if(p.queueLife>0){--p.queueLife;if(p.queueLife==0)p.queue=NOTHING;}
 }
-inline bool start(Fighter&p,Fighter&q,Action r,const Input&i){
+inline bool start(Fighter&p,Fighter&q,Action r,const Input&i,
+                  double opponent_start_x,int opponent_start_exposed){
  if(r==NONE)return false;
  const Spec m=spec(p.weapon,r),old=spec(p.weapon,p.act);
  const bool escaping=p.act==STUN&&r==STEP;
@@ -135,8 +136,8 @@ inline bool start(Fighter&p,Fighter&q,Action r,const Input&i){
  if((r==BLOOD||r==HEAL)&&p.y<FLOOR)return false;
  if(r==BLOOD&&(p.hp<=30||p.bloodAmmo))return false;
  if(r==HEAL&&(!p.vials||p.hp>=100))return false;
- if(r==VISCERAL&&(!q.exposed||p.y<FLOOR||std::abs(p.x-q.x)>76||
-                   p.dir*(q.x-p.x)<0))return false;
+ if(r==VISCERAL&&(!opponent_start_exposed||p.y<FLOOR||
+     std::abs(p.x-opponent_start_x)>76||p.dir*(opponent_start_x-p.x)<0))return false;
  if((r==HEAL||r==BLOOD||r==VISCERAL)&&p.act!=NONE&&!can_act(p))return false;
  if((r==SHIFT_OUT||r==SHIFT_IN)&&p.y<FLOOR)return false;
  const bool was_attack=spec(p.weapon,p.act).damage>0&&p.act!=SHOT&&p.act!=VISCERAL;
@@ -185,7 +186,8 @@ inline bool start(Fighter&p,Fighter&q,Action r,const Input&i){
  if(r==BACKSTEP)p.vx=-7.8*p.dir;
  return true;
 }
-inline void drive(Fighter&p,Fighter&q,const Input&i,double opponent_start_x){
+inline void drive(Fighter&p,Fighter&q,const Input&i,
+                  double opponent_start_x,int opponent_start_exposed){
  const bool ground=p.y>=FLOOR;
  if(p.exposed>0)--p.exposed;
  if(p.rallyLife>0)--p.rallyLife;else p.rally=0;
@@ -202,7 +204,9 @@ inline void drive(Fighter&p,Fighter&q,const Input&i,double opponent_start_x){
  buffer(p,i.act);
  if(p.queue!=NOTHING){
   const Action req=requested(p,p.queue,i);
-  if(start(p,q,req,i)){p.queue=NOTHING;p.queueLife=0;}
+  if(start(p,q,req,i,opponent_start_x,opponent_start_exposed)){
+   p.queue=NOTHING;p.queueLife=0;
+  }
  }
  const Spec m=spec(p.weapon,p.act);
  if((transform(p.act)||p.act==SHIFT_OUT||p.act==SHIFT_IN)&&p.age==m.startup-1)
@@ -320,7 +324,8 @@ inline void step(State&s,const Input&aa,const Input&bb){
  if(s.ready){--s.ready;return;}
  Fighter&a=s.p[0],&b=s.p[1];
  const double before_a=a.x,before_b=b.x;
- drive(a,b,aa,before_b);drive(b,a,bb,before_a);
+ const int exposed_a=a.exposed,exposed_b=b.exposed;
+ drive(a,b,aa,before_b,exposed_b);drive(b,a,bb,before_a,exposed_a);
  // Only forward quickstep i-frames allow body crossing; recovery is solid.
  const auto forward_step=[](const Fighter&p){
   return p.act==STEP&&p.age>=1&&p.age<7&&p.vx*p.dir>0;
