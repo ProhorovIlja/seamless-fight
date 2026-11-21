@@ -199,6 +199,8 @@ func _build() -> void:
 	column.add_child(sound_line)
 	var bar := HSeparator.new()
 	column.add_child(bar)
+	var graphics := _button("Video & performance")
+	graphics.pressed.connect(func(): get_parent().get_node("GraphicsSettings").open_settings())
 	var controls := _button("Keybinds & controls")
 	controls.pressed.connect(func(): get_parent().get_node("InputSettings").open_settings())
 	resume_button=_button("Resume")
@@ -211,7 +213,8 @@ func _build() -> void:
 	var exit := _button("Quit to Desktop")
 	exit.name="Exit"
 	exit.pressed.connect(func(): get_tree().quit())
-	_action_row(column,[controls,resume_button,leave,exit])
+	_action_row(column,[graphics,controls])
+	_action_row(column,[resume_button,leave,exit])
 	status=_label("Local training requires the compiled C++ combat extension. F1 toggles this menu.",14,MUTED)
 	status.name="Status"
 	column.add_child(status)
@@ -341,7 +344,7 @@ func _input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo or event.keycode!=KEY_F1:
 		return
 	var settings: CanvasLayer=get_parent().get_node("InputSettings")
-	if settings.visible:
+	if settings.visible or get_parent().get_node("GraphicsSettings").visible:
 		return
 	if visible:
 		_resume()

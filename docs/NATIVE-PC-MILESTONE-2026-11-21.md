@@ -34,3 +34,9 @@ Private Drive gungrain@gmail.com Seamless Fight research folder: https://drive.g
 Canonical development handoff Doc: https://docs.google.com/document/d/1kJu-Kg63zkSGBtaPB4A-UsUPJ9iplaMXudHNLcBhvTY/edit
 Development PR: https://github.com/ProhorovIlja/seamless-fight/pull/1
 **Draft, no merge, no live website/server changes, no claim of finished premium AAA character art.**
+
+## Follow-up research UI and Gothic stage geometry — source changes
+
+The branch's next integrated optional render-only pass adds Godot's genuine graphics screen (internal 3D scaling, FPS caps, VSync and window modes, reduced-motion), and a frame pacing overlay toggled by F3. Both report actual engine state and never label render frame intervals as input-to-photon delay. The second moonlit site-art scene can optionally load two actual Poly Haven **CC0** Gothic photogrammetry statues behind the competitive 2.5D world plane; `scripts/native-fetch-polyhaven-stage-prop.sh` pins the source mirror revision, checks the Git blob SHA, validates binary GLB v2 length and packages the licensed model only during research export. The static original painting and fog/city wallpaper still work without downloads. File `ASSET_CREDITS.md` records provenance and publisher license. Explicitly **not** full rigged characters, complete lighting/geometry, network rollback or a public content release.
+
+Before claiming these new features operational, require fresh successful exact-head native Godot graphics menu/PBR test and Windows export. Do not mistake staged code for a tested consumer build.

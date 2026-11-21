@@ -2,6 +2,8 @@ extends Node3D
 ## Render-only alternate 2.5D scene using the actual uploaded Seamless Hunt
 ## moon/city/mist art. Absolutely no simulation, hitbox or timing mutations.
 const ROOT := "res://assets/site/"
+const PBR_GOTHIC_STATUE := "res://assets/pbr/gothic_statue.glb"
+var photogrammetry_loaded := false
 var _fog: MeshInstance3D
 var _near: MeshInstance3D
 var _clock := 0.0
@@ -13,6 +15,7 @@ func _ready() -> void:
 	_make_alpha_layer("FarCity", "skyline-far.webp",Vector2(18.0,5.016),Vector3(0,-2.1,-8.0),0.76)
 	_near=_make_alpha_layer("NearCity","skyline-near.webp",Vector2(18.5,5.155),Vector3(0,-2.15,-7.0),0.98)
 	_fog=_make_alpha_layer("Mist","fog.webp",Vector2(20.5,4.46),Vector3(0,-3.35,-6.0),0.47)
+	_install_optional_photogrammetry()
 	set_active(false)
 
 func _make_gradient() -> void:
@@ -51,6 +54,39 @@ func _make_alpha_layer(label: String,source: String,size: Vector2,point: Vector3
 	mesh.material_override=material
 	add_child(mesh)
 	return mesh
+
+
+func _install_optional_photogrammetry() -> void:
+	# A pinned, license-audited Poly Haven CC0 glTF, downloaded at build time.
+	# Optional: sources stay usable on developer machines without downloaded art.
+	# Geometry is strictly decorative: no collision bodies or gameplay markers.
+	if not ResourceLoader.exists(PBR_GOTHIC_STATUE):
+		return
+	var source := load(PBR_GOTHIC_STATUE) as PackedScene
+	if source==null:
+		push_warning("Licensed Gothic photogrammetry asset was not importable")
+		return
+	for index in range(2):
+		var statue := source.instantiate() as Node3D
+		if statue==null:
+			push_error("Invalid Gothic photogrammetry scene")
+			return
+		statue.name="GothicStatueLeft" if index==0 else "GothicStatueRight"
+		statue.position=Vector3(-6.05 if index==0 else 6.05,-2.1,-5.2)
+		statue.rotation.y=0.25 if index==0 else -0.25
+		statue.scale=Vector3.ONE*1.2
+		add_child(statue)
+		# Tight, static, shadowless fills for real PBR/normal-map visibility.
+		# They never touch actor hitboxes and do not need CPU physics.
+		var light := OmniLight3D.new()
+		light.name="GothicPropFillLeft" if index==0 else "GothicPropFillRight"
+		light.position=Vector3(-5.0 if index==0 else 5.0,0.6,-3.5)
+		light.light_color=Color("#d8b38d")
+		light.light_energy=0.8
+		light.omni_range=7.0
+		light.shadow_enabled=false
+		add_child(light)
+	photogrammetry_loaded=true
 
 func set_active(enabled: bool) -> void:
 	visible=enabled

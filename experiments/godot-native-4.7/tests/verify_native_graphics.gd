@@ -69,6 +69,15 @@ func _verify() -> void:
 	if absf(point.x+3.75)>0.001 or point.z!=0:
 		_fail("Combat plane was altered by native graphics")
 		return
+	if OS.get_environment("SF_EXPECT_PBR")=="1":
+		var pbr: Node3D=stage.get_node("SiteBackdrop")
+		if not ResourceLoader.exists("res://assets/pbr/gothic_statue.glb") or not pbr.photogrammetry_loaded:
+			_fail("Pinned Poly Haven CC0 Gothic 3D mesh was not imported")
+			return
+		if not pbr.has_node("GothicStatueLeft") or not pbr.has_node("GothicStatueRight"):
+			_fail("Licensed decorative photogrammetry missing mirrored side-stage placements")
+			return
+		print("PINNED_POLYHAVEN_GOTHIC_CC0_PBR_GEOMETRY_LOADED: 2 actual 3D statues, no gameplay collision")
 	var network := Transport.new()
 	root.add_child(network)
 	if not network.has_method("send_fighter_input") or not network.has_method("open_private_room"):

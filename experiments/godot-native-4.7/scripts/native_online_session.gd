@@ -88,7 +88,8 @@ func _physics_process(_delta: float) -> void:
 		return
 	var overlay: CanvasLayer=get_parent().get_node("InputSettings")
 	var native_menu: CanvasLayer=get_parent().get_node_or_null("NativeMenu")
-	var paused_by_menu := overlay.visible or (native_menu!=null and native_menu.visible)
+	var video: CanvasLayer=get_parent().get_node("GraphicsSettings")
+	var paused_by_menu := overlay.visible or video.visible or (native_menu!=null and native_menu.visible)
 	var commands: Array=[0,0,0,0] if paused_by_menu else get_parent().get_node("NativeControls").encoded_input()
 	transport.send_fighter_input(commands[0],commands[1],["","cut","hew","shot","step","feint"][commands[2]],commands[3]==1)
 

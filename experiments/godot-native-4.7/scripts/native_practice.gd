@@ -234,7 +234,8 @@ func _physics_process(_delta: float) -> void:
 		return
 	var controls_panel: CanvasLayer=get_parent().get_node("InputSettings")
 	var menu: CanvasLayer=get_parent().get_node_or_null("NativeMenu")
-	var blocked := controls_panel.visible or (menu != null and menu.visible)
+	var video: CanvasLayer=get_parent().get_node("GraphicsSettings")
+	var blocked := controls_panel.visible or video.visible or (menu != null and menu.visible)
 	var command: Array = [0,0,0,0] if blocked else get_parent().get_node("NativeControls").encoded_input()
 	if command.size()!=4 or not _advance_state(command):
 		stop_training()

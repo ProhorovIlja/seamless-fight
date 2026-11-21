@@ -7,7 +7,7 @@ on:
       - '.github/workflows/godot-native-windows.yml'
   workflow_dispatch:
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -17,6 +17,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Verify pinned Poly Haven CC0 high-detail Gothic 3D stage geometry
+        shell: bash
+        run: bash scripts/native-fetch-polyhaven-stage-prop.sh
       - name: Download official 4.7.2 editor and matching native Windows export
         shell: bash
         run: |
@@ -37,10 +40,12 @@ jobs:
           set -euo pipefail
           G="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
-          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_graphics.gd --quit-after 240
+          SF_EXPECT_PBR=1 "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_graphics.gd --quit-after 240
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_controls.gd --quit-after 240
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_hud_menu.gd --quit-after 240
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_audio.gd --quit-after 240
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_video_menu.gd --quit-after 240
+          "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_frame_pacing.gd --quit-after 240
       - name: Exercise actual native-renderer private 1v1 against Node room server
         shell: bash
         run: |

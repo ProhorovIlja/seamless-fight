@@ -161,6 +161,8 @@ func _restore_defaults() -> void:
 		feedback.text="Cannot save restored bindings."
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if get_parent().has_node("GraphicsSettings") and get_parent().get_node("GraphicsSettings").visible:
+		return
 	if not event is InputEventKey or not event.pressed or event.echo:
 		return
 	if event.keycode==KEY_ESCAPE or event.physical_keycode==KEY_ESCAPE:

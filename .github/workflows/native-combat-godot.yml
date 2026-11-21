@@ -28,7 +28,7 @@ on:
       - '.github/workflows/native-combat-godot.yml'
   workflow_dispatch:
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 permissions:
   contents: read
@@ -61,6 +61,7 @@ jobs:
           unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP"
           G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           chmod +x "$G"
+          bash scripts/native-fetch-polyhaven-stage-prop.sh
           node scripts/native-godot-vectors.mjs
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
@@ -129,6 +130,7 @@ jobs:
           G="$RUNNER_TEMP/Godot_v4.7.2-stable_linux.x86_64"
           node scripts/native-godot-vectors.mjs
           "$G" --headless --path experiments/godot-native-4.7 --editor --import --quit
+          SF_EXPECT_PBR=1 "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_graphics.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_combat.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_practice.gd --quit-after 300
           "$G" --headless --path experiments/godot-native-4.7 --script res://tests/verify_native_dummy_record.gd --quit-after 300
