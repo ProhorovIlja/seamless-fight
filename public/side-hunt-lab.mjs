@@ -272,7 +272,11 @@ function drive(p,q,input,events,tick,actor,opponentStartX,opponentStartExposed){
   events?.push({tick,kind:'jump',actor,x:p.x,y:p.y});
  }
  p.jumpHeld=jumping;
- buffer(p,input);
+ // A victim already locked into a visceral must not accept a new buffered
+ // shot/step after the attacker cleared their input queue. Otherwise a
+ // slot-0 visceral could leave a phantom slot-1 command in rollback state.
+ if(p.act==='visceralVictim'){p.queue='';p.queueLife=0;}
+ else buffer(p,input);
  // Bloodborne-aligned: no conventional block; evasions and firearms define defense.
  if(p.queue){
   const requested=motion(p,p.queue,input.x);
