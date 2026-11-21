@@ -503,6 +503,11 @@ export function huntStep(s,inputs=[huntInput(),huntInput()],events){
 export function huntInspector(state,slot=0){
  if(state?.rules!==HUNT_RULESET||![0,1].includes(slot))throw TypeError('Wrong ruleset or player slot');
  const p=state.p[slot],moveInfo=huntMoveSpec(p);
+ // Match the actual, collision-authoritative hurtbox: after a WHIFF the
+ // recovering weapon arm becomes hittable, but after a landed attack the
+ // additional arm is not an invented target. Training-only disclosure.
+ const whiffArmExposed=ORDINARY.has(p.act)&&!p.spent&&
+  p.age>=moveInfo.startup+moveInfo.active&&p.age<total(moveInfo);
  return Object.freeze({tick:state.tick,weapon:p.weapon,form:p.form,action:p.act,
   hitstunEscapeStart:HUNT_HITSTUN_ESCAPE_START,
   phase:huntPhase(p),startup:moveInfo?.startup??0,active:moveInfo?.active??0,
@@ -512,6 +517,8 @@ export function huntInspector(state,slot=0){
   bloodAmmo:p.bloodAmmo,vials:p.vials,rally:p.rally,rallyLife:p.rallyLife,
   visceralWindow:p.exposed,exposeCause:p.exposeCause,
   firearmCounterWindowOpen:huntParryableAction(p),
+  whiffRecoveryArmExposed:whiffArmExposed,
+  whiffRecoveryArmUnits:whiffArmExposed?Math.min(24,Math.floor(moveInfo.reach/5)):0,
   // These describe source-simulation frames, never speculative network state.
   quickstepIframes:p.act==='step'&&p.age>=1&&p.age<7,
   quickstepVulnerableTail:p.act==='step'&&p.age>=7&&
