@@ -48,13 +48,17 @@ test('real Node HTTP server exposes English-only interactive Hunt laboratory and
  assert.match(html,/sf-hunt-lab\/3/);
  assert.match(html,/id="arena"/);
  assert.match(html,/id="dummy-mode"/);
+ assert.match(html,/id="goal-progress"/);
+ assert.match(html,/id="goal-description"/);
+ assert.match(html,/id="goal-feedback"/);
  assert.match(html,/id="display-cap"/);
  assert.match(html,/id="export"/);
  assert.match(html,/id="import"/);
  assert.doesNotMatch(html,/2v2|lang="ru"|Russian language/i);
  for(const asset of ['hunt.css','hunt.mjs','hunt-render.mjs','hunt-browser-input.mjs',
   'side-hunt-lab.mjs','side-hunt-replay.mjs','hunt-practice-suite.mjs',
-  'hunt-match-analytics.mjs','hunt-input-device.mjs','hunt-identity.mjs']){
+  'hunt-match-analytics.mjs','hunt-input-device.mjs','hunt-identity.mjs',
+  'hunt-training-goals.mjs']){
   const result=await fetch(origin+'/fight/'+asset);
   assert.equal(result.status,200,asset+' not served');
   assert.match(result.headers.get('content-type'),/text\/(?:javascript|css)/,asset);
