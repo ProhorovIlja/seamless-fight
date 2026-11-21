@@ -77,7 +77,12 @@ let queueOrder=0;
 const MAX_VIEWERS=6;
 const token=()=>randomBytes(9).toString('base64url');
 const origin=process.env.PUBLIC_ORIGIN;
-const sideHub=createSideHub(origin);
+// Co-host pilot intentionally admits fewer 60Hz rooms than the local test
+// baseline. Raising quotas requires profiling alongside the live BBSC VPS.
+const deployed=process.env.NODE_ENV==='production';
+const mainRoomLimit=Number(process.env.SF_MAX_MAIN_ROOMS??(deployed?8:96));
+const sideRoomLimit=Number(process.env.SF_MAX_SIDE_ROOMS??(deployed?8:64));
+const sideHub=createSideHub(origin,{maxRooms:sideRoomLimit});
 if(process.env.DEBIAN_13_REQUIRED==='1'){
  const problems=validateRuntime(process.env,process.versions.node,readFileSync('/etc/os-release','utf8'));
  if(problems.length)throw Error('Unsafe Debian 13 production runtime: '+problems.join(' '));
@@ -162,7 +167,7 @@ ws.on('connection',c=>{
     if(entry.samples.length<3){entry.probeTimer=setTimeout(()=>probe(entry),100);return;}
     entry.samples.sort((a,b)=>a-b);entry.rtt=entry.samples[1];entry.spread=entry.samples[2]-entry.samples[0];entry.sampleAt=now;entry.samples=[];
     send(c,{t:'queue-quality',rtt:Math.round(entry.rtt),spread:Math.round(entry.spread)});
-    if(rooms.size<96)for(const [peer,other] of casual){
+    if(rooms.size<mainRoomLimit)for(const [peer,other] of casual){
       if(peer===c||peer.readyState!==1||entry.format!==other.format||now>=other.expires||!eligible(entry,other,now))continue;
       // Keep arrival order for arena selection, even if the second entrant probes faster.
       const [first,second]=entry.order<other.order?[entry,other]:[other,entry];
@@ -182,7 +187,7 @@ ws.on('connection',c=>{
     if(!room){
       if(casual.has(c))return;
       if(m.t==='queue'){
-        if(rooms.size>=96||casual.size>=64){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
+        if(rooms.size>=mainRoomLimit||casual.size>=64){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
         clearTimeout(deadline);
         const entry={...queueOptions(m),format:m.format==='set-preview'?'set-preview':'casual',join,arena:arenaId(m.arena),look:outfit(m.outfit),order:++queueOrder,expires:now+QUEUE_MS,samples:[]};
         casual.set(c,entry);
@@ -198,7 +203,7 @@ ws.on('connection',c=>{
       }
       if(m.t!=='hello')return;
       if(m.code==null){
-        if(rooms.size>=96){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
+        if(rooms.size>=mainRoomLimit){send(c,{t:'error',message:'Arena capacity reached.'});c.close(1013);return;}
         join(makeRoom(m.arena,now),outfit(m.outfit));
       }else{
         const existing=typeof m.code==='string'&&rooms.get(m.code);
