@@ -15,11 +15,15 @@ import {eligible,queueOptions} from './public/queue-policy.mjs';
 import {newSet,recordGame,SET_PAUSE_MS,mayVoteRematch} from './server/set-policy.mjs';
 import {outfit} from './public/wardrobe.mjs';
 import {createSideHub} from './server/side-online.mjs';
+import {projectFightActivity,projectRankedUnavailable} from './server/public-activity.mjs';
 
 const assets = new Map([
   ['', ['index.html','text/html; charset=utf-8']],
   ['style.css',['style.css','text/css']],
   ['side/',['side.html','text/html; charset=utf-8']],
+  ['hub/',['hub.html','text/html; charset=utf-8']],
+  ['hub.css',['hub.css','text/css; charset=utf-8']],
+  ['hub.mjs',['hub.mjs','text/javascript; charset=utf-8']],
   ['side.css',['side.css','text/css']],
   ['side-view.mjs',['side-view.mjs','text/javascript']],
   ['side-engine.mjs',['side-engine.mjs','text/javascript']],
@@ -91,11 +95,28 @@ const http=createServer((req,res)=>{
   const path=req.url?.split('?')[0];
   if(shuttingDown){res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end('{"ok":false,"reason":"restarting"}');return;}
   if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405,{Allow:'GET, HEAD'}).end();return;}
-  if(path==='/fight'||path==='/fight/side'){res.writeHead(308,{Location:path+'/' +(req.url.includes('?')?'?'+req.url.split('?').slice(1).join('?'):'')}).end();return;}
+  if(path==='/fight'||path==='/fight/side'||path==='/fight/hub'){res.writeHead(308,{Location:path+'/' +(req.url.includes('?')?'?'+req.url.split('?').slice(1).join('?'):'')}).end();return;}
   if(path==='/fight/health'){
     const fresh=performance.now()-lastSimulationTime<500;
     res.writeHead(fresh?200:503,{'Content-Type':'application/json','Cache-Control':'no-store'})
       .end(JSON.stringify({ok:fresh,simulation:fresh?'running':'stalled'}));
+    return;
+  }
+  if(path==='/fight/status.json'||path==='/fight/lobbies.json'||path==='/fight/leaderboard.json'){
+    const activity=projectFightActivity({rooms,galleries,queued:casual.size,
+      mainConnections:ws.clients.size,sideStats:sideHub.stats()});
+    const payload=path==='/fight/status.json'?activity:
+      path==='/fight/lobbies.json'?{
+       schema:activity.schema,gameMode:activity.gameMode,language:'en',
+       publicGalleryCount:activity.publicGalleryCount,lobbies:activity.publicGalleries,
+       privacy:'Only host-enabled public galleries are listed. Private room invitations are not listed.'
+      }:projectRankedUnavailable();
+    const body=Buffer.from(JSON.stringify(payload));
+    res.writeHead(200,{'Content-Type':'application/json; charset=utf-8',
+      'Content-Length':body.byteLength,'Cache-Control':'no-store, max-age=0',
+      'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer',
+      'Content-Security-Policy':"default-src 'none'; frame-ancestors 'none'"})
+      .end(req.method==='HEAD'?undefined:body);
     return;
   }
   const asset=assets.get(path);
