@@ -4,6 +4,9 @@ const WireNumbers=preload("res://scripts/native_wire_numbers.gd")
 ## Never evaluates untrusted match results or changes deterministic engine state.
 ## Native WebSocket Origin is a compatibility header, NOT authentication.
 signal room_ready(code: String, slot: int)
+signal spectator_joined(snapshot: Dictionary, stage: String)
+signal gallery_changed(code: String)
+signal spectator_count_changed(viewers: int)
 signal match_started(snapshot: Dictionary)
 signal authoritative_state(snapshot: Dictionary, ack: int, events: Array)
 signal server_notice(message: String)
@@ -35,8 +38,15 @@ var latest_tick := -1
 var sequence := 0
 var requested_code := ""
 var requested_stage := "reliquary"
+var requested_watch := false
+var spectating := false
 
-func open_private_room(endpoint: String, origin: String, code: String = "", stage: String = "reliquary") -> bool:
+func open_public_spectator(endpoint: String, origin: String, watch_code: String) -> bool:
+	if watch_code.is_empty():
+		return false
+	return open_private_room(endpoint,origin,watch_code,"reliquary",true)
+
+func open_private_room(endpoint: String, origin: String, code: String = "", stage: String = "reliquary", watch: bool = false) -> bool:
 	close()
 	# The legacy server has no account-bound credentials; do not attach any
 	# access tokens, Discord information or user identifiers here.
@@ -67,6 +77,7 @@ func open_private_room(endpoint: String, origin: String, code: String = "", stag
 	opened = false
 	requested_code = code
 	requested_stage = stage
+	requested_watch = watch
 	handshake_at = Time.get_ticks_msec()
 	reset_latency()
 	set_process(true)
@@ -81,7 +92,7 @@ func _process(_delta: float) -> void:
 		if not opened:
 			opened = true
 			var invitation: Variant = null if requested_code == "" else requested_code
-			var hello := {"t": "hello", "code": invitation, "stage": requested_stage, "look": {}}
+			var hello := {"t": "watch", "code": requested_code} if requested_watch else {"t": "hello", "code": invitation, "stage": requested_stage, "look": {}}
 			if socket.send_text(JSON.stringify(hello)) != OK:
 				connection_failed.emit("Unable to send room greeting")
 				close()
@@ -101,12 +112,14 @@ func _process(_delta: float) -> void:
 	elif state == WebSocketPeer.STATE_CLOSED:
 		if not opened:
 			connection_failed.emit("Server connection failed or was rejected")
-		elif local_slot >= 0:
+		elif local_slot >= 0 or spectating:
 			server_notice.emit("Side-view room disconnected")
 		socket = null
 		opened = false
 		room_code = ""
 		local_slot = -1
+		spectating=false
+		requested_watch=false
 		set_process(false)
 		reset_latency()
 		room_disconnected.emit()
@@ -133,6 +146,37 @@ func _handle_message(message: Dictionary) -> void:
 		local_slot = new_slot
 		room_code = new_code
 		room_ready.emit(room_code, local_slot)
+	elif kind == "watching":
+		if not requested_watch:
+			return
+		var snapshot: Variant=message.get("s")
+		var stage: String=str(message.get("stage",""))
+		if not snapshot is Dictionary or snapshot.get("rules","")!=RULESET or not ["reliquary","lantern","cistern"].has(stage):
+			connection_failed.emit("Untrusted spectator snapshot")
+			close()
+			return
+		var players: Variant=snapshot.get("p")
+		if not players is Array or players.size()!=2 or WireNumbers.checked_nonnegative(snapshot.get("tick",-1),100000000)<0:
+			connection_failed.emit("Invalid 1v1 spectator snapshot")
+			close()
+			return
+		spectating=true
+		local_slot=-1
+		sequence=0
+		latest_tick=int(snapshot.get("tick",0))
+		spectator_joined.emit(snapshot,stage)
+	elif kind == "gallery":
+		if local_slot==0 and not requested_watch:
+			var code: Variant=message.get("code")
+			var raw: String="" if code==null else str(code)
+			var pattern := RegEx.create_from_string("^[A-Za-z0-9_-]{12}$")
+			if raw.is_empty() or pattern.search(raw)!=null:
+				gallery_changed.emit(raw)
+	elif kind == "audience":
+		if local_slot==0 and not requested_watch:
+			var viewers: int=WireNumbers.checked_nonnegative(message.get("viewers",-1),6)
+			if viewers>=0:
+				spectator_count_changed.emit(viewers)
 	elif kind == "start":
 		if message.get("s") is Dictionary:
 			sequence = 0
@@ -159,7 +203,7 @@ func _handle_message(message: Dictionary) -> void:
 		server_notice.emit(str(message.get("message", "")))
 
 func send_fighter_input(x: int, y: int, action: String = "", guard: bool = false) -> bool:
-	if socket == null or socket.get_ready_state() != WebSocketPeer.STATE_OPEN or local_slot < 0:
+	if socket == null or socket.get_ready_state() != WebSocketPeer.STATE_OPEN or local_slot < 0 or spectating:
 		return false
 	if not [-1, 0, 1].has(x) or not [-1, 0, 1].has(y):
 		return false
@@ -177,6 +221,11 @@ func send_fighter_input(x: int, y: int, action: String = "", guard: bool = false
 	sequence = next
 	last_sent_at = now
 	return true
+
+func change_public_gallery(open: bool) -> bool:
+	if local_slot!=0 or spectating or socket==null or socket.get_ready_state()!=WebSocketPeer.STATE_OPEN:
+		return false
+	return socket.send_text(JSON.stringify({"t":"gallery","open":open}))==OK
 
 func reset_latency() -> void:
 	pending_probe_id=-1
@@ -236,6 +285,8 @@ func close() -> void:
 	opened = false
 	room_code = ""
 	local_slot = -1
+	spectating = false
+	requested_watch = false
 	latest_tick = -1
 	sequence = 0
 	reset_latency()
