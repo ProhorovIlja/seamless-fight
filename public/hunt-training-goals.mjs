@@ -97,7 +97,12 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    case 'parry-blood':{
     if(!is(e,'gunParry',0))break;
     const move=drill==='parry-heavy'?'foldedHeavy':drill==='parry-heal'?'heal':'blood';
-    if(earlier(entries,i,p=>is(p,'action',1,move),0,44))success(e);
+    // The impact-frame source parry MUST interrupt this exact action.
+    // A heavy that previously feinted into something else must not award
+    // Counter Heavy Windup; neither may unrelated historical healing/blood.
+    if(e.target===1&&e.interruptedMove===move&&
+       Number.isInteger(e.interruptedAge)&&e.interruptedAge>=1&&
+       earlier(entries,i,p=>is(p,'action',1,move),0,44))success(e);
     break;
    }
    case 'escape-stun':
