@@ -39,6 +39,15 @@ test('800 neutral cases record real animation-telegraph replies only AFTER the f
   else assert.equal(row.submittedAt,
    row.perceivedAt+row.perceptionDelay+1,
    'input cannot be submitted on the same frame as unseen opponent input');
+  assert.equal(row.recoveryPunish,row.confirmedWhiffPunishes>0);
+  assert.equal(row.recoveryPhaseContact,row.recoveryPhaseContacts>0);
+  assert.equal(row.confirmedWhiffPunishes+row.unconfirmedRecoveryContacts,
+   row.recoveryPhaseContacts);
+  assert(row.confirmedWhiffPunishes<=row.recoveryPhaseContacts);
+  if(row.category==='realRecoveryPunish')
+   assert(row.recoveryPunish,'a TRUE source whiff must precede recovery contact');
+  if(row.category==='recoveryContactNoProvenWhiff')
+   assert(row.recoveryPhaseContact&&!row.recoveryPunish);
   if(row.realGunParry)assert.equal(row.defenderPlan,'firearm');
   if(row.cornerEscaped)assert.equal(row.defenderPlan,'quickstep');
   if(row.category==='realRecoveryPunish'||row.category==='realStartupInterrupt')
@@ -55,6 +64,8 @@ test('800 neutral cases record real animation-telegraph replies only AFTER the f
    assert.equal(second.defenderSlot,1);
    for(const field of ['category','firstCue','perceivedAt','submittedAt',
     'attackerFeinted','realGunParry','recoveryPunish',
+    'recoveryPhaseContact','confirmedWhiffPunishes',
+    'recoveryPhaseContacts','unconfirmedRecoveryContacts',
     'startupInterrupt','defenderMeleeHit','enemyMeleeHit',
     'defenderHp','attackerHp','cornerEscaped'])
     assert.deepEqual(first[field],second[field],
@@ -112,8 +123,10 @@ test('real LEFT and RIGHT wall geometry resolves the same set of human-visible c
       const left=huntVisibleNeutralTrial({...props,arenaSide:'left'});
       const right=huntVisibleNeutralTrial({...props,arenaSide:'right'});
       for(const field of ['category','firstCue','perceivedAt','submittedAt',
-       'realGunParry','attackerFeinted','recoveryPunish','startupInterrupt',
-       'defenderMeleeHit','enemyMeleeHit','defenderHp','attackerHp',
+       'realGunParry','attackerFeinted','recoveryPunish',
+       'recoveryPhaseContact','confirmedWhiffPunishes',
+       'recoveryPhaseContacts','unconfirmedRecoveryContacts',
+       'startupInterrupt','defenderMeleeHit','enemyMeleeHit','defenderHp','attackerHp',
        'cornerEscaped'])
        assert.deepEqual(left[field],right[field],
         'actual arena wall orientation unfairness '+field+' '+JSON.stringify(props));
