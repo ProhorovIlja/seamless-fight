@@ -35,6 +35,7 @@ export const HUNT_PRACTICE_DRILLS=Object.freeze([
  Object.freeze({id:'rally-reclaim',label:'Resources: Rally Recovery',spacing:95,action:'light',startAt:55}),
  Object.freeze({id:'blood-economy',label:'Resources: Blood Rounds',spacing:150,action:'',startAt:55}),
  Object.freeze({id:'timing-read',label:'Timing Read: Heavy or Feint',spacing:115,action:'heavy',startAt:55}),
+ Object.freeze({id:'parry-feint-read',label:'Defense: Parry Heavy, Do Not Shoot Feint',spacing:106,action:'heavy',startAt:55}),
  Object.freeze({id:'visceral-followup',label:'Offense: Visceral Conversion',spacing:76,action:'heavy',startAt:55}),
  Object.freeze({id:'corner-escape',label:'Defense: Escape Left Corner',spacing:42,action:'heavy',startAt:45}),
  Object.freeze({id:'corner-escape-right',label:'Defense: Escape Right Corner',spacing:42,action:'heavy',startAt:45}),
@@ -91,7 +92,7 @@ function makeDrillTape(scenario,variation=0){
   for(let tick=scenario.startAt+1;tick<scenario.startAt+17;tick++)
    tape[tick]=canonicalHuntInput({x:1});
  }
- if(scenario.id==='timing-read'&&variation===1){
+ if(['timing-read','parry-feint-read'].includes(scenario.id)&&variation===1){
   // Legitimate feint of an already started heavy, not a fabricated unblockable
   // high/low/throw. Alternate take retains full committed heavy.
   tape[scenario.startAt+7]=canonicalHuntInput({act:'feint'});
@@ -156,7 +157,9 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   // Recorded inputs run through the regular player-2 action graph. We NEVER
   // force a hit, parry, projectile, throw or training-only source mechanic.
   tapes[0]=makeDrillTape(scenario);
-  if(drill==='timing-read'){
+  if(['timing-read','parry-feint-read'].includes(drill)){
+   // Distinguish a committed heavy from an actual authored feint.
+   // The same RANDOM dummy tape selection is deterministic per seed.
    tapes[1]=makeDrillTape(scenario,1);
    mode='random';
   }else mode='loop';
