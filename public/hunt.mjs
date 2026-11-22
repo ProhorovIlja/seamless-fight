@@ -12,6 +12,7 @@ import {huntDeviceProfile,createHuntInputAdapter,HUNT_DEVICE_LAYOUTS,HUNT_BINDAB
 import {huntKeyboardToken,huntMouseToken,huntBrowserGamepadTokens,selectHuntStandardGamepad,HUNT_STANDARD_BUTTONS}
  from './hunt-browser-input.mjs';
 import {drawHuntArena} from './hunt-render.mjs';
+import {huntReplayImportPayload} from './hunt-replay-import.mjs';
 
 const $=id=>document.getElementById(id);
 const TICK_MS=1000/HUNT_HZ,MAX_TICKS_PER_RENDER=8,REPLAY_MAX_BYTES=3*1024*1024;
@@ -528,10 +529,12 @@ $('import').addEventListener('change',async event=>{
  const file=event.target.files?.[0];if(!file)return;
  try{
   if(file.size>REPLAY_MAX_BYTES)throw RangeError('Replay file exceeds 3 MiB safety limit');
-  const capture=JSON.parse(await file.text());
+  const {capture,study}=huntReplayImportPayload(JSON.parse(await file.text()));
   practice.load(capture);
   clearInput();before=practice.inspect();after=practice.inspect();acc=0;last=0;
-  status('Versioned Hunt replay imported and verified. Paused for frame-step or takeover.');
+  status(study?
+   'Offline neutral study input tape imported and verified. Paused for replay, frame-step or takeover. Not a ranked result.':
+   'Versioned Hunt replay imported and verified. Paused for frame-step or takeover.');
   updateHud();
  }catch(err){status('Replay rejected: '+String(err.message).slice(0,110));}
  finally{event.target.value='';}
