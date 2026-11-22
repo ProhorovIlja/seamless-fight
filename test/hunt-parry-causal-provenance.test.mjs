@@ -29,7 +29,9 @@ function liveFirearmImpact({targetMove='foldedHeavy',targetWeapon='mournweave',
 function scoringEvidence(move,parry){
  return [
   {tick:0,kind:'action',actor:1,move},
-  {...parry,tick:1,actor:0,target:1}
+  // Preserve source provenance, including deliberately invalid target values.
+  // Overriding target here would make the negative target test a false positive.
+  {...parry,tick:1}
  ];
 }
 
