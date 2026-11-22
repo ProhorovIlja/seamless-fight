@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {
  huntFullWhiffTrial
 } from '../scripts/hunt-whiff-from-neutral.mjs';
@@ -106,4 +108,26 @@ test('recording is opt-in and never mutates production/realtime rules or creates
  assert(!Object.hasOwn(without,'replayCapture'));
  assert.equal(withReplay.replayCapture.fingerprint,without.finalFingerprint);
  assert.throws(()=>huntFullWhiffTrial({recordReplay:'true'}),TypeError);
+});
+
+test('English-only CLI exports a usable real left-wall input capture with no user or ranked data',()=>{
+ const script=fileURLToPath(new URL('../scripts/hunt-whiff-from-neutral.mjs',import.meta.url));
+ const run=spawnSync(process.execPath,[script,'--replay-sample'],{
+  encoding:'utf8',timeout:15000,maxBuffer:1000000
+ });
+ assert.equal(run.status,0,run.stderr);
+ const data=JSON.parse(run.stdout);
+ assert.equal(data.schema,'sf-hunt-neutral-study/1');
+ assert.equal(data.mode,'offline-unrated');
+ assert.equal(data.summary.arenaSide,'left');
+ assert.equal(data.summary.realR2Whiff,true);
+ assert.equal(data.summary.responseDelay,12);
+ assert.equal(data.replayCapture.schema,HUNT_CAPTURE_SCHEMA);
+ assert.equal(loadHuntReplay(data.replayCapture).stats().fingerprint,
+  data.summary.finalFingerprint);
+ assert(!Object.hasOwn(data,'sourceEvents'));
+ assert(!Object.hasOwn(data,'rank'));
+ const unsupported=spawnSync(process.execPath,
+  [script,'--replay-sample','--all-arenas'],{encoding:'utf8',timeout:15000});
+ assert.notEqual(unsupported.status,0,'single replay export cannot silently become huge');
 });
