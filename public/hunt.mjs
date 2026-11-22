@@ -156,6 +156,8 @@ function reset(keepWeapons=true){
     'Two deterministic normal-input tapes alternate heavy commitment and real feint.':
     selected.id==='gun-whiff-punish'?
     'Quickstep through the live firearm hitbox, then land a melee attack while the missed gun is STILL recovering. A gun parry or a late hit is not a whiff punish.':
+    selected.id==='whiff-punish'?
+    'Bait the committed R2 from just outside its reach. A missed heavy cannot cancel its FIRST FOUR recovery frames into an L1 trick strike: enter with R1 and connect before the rival can answer. A button press without contact is not a punish.':
     selected.id==='anti-air'?
     'The dummy jumps once using real directional inputs; counter without a universal air dash.':
     ['hit-confirm','transform-pressure','blood-economy'].includes(selected.id)?
