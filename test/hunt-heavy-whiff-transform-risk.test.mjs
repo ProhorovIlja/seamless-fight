@@ -137,3 +137,44 @@ test('real connected light attacks really punish a whiffed R2 attempting early L
       'being hit clears the rejected trick request instead of replaying it later');
     }
 });
+
+
+test('mirrored actual left/right wall R1 punish beats the early R2-to-L1 rescue for BOTH slots',()=>{
+ for(const weapon of HUNT_WEAPONS)for(const form of ['folded','unfurled'])
+  for(const attackerSlot of [0,1])for(const heavyType of ['Heavy','Charged'])
+   for(const wall of ['left','right']){
+    const s=huntMatch({weapons:[weapon,weapon]});s.ready=0;
+    const defenderSlot=1-attackerSlot;
+    const defender=s.p[defenderSlot],attacker=s.p[attackerSlot];
+    defender.x=wall==='left'?65:895;
+    attacker.x=wall==='left'?135:825;
+    defender.dir=wall==='left'?1:-1;
+    attacker.dir=-defender.dir;
+    defender.vx=0;attacker.vx=0;
+    defender.st=100;attacker.st=100;
+    defender.form='folded';defender.act='foldedLight';
+    defender.age=huntMoveSpec(defender).startup;
+    attacker.form=form;attacker.act=form+heavyType;
+    const m=huntMoveSpec(attacker);
+    attacker.age=m.startup+m.active;
+    attacker.hitConfirmed=false;attacker.spent=false;attacker.chain=1;
+    const actions=[huntInput(),huntInput()];
+    actions[attackerSlot]=trick();
+    const events=[];
+    huntStep(s,actions,events);
+    const got=events.find(e=>e.kind==='hit'&&
+     e.actor===defenderSlot&&e.target===attackerSlot);
+    assert(got,
+     'real '+wall+' wall counter must CONTACT '+weapon+' '+form+heavyType+
+      ' R2 miss, attacker slot '+attackerSlot);
+    assert.equal(got.punishedRecovery,true);
+    assert.equal(got.punishedMove,form+heavyType);
+    assert(got.remainingRecovery>0);
+    assert.equal(attacker.act,'stun');
+    assert.equal(attacker.queue,'');
+    assert.equal(events.some(e=>e.kind==='cornerEscape'),false,
+     'successful R1 interrupt is not falsely counted as a paid through-step');
+    assert.equal(events.some(e=>e.kind==='action'&&e.actor===attackerSlot&&
+     ['unfurl','refold'].includes(e.move)),false);
+   }
+});
