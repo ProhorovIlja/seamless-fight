@@ -5,6 +5,7 @@
 import {
  HUNT_HZ,HUNT_WEAPONS,HUNT_FORMS,HUNT_W,huntInput,huntMatch,huntMoveSpec,huntStep
 } from '../public/side-hunt-lab.mjs';
+import {createHuntReplay,huntReplayFingerprint} from '../public/side-hunt-replay.mjs';
 
 export const HUNT_FULL_WHIFF_APPROACHES=Object.freeze([
  'hold','postWhiffWalk','precommitWalk'
@@ -17,7 +18,7 @@ export function huntFullWhiffTrial({
  attackerWeapon='mournweave',defenderWeapon='mournweave',
  attackerForm='folded',attackerHeavy='Heavy',defenderSlot=0,
  arenaSide='center',initialGap=48,approach='hold',
- answer='light',responseDelay=0,frames=125
+ answer='light',responseDelay=0,frames=125,recordReplay=false
 }={}){
  requireRule(HUNT_WEAPONS.includes(attackerWeapon),'Unknown attacker weapon');
  requireRule(HUNT_WEAPONS.includes(defenderWeapon),'Unknown defender weapon');
@@ -31,6 +32,7 @@ export function huntFullWhiffTrial({
   'Invalid source response delay');
  requireRule(Number.isInteger(frames)&&frames>=60&&frames<=200,
   'Invalid test time horizon');
+ requireRule(typeof recordReplay==='boolean','recordReplay must be boolean');
  requireRule(Number.isFinite(initialGap)&&initialGap>=-40&&initialGap<=100,
   'Invalid measured reach margin');
  const attackerSlot=1-defenderSlot;
@@ -52,6 +54,10 @@ export function huntFullWhiffTrial({
  rival.x=hunter.x+hunter.dir*distance;rival.dir=-hunter.dir;
  requireRule(rival.x>=65&&rival.x<=HUNT_W-65,'Rival must be inside arena');
  hunter.vx=0;rival.vx=0;hunter.st=100;rival.st=100;
+ // Capture the ACTUAL commands. The independent replay engine must be
+ // able to reproduce every frame without seeing any privileged whiff event.
+ const replay=recordReplay?createHuntReplay({initialState:state,
+  checkpointEvery:15,maxFrames:frames}):null;
  const events=[];
  let actualWhiff=null,answerRequestedTick=null;
  for(let frame=0;frame<frames;frame++){
@@ -75,11 +81,15 @@ export function huntFullWhiffTrial({
   }
   const tickEvents=[];
   huntStep(state,inputs,tickEvents);
+  if(replay)replay.append(inputs);
   events.push(...tickEvents);
   const newlyMissed=tickEvents.find(e=>e.kind==='whiff'&&
    e.actor===attackerSlot&&e.move===committedMove);
   if(newlyMissed&&!actualWhiff)actualWhiff=newlyMissed;
  }
+ const replayCapture=replay?replay.capture():null;
+ if(replayCapture&&replayCapture.fingerprint!==huntReplayFingerprint(state))
+  throw Error('Recorded neutral replay diverged from actual combat');
  const firstHit=events.find(e=>e.kind==='hit'&&
   e.actor===defenderSlot&&e.target===attackerSlot);
  const rivalHit=events.find(e=>e.kind==='hit'&&
@@ -120,7 +130,11 @@ export function huntFullWhiffTrial({
   attackerHp:rival.hp,defenderHp:hunter.hp,
   cornerEscapes:events.filter(e=>e.kind==='cornerEscape'&&
    e.actor===defenderSlot).length,
-  sourceEvents:Object.freeze(events.map(e=>Object.freeze({...e})))
+  sourceEvents:Object.freeze(events.map(e=>Object.freeze({...e}))),
+  // Optional export is explicitly offline/unrated; it contains NO server
+  // identity, learned reaction label or future-opponent commands.
+  ...(replayCapture?{replayCapture}:{}),
+  finalFingerprint:huntReplayFingerprint(state)
  });
 }
 
