@@ -15,6 +15,42 @@ const observe=p=>Object.freeze({act:p.act,age:p.age,x:p.x,dir:p.dir,form:p.form}
 const counts=(events,kind,actor,target)=>events.filter(e=>e.kind===kind&&e.actor===actor&&
  (target===undefined||e.target===target)).length;
 
+// Source-event classification only. A melee hit on a recovering hunter is
+// NOT automatically a WHIFF punish: the SAME move must actually have missed
+// in the observed source history, with no intervening new action, hit, parry
+// or completed round invalidating that particular miss.
+export function huntCornerWhiffProvenance(events,defender=0,attacker=1){
+ if(!Array.isArray(events)||![0,1].includes(defender)||
+    ![0,1].includes(attacker)||defender===attacker)
+  throw TypeError('Expected 1v1 source events and distinct player slots');
+ let missed=null,recoveryPhaseContacts=0,sourceConfirmedWhiffPunishes=0;
+ const confirmations=[];
+ for(const e of events){
+  if(!e||!Number.isSafeInteger(e.tick))continue;
+  if(e.kind==='action'&&e.actor===attacker)missed=null;
+  if(e.kind==='whiff'&&e.actor===attacker)
+   missed={tick:e.tick,move:e.move};
+  if(e.kind==='hit'&&e.target===attacker){
+   if(e.actor===defender&&e.punishedRecovery===true){
+    recoveryPhaseContacts++;
+    if(missed&&missed.move===e.punishedMove&&
+       missed.tick<e.tick&&Number.isInteger(e.remainingRecovery)&&
+       e.remainingRecovery>0){
+     sourceConfirmedWhiffPunishes++;
+     confirmations.push(Object.freeze({whiffTick:missed.tick,hitTick:e.tick,
+      move:e.punishedMove,remainingRecovery:e.remainingRecovery}));
+    }
+   }
+   missed=null;
+  }
+  if(e.kind==='gunParry'&&e.target===attacker||e.kind==='round')
+   missed=null;
+ }
+ return Object.freeze({recoveryPhaseContacts,sourceConfirmedWhiffPunishes,
+  unconfirmedRecoveryContacts:recoveryPhaseContacts-sourceConfirmedWhiffPunishes,
+  confirmations:Object.freeze(confirmations)});
+}
+
 function defenderInput(me,read,policy,inward){
  const available=huntCanAct(me);
  const distance=Math.abs(me.x-read.x);
@@ -105,7 +141,10 @@ export function huntDelayedCornerScenario({
  const attackerPunishesDodgeTail=dodgeHits.filter(e=>e.punishedDodgeVulnerableTail===true).length;
  const attackerPunishesDodgeRecovery=dodgeHits.filter(e=>e.punishedDodgeRecovery===true).length;
  const attackerStartupInterrupts=dodgeHits.filter(e=>e.hitDuringStartup===true).length;
- const defenderWhiffRecoveryPunishes=defensiveContacts.filter(e=>e.punishedRecovery===true).length;
+ const verifiedWhiffs=huntCornerWhiffProvenance(events,0,1);
+ const defenderWhiffRecoveryPunishes=verifiedWhiffs.sourceConfirmedWhiffPunishes;
+ const defenderRecoveryPhaseContacts=verifiedWhiffs.recoveryPhaseContacts;
+ const defenderUnconfirmedRecoveryContacts=verifiedWhiffs.unconfirmedRecoveryContacts;
  const defenderStartupInterrupts=defensiveContacts.filter(e=>e.hitDuringStartup===true).length;
  const report={
   defenderWeapon,attackerWeapon,wall,initialStamina,observationDelay,
@@ -122,6 +161,7 @@ export function huntDelayedCornerScenario({
   // tail is AFTER i-frames but BEFORE recovery, not a "recovery punish".
   attackerPunishesDodgeTail,attackerPunishesDodgeRecovery,
   attackerStartupInterrupts,defenderWhiffRecoveryPunishes,
+  defenderRecoveryPhaseContacts,defenderUnconfirmedRecoveryContacts,
   defenderStartupInterrupts,
   confirmedDefenderGunParries:counts(events,'gunParry',0,1),
   confirmedDefenderCornerCrossings:counts(events,'cornerEscape',0,1),
@@ -155,6 +195,7 @@ export function huntDelayedCornerMatrix(){
    punishedDodgeTailCases:subset.filter(x=>x.attackerPunishesDodgeTail>0).length,
    punishedDodgeRecoveryCases:subset.filter(x=>x.attackerPunishesDodgeRecovery>0).length,
    defenderWhiffPunishCases:subset.filter(x=>x.defenderWhiffRecoveryPunishes>0).length,
+   defenderRecoveryContactCases:subset.filter(x=>x.defenderRecoveryPhaseContacts>0).length,
    falseGuardEvents:subset.filter(x=>x.eventsContainForbiddenGuard).length});
  });
  return Object.freeze({
