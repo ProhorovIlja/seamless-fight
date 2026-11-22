@@ -25,7 +25,7 @@ test('four attacker patterns and five no-block responses are exercised at both w
  assert(report.byDelay.every(x=>x.scenarios===480&&x.falseGuardEvents===0));
  for(const delay of report.byDelay){
   for(const category of ['punishedDodgeTailCases','punishedDodgeRecoveryCases',
-   'defenderWhiffPunishCases']){
+   'defenderWhiffPunishCases','defenderRecoveryContactCases']){
    assert(Number.isSafeInteger(delay[category]));
    assert(delay[category]>=0&&delay[category]<=delay.scenarios);
   }
@@ -35,6 +35,13 @@ test('four attacker patterns and five no-block responses are exercised at both w
   assert.equal(delay.punishedDodgeRecoveryCases,
    report.cases.filter(x=>x.observationDelay===delay.observationDelay&&
     x.attackerPunishesDodgeRecovery>0).length);
+  assert.equal(delay.defenderWhiffPunishCases,
+   report.cases.filter(x=>x.observationDelay===delay.observationDelay&&
+    x.defenderWhiffRecoveryPunishes>0).length);
+  assert.equal(delay.defenderRecoveryContactCases,
+   report.cases.filter(x=>x.observationDelay===delay.observationDelay&&
+    x.defenderRecoveryPhaseContacts>0).length);
+  assert(delay.defenderWhiffPunishCases<=delay.defenderRecoveryContactCases);
  }
  const keys=new Set();
  for(const x of report.cases){
@@ -58,6 +65,11 @@ test('four attacker patterns and five no-block responses are exercised at both w
    x.landedAttackerHits,'no dodge may count twice as tail and recovery');
   assert(x.attackerStartupInterrupts<=x.landedAttackerHits);
   assert(x.defenderWhiffRecoveryPunishes<=x.defenderMeleeHits);
+  assert(x.defenderWhiffRecoveryPunishes<=x.defenderRecoveryPhaseContacts,
+   'a true whiff punish is strictly a subset of real recovery-phase hits');
+  assert.equal(x.defenderWhiffRecoveryPunishes+x.defenderUnconfirmedRecoveryContacts,
+   x.defenderRecoveryPhaseContacts);
+  assert(x.defenderRecoveryPhaseContacts<=x.defenderMeleeHits);
   assert(x.defenderStartupInterrupts<=x.defenderMeleeHits);
   assert.equal(x.defenderDefeated,x.defenderHP===0);
   assert.equal(x.eventsContainForbiddenGuard,false);
