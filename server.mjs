@@ -35,6 +35,7 @@ const assets = new Map([
   ['hunt-practice-suite.mjs',['hunt-practice-suite.mjs','text/javascript; charset=utf-8']],
   ['hunt-training-goals.mjs',['hunt-training-goals.mjs','text/javascript; charset=utf-8']],
   ['hunt-match-analytics.mjs',['hunt-match-analytics.mjs','text/javascript; charset=utf-8']],
+  ['hunt-punish-provenance.mjs',['hunt-punish-provenance.mjs','text/javascript; charset=utf-8']],
   ['hunt-input-device.mjs',['hunt-input-device.mjs','text/javascript; charset=utf-8']],
   ['hunt-identity.mjs',['hunt-identity.mjs','text/javascript; charset=utf-8']],
   ['side.css',['side.css','text/css']],
