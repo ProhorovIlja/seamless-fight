@@ -74,6 +74,8 @@ export function huntWhiffResponseTrial({
   e.actor===defenderSlot&&e.target===attackerSlot);
  const followup=events.find(e=>e.kind==='action'&&
   e.actor===attackerSlot&&['unfurl','refold'].includes(e.move));
+ const cornerEscape=events.find(e=>e.kind==='cornerEscape'&&
+  e.actor===defenderSlot&&e.side===arenaSide);
  const whiffRecoveryPunish=Boolean(counterHit?.punishedRecovery&&
   counterHit.punishedMove===attackerForm+attackerHeavy);
  const transformStartupInterrupt=Boolean(counterHit?.hitDuringStartup&&
@@ -91,6 +93,7 @@ export function huntWhiffResponseTrial({
   counterMove:counterHit?.move??'',counterTick:counterHit?.tick??null,
   attackerStartedTrick:Boolean(followup),trickTick:followup?.tick??null,
   opponentConnected:Boolean(opponentHit),
+  cornerEscaped:Boolean(cornerEscape),cornerEscapeTick:cornerEscape?.tick??null,
   defenderLostHp:defender.hp<initialHealth[0],
   attackerLostHp:attacker.hp<initialHealth[1],
   defenderHp:defender.hp,attackerHp:attacker.hp,
