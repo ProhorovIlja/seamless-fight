@@ -18,8 +18,8 @@ function huntModuleGraph(){
   if(visited.has(path))continue;
   visited.add(path);
   const body=readFileSync(path,'utf8');
-  const imports=[...body.matchAll(/\\bfrom\\s*['"]([^'"]+\\.mjs)['"]/g),
-   ...body.matchAll(/\\bimport\\s*['"]([^'"]+\\.mjs)['"]/g)];
+  const imports=[...body.matchAll(/\bfrom\s*['"]([^'"]+\.mjs)['"]/g),
+   ...body.matchAll(/\bimport\s*['"]([^'"]+\.mjs)['"]/g)];
   for(const [,spec] of imports)if(spec.startsWith('.')){
    const target=resolve(dirname(path),spec);
    assert(target.startsWith(root+'/'),'unexpected public source path: '+spec);
