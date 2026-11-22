@@ -583,6 +583,39 @@ try{
  await hunt.locator('#step').click();
  assert.equal(Number((await hunt.locator('#tick').textContent()).replace(/\D/g,'')),importedTick-59);
  assert.match(await hunt.locator('#status').textContent(),/one authoritative 60Hz/);
+ // The actual left-wall R2-whiff source study exports a wrapper with
+ // summary + the full canonical two-player replay. Practice imports it
+ // directly; users do NOT manually extract a nested JSON subtree.
+ const {huntFullWhiffTrial}=await import('./hunt-whiff-from-neutral.mjs');
+ const sample=huntFullWhiffTrial({
+  attackerWeapon:'thornwake',defenderWeapon:'mournweave',
+  attackerForm:'unfurled',attackerHeavy:'Charged',
+  arenaSide:'left',approach:'postWhiffWalk',
+  answer:'light',responseDelay:12,recordReplay:true
+ });
+ const {replayCapture,sourceEvents,...summary}=sample;
+ const wrapped={schema:'sf-hunt-neutral-study/1',
+  mode:'offline-unrated',summary,replayCapture};
+ await hunt.locator('#import').setInputFiles({
+  name:'hunt-neutral-source-replay.json',
+  mimeType:'application/json',buffer:Buffer.from(JSON.stringify(wrapped))
+ });
+ await until(async()=>/Offline neutral study input tape imported and verified/.test(
+  await hunt.locator('#status').textContent()),
+  'a full real R2-whiff source study directly opens as editable Practice Mode replay');
+ assert.equal(Number((await hunt.locator('#tick').textContent()).replace(/\\D/g,'')),125);
+ assert.equal(await hunt.locator('#pause').textContent(),'Resume');
+ assert.equal(await hunt.locator('#rewind').isEnabled(),true);
+ const forged=structuredClone(wrapped);
+ forged.summary.finalFingerprint='deadbeef';
+ await hunt.locator('#import').setInputFiles({
+  name:'forged-neutral-study.json',mimeType:'application/json',
+  buffer:Buffer.from(JSON.stringify(forged))
+ });
+ await until(async()=>/Replay rejected:/.test(await hunt.locator('#status').textContent()),
+  'a forged study summary cannot bypass versioned practice replay validation');
+ assert.equal(Number((await hunt.locator('#tick').textContent()).replace(/\\D/g,'')),125,
+  'a rejected input cannot corrupt the ongoing offline training state');
  await hunt.screenshot({path:'artifacts/hunt-v3-offline-practice.png'});
  assert.deepEqual(errors,[]);
  console.log('Chromium passed: legacy duels + authentic Hunt v3 60Hz English-only practice, dummy, frame meter and source-verified replay analysis.');
