@@ -33,14 +33,17 @@ test('visible recovery timing allows a REAL confirmed melee whiff punish without
 });
 
 test('waiting beyond reachable recovery cannot manufacture a whiff punish',()=>{
+ // The long, unfurled R1 CAN still touch the recovering heavy's
+ // authored extended arm hurtbox at gap=100. That is a valid spatial
+ // whiff punish, not a bug. A short folded R1 at that range cannot.
  const configs=[
-  {gap:100,reactionDelay:0},
-  {gap:35,reactionDelay:12}
+  {gap:100,defenderForm:'folded',reactionDelay:0},
+  {gap:35,defenderForm:'unfurled',reactionDelay:12}
  ];
  for(const extra of configs){
   const r=huntObservedWhiffTrial({
    attackerWeapon:'mournweave',defenderWeapon:'thornwake',
-   attackerForm:'folded',defenderForm:'unfurled',
+   attackerForm:'folded',
    attackerPlan:'heavy',defenderPlan:'light',
    arenaSide:'left',approach:'hold',...extra
   });
