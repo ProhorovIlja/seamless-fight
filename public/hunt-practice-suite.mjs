@@ -4,7 +4,7 @@
 import {
  HUNT_RULESET,HUNT_HZ,huntInput,huntMatch,huntStep,
  huntInspector,huntFrameTable,canonicalHuntInput,huntCanAct,HUNT_FLOOR,
- huntAttackbox,huntHurtbox,huntMoveSpec
+ huntAttackbox,huntHurtbox,huntMoveSpec,HUNT_MOVES
 } from './side-hunt-lab.mjs';
 import {createHuntReplay,loadHuntReplay} from './side-hunt-replay.mjs';
 import {analyzeHuntReplay} from './hunt-match-analytics.mjs';
@@ -48,7 +48,8 @@ const opposite=input=>({...input,x:-input.x});
 const MAX_FRAMES=7200;
 const GOAL_HISTORY_LIMIT=1200;
 const wallOf=x=>x<=65.001?'left':x>=894.999?'right':'';
-function scoreProjection(tickEvents,beforePlayerAction,confirmedState,wallBeforeTick){
+function scoreProjection(tickEvents,beforePlayerAction,beforeOpponentAction,
+ beforeOpponentAge,confirmedState,wallBeforeTick){
  // Actions begin BEFORE this frame's movement; contacts and crossings
  // resolve AFTER movement. Mixing those two timings loses real wall
  // pressure if the defender quicksteps off the wall on the same tick.
@@ -68,7 +69,7 @@ function scoreProjection(tickEvents,beforePlayerAction,confirmedState,wallBefore
   opponent.age===shotSpec.startup+shotSpec.active);
  const dodgeProtectedOnThisTick=player.act==='step'&&
   player.age>=2&&player.age<=7;
- return tickEvents.map(e=>({...e,
+ const scored=tickEvents.map(e=>({...e,
   playerWall:e.kind==='action'?wallBeforeTick:wallAfterTick,
   playerAirborne:player.y<HUNT_FLOOR,
   opponentAirborne:opponent.y<HUNT_FLOOR,
@@ -77,6 +78,19 @@ function scoreProjection(tickEvents,beforePlayerAction,confirmedState,wallBefore
   confirmedDodgeEvade:e.kind==='whiff'&&e.actor===1&&e.move==='shot'&&
    firedOnThisTick&&dodgeProtectedOnThisTick&&overlap
  }));
+ // Read-only observation: the actual authored feint must finish its
+ // full 60Hz source recovery. A premature interruption, another action,
+ // a screenshot guess or a timed dummy script does NOT count as completion.
+ // This event is ONLY a practice projection, never a new combat attack.
+ const feint=HUNT_MOVES.feint;
+ if(beforeOpponentAction==='feint'&&
+   beforeOpponentAge>=feint.startup+feint.active+feint.recovery&&
+   opponent.act===''){
+  scored.push({tick:confirmedState.tick,kind:'feintReadWindowClosed',
+   actor:1,move:'feint',sourceStateVerified:true,
+   distance:Math.abs(player.x-opponent.x)});
+ }
+ return scored;
 }
 function makeDrillTape(scenario,variation=0){
  const tape=Array.from({length:150},neutral);
@@ -252,13 +266,16 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   const left=canonicalHuntInput(playerInput);
   const right=dummyInput();
   const beforePlayerAction=state.p[0].act;
+  const beforeOpponentAction=state.p[1].act;
+  const beforeOpponentAge=state.p[1].age;
   const beforePlayerWall=wallOf(state.p[0].x);
   const tickEvents=[];
   // Dummy tape is prepared from player commands, never from an inferred win.
   replay.append([left,right]);
   huntStep(state,[left,right],tickEvents);
   // Training evidence is a read-only projection of the confirmed source step.
-  const scoreEvents=scoreProjection(tickEvents,beforePlayerAction,state,beforePlayerWall);
+  const scoreEvents=scoreProjection(tickEvents,beforePlayerAction,
+   beforeOpponentAction,beforeOpponentAge,state,beforePlayerWall);
   goalEvidence.push(...scoreEvents);
   if(goalEvidence.length>GOAL_HISTORY_LIMIT)
    goalEvidence=goalEvidence.slice(-GOAL_HISTORY_LIMIT);
