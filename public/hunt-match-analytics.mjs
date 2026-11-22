@@ -13,6 +13,7 @@ const fresh=slot=>({
  damageFromConfirmedEvents:0,damageTakenFromConfirmedEvents:0,
  dodgeEscapes:0,quicksteps:0,rearStaggers:0,cornerEscapes:0,
  recoveryPunishes:0,firearmRecoveryPunishes:0,
+ confirmedWhiffRecoveryPunishes:0,confirmedGunWhiffRecoveryPunishes:0,
  dodgeVulnerableTailPunishes:0,dodgeRecoveryPunishes:0,startupInterrupts:0,
  vialsUsed:0,bloodRituals:0,bloodRoundsCreated:0,
  rallyHealthReclaimed:0,maxCombo:0
@@ -29,6 +30,11 @@ export function analyzeHuntReplay(capture){
  const game=structuredClone(capture.startState);
  const players=[fresh(0),fresh(1)];
  const rounds=[];
+ // True whiff punishment requires a MISSED move observed in this
+ // independently re-simulated replay AND contact before that same move
+ // completes recovery. A seeded already-recovering state has no recorded
+ // historical whiff evidence, even if a recovery hit is possible.
+ const lastWhiff=[null,null];
  for(const inputs of capture.frames){
   const before=structuredClone(game.p);
   const events=[];
@@ -36,6 +42,7 @@ export function analyzeHuntReplay(capture){
   for(const ev of events){
    if(ev.kind==='round'){
     rounds.push({tick:ev.tick,winner:ev.winner,matchOver:ev.over===true});
+    lastWhiff[0]=null;lastWhiff[1]=null;
     continue;
    }
    if(![0,1].includes(ev.actor))continue;
@@ -43,6 +50,7 @@ export function analyzeHuntReplay(capture){
    const other=players[1-ev.actor];
    switch(ev.kind){
     case 'action':
+     lastWhiff[ev.actor]=null; // a new move ends the previous whiff's identity
      p.actionStarts++;
      if(isMelee(ev.move)||['light','heavy','charge','trick'].includes(ev.move))p.meleeStarts++;
      if(ev.move==='visceral')p.visceralAttempts++;
@@ -53,6 +61,17 @@ export function analyzeHuntReplay(capture){
      break;
     case 'hit':
      // Confirmed enemy state at impact, never inferred from a keypress.
+     if(ev.punishedRecovery===true&&[0,1].includes(ev.target)&&
+        lastWhiff[ev.target]?.move===ev.punishedMove&&
+        Number.isInteger(ev.tick)&&
+        ev.tick>=lastWhiff[ev.target].tick){
+      p.confirmedWhiffRecoveryPunishes++;
+      if(['shot','airShot'].includes(ev.punishedMove))
+       p.confirmedGunWhiffRecoveryPunishes++;
+     }
+     // The victim is now interrupted: no new 'whiff punish' can be
+     // credited from this same recovering action on a subsequent hit.
+     if([0,1].includes(ev.target))lastWhiff[ev.target]=null;
      if(ev.punishedRecovery===true){
       p.recoveryPunishes++;
       if(['shot','airShot'].includes(ev.punishedMove))
@@ -67,6 +86,7 @@ export function analyzeHuntReplay(capture){
      other.damageTakenFromConfirmedEvents+=ev.damage;
      break;
     case 'whiff':
+     lastWhiff[ev.actor]={tick:ev.tick,move:ev.move};
      if(isMelee(ev.move))p.meleeWhiffs++;
      if(ev.move==='shot'||ev.move==='airShot')p.firearmWhiffs++;
      break;
