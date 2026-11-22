@@ -370,10 +370,13 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   for(const inputs of capture.frames){
    writable.append(inputs);
    const priorAction=rebuilt.p[0].act;
+   const priorOpponentAction=rebuilt.p[1].act;
+   const priorOpponentAge=rebuilt.p[1].age;
    const priorWall=wallOf(rebuilt.p[0].x);
    const tickEvents=[];
    huntStep(rebuilt,inputs,tickEvents);
-   const scoreEvents=scoreProjection(tickEvents,priorAction,rebuilt,priorWall);
+   const scoreEvents=scoreProjection(tickEvents,priorAction,
+    priorOpponentAction,priorOpponentAge,rebuilt,priorWall);
    restoredHistory.push({tick:rebuilt.tick,input:clone(inputs),
     events:tickEvents,scoreEvents});
    if(restoredHistory.length>HUNT_PRACTICE_HISTORY)restoredHistory.shift();
