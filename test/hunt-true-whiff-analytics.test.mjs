@@ -23,6 +23,13 @@ test('confirmed R2 whiff punish requires a real prior source miss and contact du
    assert.equal(p.confirmedWhiffRecoveryPunishes,1,
     'must record the actual R2 whiff followed by the physical recovery hit');
    assert.equal(p.confirmedGunWhiffRecoveryPunishes,0);
+   assert.equal(p.confirmedWhiffPunishWindows.length,1);
+   assert.equal(p.confirmedWhiffPunishWindows[0].whiffTick,trial.sourceWhiffTick);
+   assert.equal(p.confirmedWhiffPunishWindows[0].move,'foldedHeavy');
+   assert.equal(p.confirmedWhiffPunishWindows[0].hitTick,
+    trial.sourceEvents.find(e=>e.kind==='hit'&&e.actor===defenderSlot).tick);
+   assert(p.confirmedWhiffPunishWindows[0].remainingRecovery>0);
+   assert(Object.isFrozen(p.confirmedWhiffPunishWindows));
    assert(p.recoveryPunishes>=1);
    assert.equal(metrics.players[1-defenderSlot].confirmedWhiffRecoveryPunishes,0);
    assert.equal(metrics.offlineReplayIntegrityChecked,true);
@@ -45,6 +52,7 @@ test('passive, unreachable and delayed responses cannot manufacture a whiff puni
   const p=analyzeHuntReplay(r.replayCapture).players[0];
   assert.equal(p.confirmedWhiffRecoveryPunishes,0);
   assert.equal(p.confirmedGunWhiffRecoveryPunishes,0);
+  assert.deepEqual(p.confirmedWhiffPunishWindows,[]);
  }
 });
 
@@ -62,6 +70,7 @@ test('recovery-seeded single-frame hit is not automatically source-confirmed whi
   'hit against a recovering body is still a valid phase-based recovery hit');
  assert.equal(p.confirmedWhiffRecoveryPunishes,0,
   'the imported one-frame replay never observed the earlier missed attack');
+ assert.deepEqual(p.confirmedWhiffPunishWindows,[]);
 });
 
 test('same source gun whiff can be confirmed as a firearm recovery punish without a fabricated parry',()=>{
@@ -80,4 +89,8 @@ test('same source gun whiff can be confirmed as a firearm recovery punish withou
  assert.equal(p.confirmedGunWhiffRecoveryPunishes,1);
  assert.equal(p.firearmRecoveryPunishes,1);
  assert.equal(p.firearmParries,0);
+ assert.equal(p.confirmedWhiffPunishWindows.length,1);
+ assert.equal(p.confirmedWhiffPunishWindows[0].move,'shot');
+ assert.equal(p.confirmedWhiffPunishWindows[0].whiffTick,1);
+ assert.equal(p.confirmedWhiffPunishWindows[0].hitTick,2);
 });
