@@ -22,6 +22,7 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'rally-reclaim':{category:'Resources',goal:'Take a real melee hit, then reclaim health through a confirmed melee strike.',trigger:'hit',success:'rally'},
  'blood-economy':{category:'Resources',goal:'Create five temporary rounds at an HP cost and fire one afterward.',trigger:'bloodBullets',success:'bloodShot'},
  'timing-read':{category:'Reads & Footsies',goal:'Read a committed heavy or a genuine feint, then retaliate when a safe opening appears.',trigger:'heavy',success:'timingPunish'},
+ 'parry-feint-read':{category:'Reads & Footsies',goal:'Parry the committed heavy; withhold your shot against the visible feint.',trigger:'heavy',success:'gunParry'},
  'visceral-followup':{category:'Offense',goal:'Convert a successful firearm counter into a real timed visceral strike.',trigger:'gunParry',success:'visceral'},
  'corner-escape':{category:'Defense',goal:'Escape the LEFT wall by a paid forward quickstep THROUGH the opponent during real i-frames.',trigger:'heavy',success:'cornerEscape'},
  'corner-escape-right':{category:'Defense',goal:'Escape the RIGHT wall by a paid forward quickstep THROUGH the opponent during real i-frames.',trigger:'heavy',success:'cornerEscape'},
@@ -68,6 +69,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
  for(let i=0;i<entries.length;i++){
   const e=entries[i];
   if(drill==='parry-heavy'&&is(e,'action',1,'foldedHeavy')||
+   drill==='parry-feint-read'&&is(e,'action',1,'foldedHeavy')||
    drill==='parry-heal'&&is(e,'action',1,'heal')||
    drill==='parry-blood'&&is(e,'action',1,'blood')||
    drill==='escape-stun'&&is(e,'hit',1)||
@@ -93,10 +95,12 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
   }
   switch(drill){
    case 'parry-heavy':
+   case 'parry-feint-read':
    case 'parry-heal':
    case 'parry-blood':{
     if(!is(e,'gunParry',0))break;
-    const move=drill==='parry-heavy'?'foldedHeavy':drill==='parry-heal'?'heal':'blood';
+    const move=['parry-heavy','parry-feint-read'].includes(drill)?
+     'foldedHeavy':drill==='parry-heal'?'heal':'blood';
     // The impact-frame source parry MUST interrupt this exact action.
     // A heavy that previously feinted into something else must not award
     // Counter Heavy Windup; neither may unrelated historical healing/blood.
