@@ -615,16 +615,87 @@ try{
     whiffMorphScenarios++;whiffMorphTicks+=inputs.length;
    }
  assert.equal(whiffMorphScenarios,32);
+ // Unlike a synthetic counter, both 60Hz engines now resolve the REAL
+ // melee hitbox against a missed heavy recovery while the target tries
+ // to buffer its early L1 transform. This is the user's actual intended
+ // no-guard whiff punishment, covered in BOTH slot orders.
+ let realWhiffCounterScenarios=0,realWhiffCounterTicks=0;
+ for(const weaponIndex of [0,1])for(const attackerSlot of [0,1])
+  for(const form of ['folded','unfurled'])
+   for(const heavyType of ['heavy','charged']){
+    const source=huntMatch({weapons:[WEAPONS[weaponIndex],WEAPONS[weaponIndex]]});
+    source.ready=0;
+    source.p[0].x=430;source.p[1].x=500;
+    for(const [slot,p] of source.p.entries()){
+     p.vx=0;p.dir=slot===0?1:-1;p.st=100;
+    }
+    const defenderSlot=1-attackerSlot;
+    const defender=source.p[defenderSlot],attacker=source.p[attackerSlot];
+    defender.act='foldedLight';defender.age=huntMoveSpec(defender).startup;
+    defender.form='folded';defender.spent=false;
+    attacker.form=form;
+    attacker.act=form+(heavyType==='heavy'?'Heavy':'Charged');
+    const old=huntMoveSpec(attacker);
+    attacker.age=old.startup+old.active;
+    attacker.hitConfirmed=false;attacker.spent=false;attacker.chain=1;
+    const inputs=Array.from({length:20},(_,t)=>{
+     const pair=[huntInput(),huntInput()];
+     if(t===0)pair[attackerSlot]={...huntInput(),act:'trick'};
+     return pair;
+    });
+    const mode='--morph-counter-p'+attackerSlot+'-'+form+'-'+heavyType;
+    const packet=weaponIndex+' '+weaponIndex+'\n'+inputs.map(pair=>pair.flatMap(
+     p=>[p.x,p.y,REQUEST[p.act],Number(p.guard)]).join(' ')).join('\n')+'\n';
+    const native=spawnSync(exe,[mode],{input:packet,encoding:'utf8',
+     timeout:90000,maxBuffer:4*1024*1024});
+    assert.equal(native.status,0,'Native real whiff counter fixture '+mode+': '+native.stderr);
+    const rows=native.stdout.trim().split('\n');
+    assert.equal(rows.length,inputs.length);
+    for(let t=0;t<inputs.length;t++){
+     const events=[];huntStep(source,inputs[t],events);
+     if(t===0){
+      const hit=events.find(e=>e.kind==='hit'&&
+       e.actor===defenderSlot&&e.target===attackerSlot);
+      assert(hit,'real connected R1 contact required: '+mode);
+      assert.equal(hit.punishedRecovery,true);
+      assert.equal(hit.punishedMove,form+(heavyType==='heavy'?'Heavy':'Charged'));
+      assert(hit.remainingRecovery>0);
+      assert.equal(source.p[attackerSlot].act,'stun');
+      assert.equal(source.p[attackerSlot].queue,'');
+      assert(!events.some(e=>e.kind==='action'&&e.actor===attackerSlot&&
+       (e.move==='unfurl'||e.move==='refold')),
+       'the early trick must NOT form a whiff-covering hitbox');
+     }
+     const values=rows[t].trim().split(/\s+/).map(Number);
+     assert.equal(values.length,totalFields);
+     let k=0;
+     const compare=(field,value)=>{
+      const actual=values[k++],expected=number(field,value);
+      if(!Number.isFinite(actual)||!Number.isFinite(expected)||
+         Math.abs(expected-actual)>1e-8)
+       throw Error('Real R2 whiff counter mismatch '+mode+' t='+t+
+        ' field='+field+' JS='+expected+' C++='+actual);
+      checks++;maxError=Math.max(maxError,Math.abs(expected-actual));
+     };
+     for(const field of GLOBAL)compare(field,source[field]);
+     compare('score0',source.score[0]);compare('score1',source.score[1]);
+     for(const player of source.p)
+      for(const field of FIELDS)compare(field,player[field]);
+    }
+    realWhiffCounterScenarios++;realWhiffCounterTicks+=inputs.length;
+   }
+ assert.equal(realWhiffCounterScenarios,16);
  assert(eventsSeen.hit>0&&eventsSeen.transform>0&&eventsSeen.round>0&&eventsSeen.visceral>0,
   'Trace missed core Hunt gameplay situations');
  console.log(JSON.stringify({result:'HUNT_V3_NATIVE_CPP_JS_PARITY_PASS',
-  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks+simultaneousFacingTicks+visceralOpeningTicks+visceralLockTicks+whiffMorphTicks,
+  rules:HUNT_RULESET,hz:HUNT_HZ,ticks:PAIRS.length*TICKS+trace.length+cornerTicks+directedTradeTicks+limbTicks+neutralFaceTicks+simultaneousFacingTicks+visceralOpeningTicks+visceralLockTicks+whiffMorphTicks+realWhiffCounterTicks,
   directedTradeScenarios,directedTradeTicks,limbScenarios,limbTicks,
   neutralFaceScenarios,neutralFaceTicks,
   simultaneousFacingScenarios,simultaneousFacingTicks,
   visceralOpeningScenarios,visceralOpeningTicks,
   visceralLockScenarios,visceralLockTicks,
   whiffMorphScenarios,whiffMorphTicks,
+  realWhiffCounterScenarios,realWhiffCounterTicks,
   directedVisceral:true,directedTicks:trace.length,cornerCrossings:verifiedCornerCrossings,
   weaponPairs:PAIRS.length,fieldsPerTick:totalFields,fieldComparisons:checks,
   maxAbsoluteDifference:maxError,nativeRollbackChecks:rewinds,
