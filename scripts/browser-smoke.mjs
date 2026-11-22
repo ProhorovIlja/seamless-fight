@@ -9,7 +9,7 @@ let browser;
 const errors=[];
 async function until(fn,label){
  for(let i=0;i<160;i++){if(await fn())return;await sleep(50);}
- throw Error('Timed out: '+label);
+ throw Error('Timed out: '+label+'; browser errors: '+errors.slice(-8).join(' | '));
 }
 try{
  await until(async()=>{try{return (await fetch(url+'health')).ok;}catch{return false;}},'server health');
@@ -421,6 +421,10 @@ try{
  assert.equal(await hunt.locator('html').getAttribute('lang'),'en');
  assert.match(await hunt.locator('.topbar .chip').textContent(),/1V1 · ENGLISH ONLY/);
  await hunt.locator('#input-family').selectOption('leverless');
+ // CI virtual gamepads are injected through the standard browser API.
+ // Dispatch the corresponding browser hardware event so the application
+ // immediately refreshes its picker even if a hidden tab is frame-throttled.
+ await hunt.evaluate(()=>window.dispatchEvent(new Event('gamepadconnected')));
  await until(async()=>await hunt.locator('#controller-select option').count()===3,
    'two actual standard-mapped gamepads are enumerated');
  await hunt.locator('#controller-select').selectOption('2');
