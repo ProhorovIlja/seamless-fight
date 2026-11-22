@@ -146,7 +146,7 @@ export function huntVisibleNeutralTrial({
 export function huntVisibleNeutralMatrix({
  attackerPlans=['heavy','charged','feint','shot','light'],
  defenderPlans=HUNT_VISIBLE_DEFENSES,
- delays=HUNT_VISIBLE_DELAYS,arenaSides=['center']
+ delays=HUNT_VISIBLE_DELAYS,arenaSides=['center'],distances=[85]
 }={}){
  requireValid(Array.isArray(attackerPlans)&&attackerPlans.length>0&&
   attackerPlans.every(x=>HUNT_VISIBLE_THREATS.includes(x)),
@@ -160,36 +160,42 @@ export function huntVisibleNeutralMatrix({
  requireValid(Array.isArray(arenaSides)&&arenaSides.length>0&&
   arenaSides.every(x=>['center','left','right'].includes(x)),
   'Invalid arena choices');
+ requireValid(Array.isArray(distances)&&distances.length>0&&
+  distances.every(x=>Number.isFinite(x)&&x>=38&&x<=250),
+  'Invalid spacing samples');
  const rows=[];
  for(const attackerWeapon of HUNT_WEAPONS)
   for(const defenderWeapon of HUNT_WEAPONS)
    for(const attackerForm of HUNT_FORMS)
     for(const defenderSlot of [0,1])
      for(const arenaSide of arenaSides)
-      for(const attackerPlan of attackerPlans)
-       for(const defenderPlan of defenderPlans)
-        for(const perceptionDelay of delays){
-         const {sourceEvents,...row}=huntVisibleNeutralTrial({
-          attackerWeapon,defenderWeapon,attackerForm,defenderSlot,
-          arenaSide,attackerPlan,defenderPlan,perceptionDelay
-         });
-         rows.push(Object.freeze(row));
-        }
+      for(const distance of distances)
+       for(const attackerPlan of attackerPlans)
+        for(const defenderPlan of defenderPlans)
+         for(const perceptionDelay of delays){
+          const {sourceEvents,...row}=huntVisibleNeutralTrial({
+           attackerWeapon,defenderWeapon,attackerForm,defenderSlot,
+           arenaSide,distance,attackerPlan,defenderPlan,perceptionDelay
+          });
+          rows.push(Object.freeze(row));
+         }
  return Object.freeze(rows);
 }
 
 if(process.argv[1]?.endsWith('hunt-visible-neutral-policy.mjs')){
  const args=process.argv.slice(2);
- requireValid(args.every(x=>['--all-arenas','--summary'].includes(x)),
-  'Use --summary and optionally --all-arenas');
+ requireValid(args.every(x=>['--all-arenas','--all-spacings','--summary'].includes(x)),
+  'Use --summary, optionally --all-arenas and --all-spacings');
  const rows=huntVisibleNeutralMatrix({
   arenaSides:args.includes('--all-arenas')?
-   ['center','left','right']:['center']
+   ['center','left','right']:['center'],
+  distances:args.includes('--all-spacings')?[45,85,145,215]:[85]
  });
- const byThreat={},byDefense={},byArena={};
+ const byThreat={},byDefense={},byArena={},bySpacing={};
  for(const r of rows){
   for(const [container,key] of [[byThreat,r.attackerPlan],
-   [byDefense,r.defenderPlan],[byArena,r.arenaSide]]){
+   [byDefense,r.defenderPlan],[byArena,r.arenaSide],
+   [bySpacing,String(r.distance)]]){
    const counts=container[key]??={};
    counts[r.category]=(counts[r.category]??0)+1;
   }
@@ -197,7 +203,7 @@ if(process.argv[1]?.endsWith('hunt-visible-neutral-policy.mjs')){
  console.log(JSON.stringify({
   schema:'sf-hunt-visible-neutral-study/1',
   note:'Opponent rendered animation and positions only, not internal whiff/gun-parry state; offline deterministic simulation NOT human reaction',
-  rows:rows.length,byThreat,byDefense,byArena,
+  rows:rows.length,byThreat,byDefense,byArena,bySpacing,
   ...(args.includes('--summary')?{}:{trials:rows})
  },null,2));
 }
