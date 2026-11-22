@@ -95,3 +95,45 @@ test('training exposes exactly four genuine unconfirmed heavy recovery frames wi
     'fast R1 still retains its original attack-linked transform route');
   }
 });
+
+
+test('real connected light attacks really punish a whiffed R2 attempting early L1 in either slot',()=>{
+ for(const weapon of HUNT_WEAPONS)
+  for(const form of ['folded','unfurled'])
+   for(const attackerSlot of [0,1])
+    for(const heavyType of ['Heavy','Charged']){
+     const s=huntMatch({weapons:[weapon,weapon]});s.ready=0;
+     s.p[0].x=430;s.p[1].x=500;
+     for(const [slot,p] of s.p.entries()){
+      p.vx=0;p.dir=slot===0?1:-1;p.st=100;
+     }
+     const defenderSlot=1-attackerSlot;
+     const defender=s.p[defenderSlot],attacker=s.p[attackerSlot];
+     defender.act='foldedLight';defender.age=huntMoveSpec(defender).startup;
+     defender.form='folded';defender.spent=false;
+     attacker.form=form;attacker.act=form+heavyType;
+     const heavySpec=huntMoveSpec(attacker);
+     attacker.age=heavySpec.startup+heavySpec.active;
+     attacker.hitConfirmed=false;attacker.spent=false;attacker.chain=1;
+     const inputs=[huntInput(),huntInput()];
+     inputs[attackerSlot]=trick();
+     const events=[];
+     huntStep(s,inputs,events);
+     const hit=events.find(e=>e.kind==='hit'&&
+      e.actor===defenderSlot&&e.target===attackerSlot);
+     assert(hit,weapon+' '+form+' '+heavyType+' slot '+attackerSlot+
+      ' must connect a TRUE melee contact in the original missed R2 recovery');
+     assert.equal(hit.punishedRecovery,true);
+     assert.equal(hit.punishedMove,form+heavyType);
+     assert(hit.remainingRecovery>0);
+     assert.equal(hit.hitDuringStartup,false);
+     assert.equal(attacker.act,'stun',
+      'R2 whiff defender wins a real startup-safe R1 punish before L1');
+     assert(!events.some(e=>e.kind==='action'&&e.actor===attackerSlot&&
+      (e.move==='unfurl'||e.move==='refold')),
+      'the failed trick input cannot create an active rescue hitbox');
+     assert.equal(attacker.hitConfirmed,false);
+     assert.equal(attacker.queue,'',
+      'being hit clears the rejected trick request instead of replaying it later');
+    }
+});
