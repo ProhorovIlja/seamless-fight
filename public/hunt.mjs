@@ -157,6 +157,8 @@ function reset(keepWeapons=true){
     'Two deterministic normal-input tapes alternate heavy commitment and real feint.':
     selected.id==='parry-feint-read'?
     'Read two real dummy tapes: parry a COMMITTED heavy with a timely shot. Against its authentic feint, SAVE your ammunition and actively walk/step BACK to create space. Passive waiting never scores. Choose Recording 1/2 or deterministic Random. Only source-confirmed gun counters or source-confirmed spaced feints are rewarded.':
+    selected.id==='stamina-escape'?
+    'Begin with just 25 stamina against a real UNFURLED R1. A hitstun quickstep costs 19 + 6 stamina. Save your reserve instead of spending it on a premature attack; once HIT, quickstep promptly in the first few eligible frames. Walking away, a neutral dodge or an unfunded button press never scores.':
     selected.id==='gun-whiff-punish'?
     'Quickstep through the live firearm hitbox, then land a melee attack while the missed gun is STILL recovering. A gun parry or a late hit is not a whiff punish.':
     selected.id==='whiff-punish'?

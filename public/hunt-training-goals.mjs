@@ -10,6 +10,7 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'parry-heal':{category:'Defense',goal:'Counter the opponent during a real vial-healing animation.',trigger:'heal',success:'gunParry'},
  'parry-blood':{category:'Defense',goal:'Counter the opponent while crafting temporary blood rounds.',trigger:'blood',success:'gunParry'},
  'escape-stun':{category:'Defense',goal:'Quickstep out of ordinary hitstun after the eight-frame threshold.',trigger:'hit',success:'stunEscape'},
+ 'stamina-escape':{category:'Resources',goal:'Preserve the costly 25-stamina hitstun escape. Dodge promptly after a REAL enemy hit instead of wasting early stamina.',trigger:'hit',success:'promptFundedEscape'},
  'dodge-shot':{category:'Defense',goal:'Quickstep during an incoming firearm shot without taking the hit.',trigger:'shot',success:'dodgeShot'},
  'anti-air':{category:'Defense',goal:'Connect a legal attack against a genuine airborne opponent.',trigger:'jump',success:'airHit'},
  'air-parry':{category:'Defense',goal:'Jump once and land an airborne firearm parry on a committed heavy action.',trigger:'heavy',success:'airParry'},
@@ -74,6 +75,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    drill==='parry-heal'&&is(e,'action',1,'heal')||
    drill==='parry-blood'&&is(e,'action',1,'blood')||
    drill==='escape-stun'&&is(e,'hit',1)||
+   drill==='stamina-escape'&&is(e,'hit',1)&&e.target===0||
    drill==='dodge-shot'&&is(e,'action',1,'shot')||
    drill==='anti-air'&&is(e,'jump',1)||
    drill==='air-parry'&&is(e,'action',1,'foldedHeavy')||
@@ -131,6 +133,16 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    case 'escape-stun':
     if(is(e,'action',0,'step')&&e.playerStartedStunned===true)success(e);
     break;
+   case 'stamina-escape':{
+    // The core already rejects actions below (19+6) stamina. Score ONLY a
+    // real paid dodge out of ordinary stun soon after real melee damage.
+    // A normal neutral dodge once stun expired, a delayed regenerated
+    // escape or an action input which failed to start gets no credit.
+    if(!is(e,'action',0,'step')||e.playerStartedStunned!==true)break;
+    const hit=earlier(entries,i,p=>is(p,'hit',1)&&p.target===0,8,12);
+    if(hit)success(e,hit.tick);
+    break;
+   }
    case 'dodge-shot':
     // A firearm can miss because it was too far away or fired backward.
     // Only score a true dodge when the practice projection confirms that

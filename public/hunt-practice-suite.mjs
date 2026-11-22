@@ -21,6 +21,10 @@ export const HUNT_PRACTICE_DRILLS=Object.freeze([
  Object.freeze({id:'parry-heal',label:'Counter Vial Healing',spacing:106,action:'heal',startAt:55}),
  Object.freeze({id:'parry-blood',label:'Counter Blood Rounds',spacing:106,action:'blood',startAt:55}),
  Object.freeze({id:'escape-stun',label:'Hitstun Quickstep Escape',spacing:100,action:'light',startAt:55}),
+ // Start at a genuinely scarce 25-stamina reserve. An unfurled enemy
+ // attacks from outside OUR folded R1 range; reckless opening R1 use
+ // sacrifices the ability to dodge immediately after the incoming hit.
+ Object.freeze({id:'stamina-escape',label:'Resources: Preserve Stamina for Hitstun Escape',spacing:130,action:'light',startAt:12}),
  Object.freeze({id:'dodge-shot',label:'Evade Firearm Shot',spacing:140,action:'shot',startAt:55}),
  // Extra drills copy useful training concepts, NOT guarding, throws, tag
  // moves, SF6 high/low mixups, DMC air-dashes or infinite ammunition.
@@ -154,6 +158,10 @@ export function huntPracticeSession({weapons,seed=1,drill='free'}={}){
   start.p[0].x=480-scenario.spacing/2;
   start.p[1].x=480+scenario.spacing/2;
   if(drill==='parry-heal')start.p[1].hp=60;
+  if(drill==='stamina-escape'){
+   start.p[0].st=25;
+   start.p[1].form='unfurled';
+  }
   if(drill==='corner-escape'||drill==='corner-interrupt-left'){
    // Both drills start from a legitimate left wall situation.
    start.p[0].x=65;start.p[1].x=107;

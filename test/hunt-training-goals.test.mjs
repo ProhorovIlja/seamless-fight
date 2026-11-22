@@ -10,8 +10,8 @@ function run(session,actions={},count=95){
   assert.equal(session.append(actions[tick]||cmd()),true,'source append tick '+tick);
  return session;
 }
-test('all twenty-three source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,23);
+test('all twenty-four source drills are authored in English, mapped to real categories and ranked nowhere',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,24);
  const categories=new Set();
  for(const scenario of HUNT_PRACTICE_DRILLS){
   assert(Object.hasOwn(HUNT_TRAINING_GOALS,scenario.id));

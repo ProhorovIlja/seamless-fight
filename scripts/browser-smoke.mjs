@@ -510,8 +510,8 @@ try{
  await hunt.locator('#drill').selectOption('parry-heal');
  assert.equal(await hunt.locator('#p1-health').getAttribute('style'),'width: 60%;');
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Counter Vial Healing/);
- assert.equal(await hunt.locator('#drill option').count(),23,
-  'all 23 genuine source-based English Hunt drills must appear');
+ assert.equal(await hunt.locator('#drill option').count(),24,
+  'all 24 genuine source-based English Hunt drills must appear');
  // The new real R2-vs-feint read must be a PLAYABLE English scenario,
  // not merely a Node-only scorer invisible in the browser.
  await hunt.locator('#drill').selectOption('parry-feint-read');

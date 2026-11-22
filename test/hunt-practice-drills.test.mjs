@@ -11,10 +11,10 @@ const run=(session,{shootTick=-1,stepTick=-1,frames=85}={})=>{
  }
  return {state:session.inspect(),events:session.eventHistory(400)};
 };
-test('23 English-only 1v1 scenarios all use original source actions, never guard/throws',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,23);
+test('24 English-only 1v1 scenarios all use original source actions, never guard/throws',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,24);
  assert.deepEqual(HUNT_PRACTICE_DRILLS.map(x=>x.id),[
-  'free','parry-heavy','parry-heal','parry-blood','escape-stun','dodge-shot',
+  'free','parry-heavy','parry-heal','parry-blood','escape-stun','stamina-escape','dodge-shot',
   'anti-air','air-parry','whiff-punish','dodge-punish','gun-whiff-punish','counter-hit','hit-confirm','transform-pressure',
   'rally-reclaim','blood-economy','timing-read','parry-feint-read','visceral-followup','corner-escape','corner-escape-right',
   'corner-interrupt-left','corner-interrupt-right']);
