@@ -3,6 +3,7 @@
 import {HUNT_RULESET,HUNT_HZ,HUNT_MOVES,huntStep}
  from './side-hunt-lab.mjs';
 import {loadHuntReplay,huntReplayFingerprint} from './side-hunt-replay.mjs';
+import {huntSourceWhiffPunishes} from './hunt-punish-provenance.mjs';
 
 export const HUNT_STATS_SCHEMA='sf-hunt-practice-metrics/1';
 const fresh=slot=>({
@@ -14,6 +15,7 @@ const fresh=slot=>({
  dodgeEscapes:0,quicksteps:0,rearStaggers:0,cornerEscapes:0,
  recoveryPunishes:0,firearmRecoveryPunishes:0,
  confirmedWhiffRecoveryPunishes:0,confirmedGunWhiffRecoveryPunishes:0,
+ confirmedWhiffPunishWindows:[],
  dodgeVulnerableTailPunishes:0,dodgeRecoveryPunishes:0,startupInterrupts:0,
  vialsUsed:0,bloodRituals:0,bloodRoundsCreated:0,
  rallyHealthReclaimed:0,maxCombo:0
@@ -30,19 +32,18 @@ export function analyzeHuntReplay(capture){
  const game=structuredClone(capture.startState);
  const players=[fresh(0),fresh(1)];
  const rounds=[];
- // True whiff punishment requires a MISSED move observed in this
- // independently re-simulated replay AND contact before that same move
- // completes recovery. A seeded already-recovering state has no recorded
- // historical whiff evidence, even if a recovery hit is possible.
- const lastWhiff=[null,null];
+ // Exact canonical source events are retained only during local replay
+ // re-simulation. A shared post-match classifier attributes a TRUE whiff
+ // punish consistently across replay statistics, neutral and corner study.
+ const sourceEvents=[];
  for(const inputs of capture.frames){
   const before=structuredClone(game.p);
   const events=[];
   huntStep(game,inputs,events);
+  sourceEvents.push(...events);
   for(const ev of events){
    if(ev.kind==='round'){
     rounds.push({tick:ev.tick,winner:ev.winner,matchOver:ev.over===true});
-    lastWhiff[0]=null;lastWhiff[1]=null;
     continue;
    }
    if(![0,1].includes(ev.actor))continue;
@@ -50,7 +51,6 @@ export function analyzeHuntReplay(capture){
    const other=players[1-ev.actor];
    switch(ev.kind){
     case 'action':
-     lastWhiff[ev.actor]=null; // a new move ends the previous whiff's identity
      p.actionStarts++;
      if(isMelee(ev.move)||['light','heavy','charge','trick'].includes(ev.move))p.meleeStarts++;
      if(ev.move==='visceral')p.visceralAttempts++;
@@ -60,18 +60,8 @@ export function analyzeHuntReplay(capture){
      }
      break;
     case 'hit':
-     // Confirmed enemy state at impact, never inferred from a keypress.
-     if(ev.punishedRecovery===true&&[0,1].includes(ev.target)&&
-        lastWhiff[ev.target]?.move===ev.punishedMove&&
-        Number.isInteger(ev.tick)&&
-        ev.tick>=lastWhiff[ev.target].tick){
-      p.confirmedWhiffRecoveryPunishes++;
-      if(['shot','airShot'].includes(ev.punishedMove))
-       p.confirmedGunWhiffRecoveryPunishes++;
-     }
-     // The victim is now interrupted: no new 'whiff punish' can be
-     // credited from this same recovering action on a subsequent hit.
-     if([0,1].includes(ev.target))lastWhiff[ev.target]=null;
+     // Generic phase-based recovery contacts are distinct from causal
+     // confirmed whiff punishes, which are resolved after replay.
      if(ev.punishedRecovery===true){
       p.recoveryPunishes++;
       if(['shot','airShot'].includes(ev.punishedMove))
@@ -86,7 +76,6 @@ export function analyzeHuntReplay(capture){
      other.damageTakenFromConfirmedEvents+=ev.damage;
      break;
     case 'whiff':
-     lastWhiff[ev.actor]={tick:ev.tick,move:ev.move};
      if(isMelee(ev.move))p.meleeWhiffs++;
      if(ev.move==='shot'||ev.move==='airShot')p.firearmWhiffs++;
      break;
@@ -133,12 +122,23 @@ export function analyzeHuntReplay(capture){
    }
   }
  }
+ for(const slot of [0,1]){
+  const evidence=huntSourceWhiffPunishes(sourceEvents,slot,1-slot);
+  const player=players[slot];
+  if(evidence.recoveryPhaseContacts!==player.recoveryPunishes)
+   throw Error('Source replay recovery attribution diverged');
+  player.confirmedWhiffRecoveryPunishes=evidence.sourceConfirmedWhiffPunishes;
+  player.confirmedGunWhiffRecoveryPunishes=evidence.confirmations.filter(x=>
+   x.move==='shot'||x.move==='airShot').length;
+  player.confirmedWhiffPunishWindows=evidence.confirmations;
+ }
  if(huntReplayFingerprint(game)!==verified.stats().fingerprint)
   throw Error('Statistics replay state diverged');
  const summary=players.map(p=>Object.freeze({
   ...p,
   parriesByInterruptedAction:Object.freeze({...p.parriesByInterruptedAction}),
   parryImpactWindows:Object.freeze([...p.parryImpactWindows]),
+  confirmedWhiffPunishWindows:Object.freeze([...p.confirmedWhiffPunishWindows]),
   firearmAccuracy:p.firearmShots?Number((p.firearmHits/p.firearmShots*100).toFixed(2)):null,
   meleeContactRate:p.meleeHits+p.meleeWhiffs?
    Number((p.meleeHits/(p.meleeHits+p.meleeWhiffs)*100).toFixed(2)):null,
