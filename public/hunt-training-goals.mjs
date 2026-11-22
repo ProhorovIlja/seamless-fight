@@ -22,7 +22,7 @@ export const HUNT_TRAINING_GOALS=Object.freeze({
  'rally-reclaim':{category:'Resources',goal:'Take a real melee hit, then reclaim health through a confirmed melee strike.',trigger:'hit',success:'rally'},
  'blood-economy':{category:'Resources',goal:'Create five temporary rounds at an HP cost and fire one afterward.',trigger:'bloodBullets',success:'bloodShot'},
  'timing-read':{category:'Reads & Footsies',goal:'Read a committed heavy or a genuine feint, then retaliate when a safe opening appears.',trigger:'heavy',success:'timingPunish'},
- 'parry-feint-read':{category:'Reads & Footsies',goal:'Parry the committed heavy; withhold your shot against the visible feint.',trigger:'heavy',success:'gunParry'},
+ 'parry-feint-read':{category:'Reads & Footsies',goal:'Parry a committed R2, or read the feint, save the bullet and actively create space.',trigger:'heavy',success:'gunParryOrFeintFootwork'},
  'visceral-followup':{category:'Offense',goal:'Convert a successful firearm counter into a real timed visceral strike.',trigger:'gunParry',success:'visceral'},
  'corner-escape':{category:'Defense',goal:'Escape the LEFT wall by a paid forward quickstep THROUGH the opponent during real i-frames.',trigger:'heavy',success:'cornerEscape'},
  'corner-escape-right':{category:'Defense',goal:'Escape the RIGHT wall by a paid forward quickstep THROUGH the opponent during real i-frames.',trigger:'heavy',success:'cornerEscape'},
@@ -98,6 +98,24 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
    case 'parry-feint-read':
    case 'parry-heal':
    case 'parry-blood':{
+    if(drill==='parry-feint-read'&&
+      is(e,'feintReadWindowClosed',1,'feint')&&
+      e.sourceStateVerified===true){
+     const feint=earlier(entries,i,p=>is(p,'action',1,'feint'),1,24);
+     const heavy=earlier(entries,i,p=>is(p,'action',1,'foldedHeavy'),1,60);
+     // A no-input/passive dummy feint is NOT proof of a human read.
+     // Reward only real, source-observed FOOTWORK creating safe space,
+     // and only if no firearm was wasted since the R2 commitment.
+     if(feint&&heavy&&heavy.tick<feint.tick&&
+       Number.isFinite(e.playerX)&&Number.isFinite(feint.playerX)&&
+       Math.abs(e.playerX-feint.playerX)>=12&&
+       Number.isFinite(e.distance)&&Number.isFinite(feint.distance)&&
+       e.distance>=feint.distance+8&&
+       !entries.some(p=>p.tick>=heavy.tick&&p.tick<=e.tick&&
+        is(p,'action',0)&&['shot','airShot'].includes(p.move)))
+      success(e,heavy.tick);
+     break;
+    }
     if(!is(e,'gunParry',0))break;
     const move=['parry-heavy','parry-feint-read'].includes(drill)?
      'foldedHeavy':drill==='parry-heal'?'heal':'blood';
