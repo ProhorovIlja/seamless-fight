@@ -33,7 +33,7 @@ test('an R2 actually begun at a left wall and a mirrored right wall has the SAME
 
 test('simulated footsies matrix can isolate genuine wall whiffs and does not fabricate crossing',()=>{
  const rows=huntFullWhiffMatrix({
-  arenaSides:['left','right'],gaps:[32],approaches:['hold'],
+  arenaSides:['left','right'],gaps:[48],approaches:['hold'],
   answers:['light','shot','step'],delays:[0,12]
  });
  assert.equal(rows.length,2*2*2*2*2*2*3*2);
@@ -44,7 +44,7 @@ test('simulated footsies matrix can isolate genuine wall whiffs and does not fab
 });
 
 test('prematurely walking into a telegraphed R2 is a dangerous spacing mistake, NOT rewarded as a whiff',()=>{
- let unsafe=0,protected=0;
+ let unsafe=0,safe=0;
  for(const attackerWeapon of HUNT_WEAPONS)
   for(const attackerForm of HUNT_FORMS)
    for(const attackerHeavy of ['Heavy','Charged'])
@@ -60,7 +60,7 @@ test('prematurely walking into a telegraphed R2 is a dangerous spacing mistake, 
       assert.equal(r.answerRequestedTick,null);
       assert.equal(r.category,'R2HitNoWhiff');
      }else if(r.realR2Whiff){
-      protected++;
+      safe++;
       assert.equal(r.answerRequestedTick,r.whiffTick+13);
      }else{
       assert.fail('only real R2 contact or real R2 whiff may define this trial');
@@ -68,5 +68,5 @@ test('prematurely walking into a telegraphed R2 is a dangerous spacing mistake, 
     }
  assert(unsafe>0,
   'one or more early approach reads must expose the defender to a real R2 hit');
- assert.equal(unsafe+protected,16);
+ assert.equal(unsafe+safe,16);
 });
