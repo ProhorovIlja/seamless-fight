@@ -54,6 +54,12 @@ test('alternate R1, shot and step are real independent takes of identical commit
     assert.equal(r.replayCapture.startState.tick,recorded.whiffTick);
     assert.equal(loadHuntReplay(r.replayCapture).stats().fingerprint,
      r.replayFingerprint);
+    // Critical for fair training: no branch rewrites or foretells any
+    // of the recorded R2 hunter's future decisions.
+    for(let t=0;t<r.replayCapture.frames.length;t++)
+     assert.deepEqual(r.replayCapture.frames[t][1-recorded.defenderSlot],
+      recorded.replayCapture.frames[recorded.whiffTick+t][1-recorded.defenderSlot],
+      'alternate defense must never rewrite opponent history');
     seen.add(r.replayFingerprint);
     if(r.gunParry)assert.equal(answer,'shot');
     if(r.actualWhiffRecoveryHit||r.actualTrickStartupInterrupt)
