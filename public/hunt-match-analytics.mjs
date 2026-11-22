@@ -8,6 +8,7 @@ export const HUNT_STATS_SCHEMA='sf-hunt-practice-metrics/1';
 const fresh=slot=>({
  slot,actionStarts:0,meleeStarts:0,meleeHits:0,meleeWhiffs:0,
  firearmShots:0,firearmHits:0,firearmParries:0,firearmWhiffs:0,
+ parriesByInterruptedAction:{},parryImpactWindows:[],
  viscerals:0,visceralAttempts:0,
  damageFromConfirmedEvents:0,damageTakenFromConfirmedEvents:0,
  dodgeEscapes:0,quicksteps:0,rearStaggers:0,cornerEscapes:0,
@@ -79,6 +80,18 @@ export function analyzeHuntReplay(capture){
      break;
     case 'gunParry':{
      p.firearmHits++;p.firearmParries++;
+     // This is the action actually interrupted at bullet impact, not
+     // a guessed earlier R2 input. Preserve source-provenance for
+     // replay review and frame-perfect training without fake Elo.
+     if(typeof ev.interruptedMove==='string'&&
+        Object.hasOwn(HUNT_MOVES,ev.interruptedMove)&&
+        Number.isInteger(ev.interruptedAge)&&ev.interruptedAge>=1){
+      p.parriesByInterruptedAction[ev.interruptedMove]=
+       (p.parriesByInterruptedAction[ev.interruptedMove]??0)+1;
+      p.parryImpactWindows.push(Object.freeze({
+       tick:ev.tick,move:ev.interruptedMove,age:ev.interruptedAge
+      }));
+     }
      // Parry event lacks a separate damage field; the source firearm
      // always deals the same four raw damage before staggering.
      const shotDamage=Math.min(HUNT_MOVES.shot.damage,before[ev.target].hp);
@@ -104,6 +117,8 @@ export function analyzeHuntReplay(capture){
   throw Error('Statistics replay state diverged');
  const summary=players.map(p=>Object.freeze({
   ...p,
+  parriesByInterruptedAction:Object.freeze({...p.parriesByInterruptedAction}),
+  parryImpactWindows:Object.freeze([...p.parryImpactWindows]),
   firearmAccuracy:p.firearmShots?Number((p.firearmHits/p.firearmShots*100).toFixed(2)):null,
   meleeContactRate:p.meleeHits+p.meleeWhiffs?
    Number((p.meleeHits/(p.meleeHits+p.meleeWhiffs)*100).toFixed(2)):null,
