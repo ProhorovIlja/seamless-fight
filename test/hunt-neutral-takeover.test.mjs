@@ -71,6 +71,15 @@ test('replay takeover will not trust forged whiff metadata, modified inputs or f
  const metadata={...recorded,whiffTick:recorded.whiffTick+1};
  assert.throws(()=>huntRecordedNeutralTakeover(metadata),TypeError,
   'a user-authored claimed whiff tick is not sufficient to earn a punish');
+ assert.throws(()=>huntRecordedNeutralTakeover({
+  ...recorded,answerRequestedTick:recorded.answerRequestedTick+1
+ }),TypeError,'original response tick must agree with actual captured input');
+ assert.throws(()=>huntRecordedNeutralTakeover({
+  ...recorded,answer:'shot'
+ }),TypeError,'a forged original answer cannot silently replace a different action');
+ assert.throws(()=>huntRecordedNeutralTakeover({
+  ...recorded,responseDelay:recorded.responseDelay+1
+ }),TypeError,'author-reported latency cannot disagree with actual input tick');
  const corrupted={...recorded,
   replayCapture:structuredClone(recorded.replayCapture)};
  corrupted.replayCapture.frames[0][1].act='light';
