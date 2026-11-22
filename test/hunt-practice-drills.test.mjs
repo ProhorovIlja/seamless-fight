@@ -11,12 +11,12 @@ const run=(session,{shootTick=-1,stepTick=-1,frames=85}={})=>{
  }
  return {state:session.inspect(),events:session.eventHistory(400)};
 };
-test('22 English-only 1v1 scenarios all use original source actions, never guard/throws',()=>{
- assert.equal(HUNT_PRACTICE_DRILLS.length,22);
+test('23 English-only 1v1 scenarios all use original source actions, never guard/throws',()=>{
+ assert.equal(HUNT_PRACTICE_DRILLS.length,23);
  assert.deepEqual(HUNT_PRACTICE_DRILLS.map(x=>x.id),[
   'free','parry-heavy','parry-heal','parry-blood','escape-stun','dodge-shot',
   'anti-air','air-parry','whiff-punish','dodge-punish','gun-whiff-punish','counter-hit','hit-confirm','transform-pressure',
-  'rally-reclaim','blood-economy','timing-read','visceral-followup','corner-escape','corner-escape-right',
+  'rally-reclaim','blood-economy','timing-read','parry-feint-read','visceral-followup','corner-escape','corner-escape-right',
   'corner-interrupt-left','corner-interrupt-right']);
  for(const scenario of HUNT_PRACTICE_DRILLS){
   const session=huntPracticeSession({drill:scenario.id,weapons:['thornwake','mournweave']});
@@ -34,11 +34,11 @@ test('22 English-only 1v1 scenarios all use original source actions, never guard
     assert.equal(state.p[1].x,853);
     assert.equal(state.p[0].dir,-1);
    }
-   assert.equal(session.stats().mode,scenario.id==='timing-read'?'random':'loop');
+   assert.equal(session.stats().mode,['timing-read','parry-feint-read'].includes(scenario.id)?'random':'loop');
    assert.equal(session.slotData(0).length,150);
    assert.equal(session.slotData(0)[scenario.startAt].act,scenario.action);
    assert.equal(session.inspect().p[1].act,'');
-   if(scenario.id==='timing-read'){
+   if(['timing-read','parry-feint-read'].includes(scenario.id)){
     assert.equal(session.slotData(1).length,150);
     assert.equal(session.slotData(1)[scenario.startAt+7].act,'feint');
    }
