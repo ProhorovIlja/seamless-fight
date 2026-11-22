@@ -155,6 +155,8 @@ function reset(keepWeapons=true){
   objective.category+' · '+selected.spacing+'-unit starting distance. '+(
    selected.id==='timing-read'?
     'Two deterministic normal-input tapes alternate heavy commitment and real feint.':
+    selected.id==='parry-feint-read'?
+    'Read two real dummy tapes: parry a COMMITTED heavy with a timely shot, but save ammunition against its authentic feint. Choose Recording 1/2 or deterministic Random to compare outcomes. Only a source-confirmed interrupted R2 scores a parry.':
     selected.id==='gun-whiff-punish'?
     'Quickstep through the live firearm hitbox, then land a melee attack while the missed gun is STILL recovering. A gun parry or a late hit is not a whiff punish.':
     selected.id==='whiff-punish'?
@@ -548,10 +550,15 @@ $('metrics').addEventListener('click',()=>{
   $('damage').textContent=String(a.damageFromConfirmedEvents);
   $('escapes').textContent=String(a.dodgeEscapes);
   $('rally').textContent=String(a.rallyHealthReclaimed);
+  const interrupted=Object.entries(a.parriesByInterruptedAction)
+   .map(([move,count])=>move+' ×'+count).join(', ')||'none';
   status('Analyzed '+data.observedFrames+' verified local simulation frames · UNRATED 1v1.'+
-   ' Neutral reads: '+a.recoveryPunishes+' recovery punishes, '+
+   ' Neutral reads: '+a.confirmedWhiffRecoveryPunishes+
+   ' source-confirmed whiff punishes ('+a.confirmedGunWhiffRecoveryPunishes+
+   ' firearm), '+a.recoveryPunishes+' recovery-phase hits, '+
    a.dodgeRecoveryPunishes+' dodge punishes, '+
-   a.startupInterrupts+' startup interrupts.');
+   a.startupInterrupts+' startup interrupts.'+
+   ' Actual gun parry interrupts: '+interrupted+'.');
  }catch(err){status('Local analysis failed: '+err.message);}
 });
 const categories=new Map();
