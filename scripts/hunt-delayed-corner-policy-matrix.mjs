@@ -1,6 +1,7 @@
 // Seamless Fight: source-simulated 2.5D Hunt v3 corner decisions under delayed observations.
 // Not rollback networking, proof of human reaction, or a completed balanced opponent.
 import {pathToFileURL} from 'node:url';
+import {huntSourceWhiffPunishes} from '../public/hunt-punish-provenance.mjs';
 import {huntMatch,huntStep,huntCanAct,HUNT_HZ,HUNT_RULESET,HUNT_WEAPONS,
  HUNT_HITSTUN_ESCAPE_START,HUNT_MOVES} from '../public/side-hunt-lab.mjs';
 
@@ -15,41 +16,9 @@ const observe=p=>Object.freeze({act:p.act,age:p.age,x:p.x,dir:p.dir,form:p.form}
 const counts=(events,kind,actor,target)=>events.filter(e=>e.kind===kind&&e.actor===actor&&
  (target===undefined||e.target===target)).length;
 
-// Source-event classification only. A melee hit on a recovering hunter is
-// NOT automatically a WHIFF punish: the SAME move must actually have missed
-// in the observed source history, with no intervening new action, hit, parry
-// or completed round invalidating that particular miss.
-export function huntCornerWhiffProvenance(events,defender=0,attacker=1){
- if(!Array.isArray(events)||![0,1].includes(defender)||
-    ![0,1].includes(attacker)||defender===attacker)
-  throw TypeError('Expected 1v1 source events and distinct player slots');
- let missed=null,recoveryPhaseContacts=0,sourceConfirmedWhiffPunishes=0;
- const confirmations=[];
- for(const e of events){
-  if(!e||!Number.isSafeInteger(e.tick))continue;
-  if(e.kind==='action'&&e.actor===attacker)missed=null;
-  if(e.kind==='whiff'&&e.actor===attacker)
-   missed={tick:e.tick,move:e.move};
-  if(e.kind==='hit'&&e.target===attacker){
-   if(e.actor===defender&&e.punishedRecovery===true){
-    recoveryPhaseContacts++;
-    if(missed&&missed.move===e.punishedMove&&
-       missed.tick<e.tick&&Number.isInteger(e.remainingRecovery)&&
-       e.remainingRecovery>0){
-     sourceConfirmedWhiffPunishes++;
-     confirmations.push(Object.freeze({whiffTick:missed.tick,hitTick:e.tick,
-      move:e.punishedMove,remainingRecovery:e.remainingRecovery}));
-    }
-   }
-   missed=null;
-  }
-  if(e.kind==='gunParry'&&e.target===attacker||e.kind==='round')
-   missed=null;
- }
- return Object.freeze({recoveryPhaseContacts,sourceConfirmedWhiffPunishes,
-  unconfirmedRecoveryContacts:recoveryPhaseContacts-sourceConfirmedWhiffPunishes,
-  confirmations:Object.freeze(confirmations)});
-}
+// Backward-compatible name for corner-specific studies. The canonical
+// same-action miss attribution now also powers visual-neutral research.
+export const huntCornerWhiffProvenance=huntSourceWhiffPunishes;
 
 function defenderInput(me,read,policy,inward){
  const available=huntCanAct(me);
