@@ -3,7 +3,8 @@
 // All combat comes from the exact versioned deterministic Hunt rules.
 import {
  HUNT_RULESET,HUNT_HZ,huntInput,huntMatch,huntStep,
- huntInspector,huntFrameTable,canonicalHuntInput,huntCanAct,HUNT_FLOOR
+ huntInspector,huntFrameTable,canonicalHuntInput,huntCanAct,HUNT_FLOOR,
+ huntAttackbox,huntHurtbox,huntMoveSpec
 } from './side-hunt-lab.mjs';
 import {createHuntReplay,loadHuntReplay} from './side-hunt-replay.mjs';
 import {analyzeHuntReplay} from './hunt-match-analytics.mjs';
@@ -51,12 +52,29 @@ function scoreProjection(tickEvents,beforePlayerAction,confirmedState,wallBefore
  // resolve AFTER movement. Mixing those two timings loses real wall
  // pressure if the defender quicksteps off the wall on the same tick.
  const wallAfterTick=wallOf(confirmedState.p[0].x);
+ // A shot that missed is NOT evidence that the player dodged it. To
+ // confirm an i-frame evade, the bullet must physically overlap the
+ // player's real hurtbox, in the real firing direction, at the instant
+ // source combat would have resolved the hit. huntStep increments ages
+ // after resolving contact, so subtract one from the post-step dodge age.
+ // This is read-only training evidence; it never changes hit detection.
+ const player=confirmedState.p[0],opponent=confirmedState.p[1];
+ const shot=huntAttackbox(opponent),hurt=huntHurtbox(player);
+ const overlap=Boolean(shot&&hurt&&shot.left<hurt.right&&
+  shot.right>hurt.left&&shot.top<hurt.bottom&&shot.bottom>hurt.top);
+ const shotSpec=opponent.act==='shot'?huntMoveSpec(opponent):null;
+ const firedOnThisTick=Boolean(shotSpec&&
+  opponent.age===shotSpec.startup+shotSpec.active);
+ const dodgeProtectedOnThisTick=player.act==='step'&&
+  player.age>=2&&player.age<=7;
  return tickEvents.map(e=>({...e,
   playerWall:e.kind==='action'?wallBeforeTick:wallAfterTick,
-  playerAirborne:confirmedState.p[0].y<HUNT_FLOOR,
-  opponentAirborne:confirmedState.p[1].y<HUNT_FLOOR,
+  playerAirborne:player.y<HUNT_FLOOR,
+  opponentAirborne:opponent.y<HUNT_FLOOR,
   playerStartedStunned:beforePlayerAction==='stun',
-  distance:Math.abs(confirmedState.p[0].x-confirmedState.p[1].x)
+  distance:Math.abs(player.x-opponent.x),
+  confirmedDodgeEvade:e.kind==='whiff'&&e.actor===1&&e.move==='shot'&&
+   firedOnThisTick&&dodgeProtectedOnThisTick&&overlap
  }));
 }
 function makeDrillTape(scenario,variation=0){
