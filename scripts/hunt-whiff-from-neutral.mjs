@@ -16,7 +16,7 @@ const requireRule=(okay,why)=>{if(!okay)throw TypeError(why);};
 export function huntFullWhiffTrial({
  attackerWeapon='mournweave',defenderWeapon='mournweave',
  attackerForm='folded',attackerHeavy='Heavy',defenderSlot=0,
- arenaSide='center',initialGap=32,approach='hold',
+ arenaSide='center',initialGap=48,approach='hold',
  answer='light',responseDelay=0,frames=125
 }={}){
  requireRule(HUNT_WEAPONS.includes(attackerWeapon),'Unknown attacker weapon');
@@ -125,7 +125,7 @@ export function huntFullWhiffTrial({
 }
 
 export function huntFullWhiffMatrix({
- gaps=[32],approaches=['hold','postWhiffWalk'],
+ gaps=[48],approaches=['hold','postWhiffWalk'],
  delays=HUNT_FULL_WHIFF_DELAYS,answers=HUNT_FULL_WHIFF_ANSWERS,
  arenaSides=['center']
 }={}){
