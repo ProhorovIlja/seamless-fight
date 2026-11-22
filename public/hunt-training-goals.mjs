@@ -52,6 +52,7 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
  const definition=HUNT_TRAINING_GOALS[drill];
  let attempts=0,successes=0,lastSuccessTick=null,lastAttemptTick=null;
  let lastIntervalFrames=null,bestIntervalFrames=null,intervalSum=0,intervalSamples=0;
+ const creditedTimingOpportunities=new Set();
  // Every evidence entry comes from the local 60Hz source state projection.
  // Stable order matters for reaction/convert sequences.
  const entries=evidence.filter(e=>e&&Number.isSafeInteger(e.tick)&&
@@ -192,12 +193,38 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
     if(is(e,'fire',0)&&
       earlier(entries,i,p=>is(p,'bloodBullets',0),0,150))success(e);
     break;
-   case 'timing-read':
-    if(is(e,'hit',0)&&(
-      earlier(entries,i,p=>is(p,'action',1,'feint'),0,50)||
-      earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),0,25)
-     ))success(e);
+   case 'timing-read':{
+    if(!is(e,'hit',0)||e.target!==1)break;
+    // A genuine R2 whiff punish MUST have physically contacted that same
+    // recovering R2, with an observed source whiff and no new opponent act.
+    const missed=earlier(entries,i,p=>is(p,'whiff',1,'foldedHeavy'),1,25);
+    const newActionSince=fromTick=>entries.some(p=>p.tick>fromTick&&
+     p.tick<=e.tick&&is(p,'action',1));
+    if(missed&&e.punishedRecovery===true&&
+       e.punishedMove==='foldedHeavy'&&e.remainingRecovery>0&&
+       !newActionSince(missed.tick)&&
+       !creditedTimingOpportunities.has('whiff:'+missed.tick)){
+     creditedTimingOpportunities.add('whiff:'+missed.tick);
+     success(e,missed.tick);
+     break;
+    }
+    // The separate FEINT branch is an active spacing/read conversion,
+    // not a false claim that the rival is still punishable in R2 recovery.
+    // It needs a REAL heavy -> authored feint, a MELEE HIT within a short
+    // decision window, and NO newly started enemy action before contact.
+    const feint=earlier(entries,i,p=>is(p,'action',1,'feint'),1,20);
+    if(!feint||newActionSince(feint.tick)||
+       creditedTimingOpportunities.has('feint:'+feint.tick))break;
+    const j=entries.indexOf(feint);
+    const committed=earlier(entries,j,p=>is(p,'action',1,'foldedHeavy'),1,18);
+    if(!committed)break;
+    const switched=entries.some(p=>p.tick>committed.tick&&p.tick<feint.tick&&
+     is(p,'action',1));
+    if(switched)break;
+    creditedTimingOpportunities.add('feint:'+feint.tick);
+    success(e,feint.tick);
     break;
+   }
    case 'corner-escape':
    case 'corner-escape-right':{
     const side=drill==='corner-escape'?'left':'right';
