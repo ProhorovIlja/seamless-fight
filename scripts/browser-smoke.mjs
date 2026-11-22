@@ -530,6 +530,9 @@ try{
    'source airborne practice dummy executes a real single jump');
  assert.match(await hunt.locator('#goal-progress').textContent(),/0 confirmed · 1 observed/);
  await hunt.locator('#drill').selectOption('whiff-punish');
+ assert.match(await hunt.locator('#drill-help').textContent(),
+  /missed heavy cannot cancel its FIRST FOUR recovery frames into an L1 trick strike/,
+  'genuine no-block R2 whiff lock must be explained inside Practice Mode');
  // A missed gun is a punishable 60Hz commitment, distinct from an attack
  // whiff. Practice must teach it without adding guarding or throw tech.
  await hunt.locator('#drill').selectOption('gun-whiff-punish');
