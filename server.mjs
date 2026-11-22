@@ -27,6 +27,7 @@ const assets = new Map([
   ['hunt/',['hunt.html','text/html; charset=utf-8']],
   ['hunt.css',['hunt.css','text/css; charset=utf-8']],
   ['hunt.mjs',['hunt.mjs','text/javascript; charset=utf-8']],
+  ['hunt-replay-import.mjs',['hunt-replay-import.mjs','text/javascript; charset=utf-8']],
   ['hunt-render.mjs',['hunt-render.mjs','text/javascript; charset=utf-8']],
   ['hunt-browser-input.mjs',['hunt-browser-input.mjs','text/javascript; charset=utf-8']],
   ['side-hunt-lab.mjs',['side-hunt-lab.mjs','text/javascript; charset=utf-8']],
