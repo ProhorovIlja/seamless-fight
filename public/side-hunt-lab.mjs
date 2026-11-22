@@ -354,6 +354,12 @@ function resolveHit(s,actor,target,moveName,events,preContactRally=0){
  const prior=b.hp;
  if(moveName==='shot'||moveName==='airShot'){
   const parryable=huntParryableAction(b);
+  // Capture the EXACT action and its physical impact-frame age BEFORE
+  // staggering the target. A preceding heavy animation is not proof that
+  // this firearm actually interrupted that heavy (it may have feinted or
+  // finished before the shot). Combat and hit priority are unchanged.
+  const interruptedMove=parryable?b.act:'';
+  const interruptedAge=parryable?b.age:0;
   b.hp=Math.max(0,b.hp-m.damage);
   b.rally=Math.min(100,b.rally+(prior-b.hp));b.rallyLife=HUNT_RALLY_WINDOW;
   a.hitConfirmed=true;
@@ -361,7 +367,8 @@ function resolveHit(s,actor,target,moveName,events,preContactRally=0){
    b.act='stagger';b.age=0;b.exposed=HUNT_VISCERAL_WINDOW;
    b.exposeCause='gun';b.vx=0;b.queue='';b.queueLife=0;b.chain=0;
    b.hitConfirmed=false;
-   events?.push({tick:s.tick,kind:'gunParry',actor,target,opening:b.exposed});
+   events?.push({tick:s.tick,kind:'gunParry',actor,target,opening:b.exposed,
+    interruptedMove,interruptedAge});
   }else events?.push({tick:s.tick,kind:'bulletHit',actor,target,damage:prior-b.hp});
   return;
  }
