@@ -19,6 +19,29 @@ int main(int argc,char**argv){
    s.p[0].x=65;s.p[1].x=107;s.ready=0;
   }else if(scenario=="--corner-right"){
    s.p[0].x=895;s.p[1].x=853;s.ready=0;
+  }else if(scenario.rfind("--morph-counter-p0-",0)==0||
+           scenario.rfind("--morph-counter-p1-",0)==0){
+   // No artificial hit success. A real folded R1 must physically tag
+   // a missed R2/charged R2 before its early queued L1 can rescue it.
+   // Both slots, forms, original weapons and R2 variants are mirrored.
+   const int attacker=scenario.rfind("--morph-counter-p1-",0)==0?1:0;
+   const bool unfolded=scenario.find("-unfurled-")!=std::string::npos;
+   const bool charged_attack=scenario.find("-charged")!=std::string::npos;
+   if(scenario.find("-heavy")==std::string::npos&&!charged_attack)return 7;
+   s.ready=0;s.p[0].x=430;s.p[1].x=500;
+   for(int slot=0;slot<2;slot++){
+    Fighter&p=s.p[slot];p.vx=0;p.dir=slot==0?1:-1;p.st=100;
+   }
+   Fighter&victim=s.p[attacker],&counter=s.p[1-attacker];
+   counter.act=FOLDED_LIGHT;
+   counter.age=spec(counter.weapon,counter.act).startup;
+   counter.form=FOLDED;counter.spent=false;
+   victim.form=unfolded?UNFURLED:FOLDED;
+   victim.act=unfolded?(charged_attack?UNFURLED_CHARGED:UNFURLED_HEAVY):
+                        (charged_attack?FOLDED_CHARGED:FOLDED_HEAVY);
+   const Spec m=spec(victim.weapon,victim.act);
+   victim.age=m.startup+m.active;
+   victim.spent=false;victim.hitConfirmed=false;victim.chain=1;
   }else if(scenario.rfind("--morph-p0-",0)==0||
            scenario.rfind("--morph-p1-",0)==0){
    // Directed exact JS/native parity for a MISSED heavy's vulnerable
