@@ -19,6 +19,7 @@ test('visible recovery timing allows a REAL confirmed melee whiff punish without
  assert.equal(r.predictedRecoveryTick,1+17+6,
   'only pre-authored/public animation duration predicts first recovery frame');
  assert.equal(r.responseRequestedTick,r.predictedRecoveryTick+1);
+ assert.equal(r.sawFeint,false,'ordinary return to neutral must not look like a visible feint');
  assert.equal(r.sourceWhiff,true,'committed R2 must actually miss the target');
  assert.equal(r.sourceAttackHit,false);
  assert.equal(r.realRecoveryPunish,true,
