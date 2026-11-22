@@ -156,7 +156,7 @@ function reset(keepWeapons=true){
    selected.id==='timing-read'?
     'Two deterministic normal-input tapes alternate heavy commitment and real feint.':
     selected.id==='parry-feint-read'?
-    'Read two real dummy tapes: parry a COMMITTED heavy with a timely shot, but save ammunition against its authentic feint. Choose Recording 1/2 or deterministic Random to compare outcomes. Only a source-confirmed interrupted R2 scores a parry.':
+    'Read two real dummy tapes: parry a COMMITTED heavy with a timely shot. Against its authentic feint, SAVE your ammunition and actively walk/step BACK to create space. Passive waiting never scores. Choose Recording 1/2 or deterministic Random. Only source-confirmed gun counters or source-confirmed spaced feints are rewarded.':
     selected.id==='gun-whiff-punish'?
     'Quickstep through the live firearm hitbox, then land a melee attack while the missed gun is STILL recovering. A gun parry or a late hit is not a whiff punish.':
     selected.id==='whiff-punish'?
