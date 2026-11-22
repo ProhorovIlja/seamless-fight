@@ -139,12 +139,21 @@ export function huntWhiffResponseMatrix({
 }
 
 if(process.argv[1]?.endsWith('hunt-whiff-response-matrix.mjs')){
- const results=huntWhiffResponseMatrix();
- const categories={};
- for(const row of results)categories[row.category]=(categories[row.category]??0)+1;
+ const args=process.argv.slice(2);
+ insist(args.every(x=>['--all-arenas','--summary'].includes(x)),
+  'Supported flags are --all-arenas and --summary');
+ const sides=args.includes('--all-arenas')?HUNT_NEUTRAL_ARENAS:['center'];
+ const results=huntWhiffResponseMatrix({arenaSides:sides});
+ const categories={},byArena={};
+ for(const row of results){
+  categories[row.category]=(categories[row.category]??0)+1;
+  const area=byArena[row.arenaSide]??={};
+  area[row.category]=(area[row.category]??0)+1;
+ }
  console.log(JSON.stringify({
   rules:'sf-hunt-lab/3',hz:HUNT_HZ,type:'SOURCE_SIMULATED_NO_GUARD_RESPONSE',
   note:'Seeded missed-R2 recovery, full real 60Hz collision/inputs; not human-reaction validation',
-  scenarioCount:results.length,categories,rows:results
+  scenarioCount:results.length,categories,byArena,
+  ...(args.includes('--summary')?{}:{rows:results})
  },null,2));
 }
