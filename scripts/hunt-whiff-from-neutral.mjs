@@ -179,8 +179,22 @@ export function huntFullWhiffMatrix({
 
 if(process.argv[1]?.endsWith('hunt-whiff-from-neutral.mjs')){
  const flags=process.argv.slice(2);
- requireRule(flags.every(x=>['--all-arenas','--summary','--bait'].includes(x)),
-  'Supported flags: --all-arenas, --summary, --bait');
+ requireRule(flags.every(x=>['--all-arenas','--summary','--bait','--replay-sample'].includes(x)),
+  'Supported flags: --all-arenas, --summary, --bait, --replay-sample');
+ if(flags.includes('--replay-sample')){
+  requireRule(flags.length===1,'--replay-sample is a standalone, one-shot export');
+  const sample=huntFullWhiffTrial({attackerWeapon:'thornwake',
+   defenderWeapon:'mournweave',attackerForm:'unfurled',
+   attackerHeavy:'Charged',arenaSide:'left',
+   approach:'postWhiffWalk',answer:'light',
+   responseDelay:12,recordReplay:true});
+  const {replayCapture,sourceEvents,...summary}=sample;
+  console.log(JSON.stringify({
+   schema:'sf-hunt-neutral-study/1',mode:'offline-unrated',
+   note:'Raw canonical 60Hz inputs: import replayCapture in offline Hunt v3 Practice Mode; not a ranked match',
+   summary,replayCapture
+  },null,2));
+ }else{
  const rows=huntFullWhiffMatrix({
   arenaSides:flags.includes('--all-arenas')?
    ['center','left','right']:['center'],
@@ -200,4 +214,5 @@ if(process.argv[1]?.endsWith('hunt-whiff-from-neutral.mjs')){
   trials:rows.length,outcomeCounts,byPolicy,
   ...(flags.includes('--summary')?{}:{rows})
  },null,2));
+ }
 }
