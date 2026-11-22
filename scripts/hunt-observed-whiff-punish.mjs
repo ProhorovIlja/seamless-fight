@@ -80,7 +80,10 @@ export function huntObservedWhiffTrial({
   // used in the controller. The public startup/active values specify
   // when a completed visible R2 has entered its recovery animation.
   const cue=huntVisibleCueView(s,defenderSlot);
-  if(firstCueTick!==null&&cue.enemyAnimation!==intended)
+  // A completed R2 naturally leaves its attack animation. Only a
+  // VISIBLY authored feint is evidence of a feint; do not label ordinary
+  // return-to-neutral, an interrupt, or an opponent KO as deception.
+  if(firstCueTick!==null&&cue.enemyAnimation==='feint')
    sawFeint=true;
   const validRead=firstCueTick!==null&&!sawFeint&&
    cue.enemyAnimation===intended;
