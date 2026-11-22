@@ -512,6 +512,15 @@ try{
  assert.match(await hunt.locator('#drill option:checked').textContent(),/Counter Vial Healing/);
  assert.equal(await hunt.locator('#drill option').count(),23,
   'all 23 genuine source-based English Hunt drills must appear');
+ // The new real R2-vs-feint read must be a PLAYABLE English scenario,
+ // not merely a Node-only scorer invisible in the browser.
+ await hunt.locator('#drill').selectOption('parry-feint-read');
+ assert.equal(await hunt.locator('#drill').inputValue(),'parry-feint-read');
+ assert.match(await hunt.locator('#drill option:checked').textContent(),
+  /Parry Heavy, Do Not Shoot Feint/);
+ assert.equal(await hunt.locator('#dummy-mode').inputValue(),'random');
+ assert.match(await hunt.locator('#drill-help').textContent(),
+  /parry a COMMITTED heavy.*authentic feint/i);
  // Each wall has distinct visual training and source-verified score rules:
  // no mirrored drill may disappear from the browser just because unit tests pass.
  for(const drill of ['corner-escape','corner-escape-right',
