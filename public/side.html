@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en" data-site-art="off"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0d0f13">
+<title>Side-View Combat Lab | Seamless Fight</title>
+<meta name="description" content="Playable original gothic side-view dueling prototype. Offline practice, deterministic replays, parries and customizable controls.">
+<link rel="stylesheet" href="../side.css"><script type="module" src="../side-view.mjs"></script></head>
+<body>
+<a class="skip" href="#stage">Skip to fight</a>
+<header class="nav"><a class="site" href="/fight/"><img class="duel-crest" src="../art/crossed-swords.svg" alt="" width="28" height="28">SEAMLESS HUNT <span>/ SEAMLESS FIGHT</span></a><span class="nav-chip">SIDE-VIEW LAB · ALPHA</span><a href="/fight/hub/" class="return">The Court · Live 1v1</a><a href="/fight/hunt/" class="return">Hunt v3 Practice</a><a href="/fight/" class="return">Back to online prototype</a></header>
+<main>
+<section class="intro"><p class="eyebrow">ORIGINAL 2D DUEL · THE ASHEN SERIES</p><h1>Where blades meet the dark.</h1><p class="lede">A side-view fighting plane presented through 2.5D layered Gothic architecture, atmospheric depth, animated scenery and original articulated hunters, with precise horizontal spacing, aerial and crouching hurtboxes, feints, deflects and dodges.</p><p class="scope">Local practice and replay takeover are available alongside experimental server-authoritative private side-view 1v1 rooms. Rated matchmaking, rollback, public queues and team combat remain unavailable. The existing /fight/ page retains its separate legacy overhead multiplayer ruleset.</p></section>
+<section class="stage-shell" id="stage" aria-label="Side-view duel">
+ <div class="stage-ribbon"><span id="stage-title">ASHEN RELIQUARY</span><span id="stage-mode">2.5D PRESENTATION · 60 HZ</span></div>
+ <canvas id="fight-canvas" width="960" height="540" aria-label="Two side-view hunters dueling on a horizontal platform. Use the controls beneath the canvas.">Your browser must support HTML Canvas.</canvas>
+ <div class="stage-status"><span id="fight-status" role="status">Choose an arena, then begin sparring.</span><span id="fight-caption" aria-live="polite"></span></div>
+</section>
+<section class="playbar" aria-label="Combat actions">
+ <button class="primary" id="begin">Begin sparring</button><button id="restart">Restart</button><button id="pause">Pause</button><button id="audio" aria-pressed="false">Enable sound</button><button id="record-save" disabled>Save replay</button>
+</section>
+<section class="side-online-bar" aria-label="Experimental online side-view private rooms">
+ <div><strong>Experimental online side-view rooms</strong><p>Server-authoritative 1v1 only · optional host-open spectator galleries · unrated · no rollback or region guarantee.</p></div>
+ <button id="side-host">Host 1v1</button>
+ <label>Invite code <input id="side-code" maxlength="12" placeholder="12-character code" autocomplete="off" spellcheck="false"></label>
+ <button id="side-join">Join room</button>
+ <button id="side-copy" hidden>Copy invitation</button>
+ <button id="side-gallery" hidden>Open public spectator gallery</button>
+ <button id="side-watch-copy" hidden>Copy spectator link</button>
+ <span id="side-audience" aria-live="polite" hidden>0 / 6 spectators</span>
+ <button id="side-rematch" hidden>Request rematch</button>
+ <button id="side-server-replay" hidden>Get server replay</button>
+ <output id="side-network" aria-live="polite">Offline</output>
+</section>
+<section class="panels">
+ <section class="panel"><h2>Hunter's practice</h2>
+  <label>Arena <select id="stage-select"><option value="reliquary">Ashen Reliquary</option><option value="lantern">Lantern Court</option><option value="cistern">Drowned Cloister</option></select></label>
+  <label>Opponent <select id="opponent"><option value="normal">Duelist · Normal</option><option value="easy">Initiate · Easy</option><option value="hard">Executioner · Hard</option><option value="dummy">Still target</option></select></label>
+  <label class="check"><input type="checkbox" id="painted-stage" checked> Original illustrated stage artwork (where available)</label>
+  <label>2.5D environment quality <select id="depth-quality"><option value="cinematic">Cinematic · full atmospheric layers</option><option value="balanced">Balanced · efficient ambient detail</option><option value="performance">Performance · minimal visual layers</option></select></label>
+  <label class="check"><input type="checkbox" id="show-boxes"> Show exact hurtboxes / active hitboxes</label>
+  <label class="check"><input type="checkbox" id="reduce-motion"> Reduced effects</label>
+  <label class="check"><input type="checkbox" id="impact-camera" checked> Subtle camera response on confirmed hits</label>
+  <label class="check"><input type="checkbox" id="high-contrast"> High-contrast fighter outlines</label>
+  <p class="muted">Illustrated artwork is currently available for Ashen Reliquary only. Other stages retain procedural placeholder art until their own approved backgrounds are finished. All art settings are display-only; none changes combat or ranking.</p>
+ </section>
+ <section class="panel"><h2>Hunter wardrobe</h2>
+  <div class="wardrobe-layout"><canvas id="look-preview" width="230" height="225" aria-label="Preview your customized side-view hunter coat, face silhouette, blade and sigil"></canvas>
+   <div class="wardrobe-options">
+    <label>Coat dye <select id="look-dye"></select></label>
+    <label>Hunter sigil <select id="look-sigil"></select></label>
+    <output id="look-note" aria-live="polite">Appearance-only customization. No hitbox, stamina, damage or rank advantage.</output>
+   </div>
+  </div>
+  <p class="muted">Your coat and sigil appear in sparring and private online invitations and are preserved in compatible replays. Full character sculpting and equipment rigging are not yet implemented.</p>
+ </section>
+ <section class="panel artist-stage-studio"><details id="rig-studio"><summary>Artist-only animation atlas preview <span>Advanced / local files</span></summary><div class="studio-fields"><h2>Character animation studio</h2>
+  <p class="muted">Load a real artist-produced 2D atlas and pose manifest for a <strong>local browser preview</strong>. This replaces the placeholder procedural hunters on your screen without editing combat frames or uploading private files to the server. The manifest must include every combat clip and explicit foot pivots.</p>
+  <label>Atlas manifest (.json) <input id="rig-manifest" type="file" accept=".json,application/json"></label>
+  <label>Transparent sprite atlas (.webp) <input id="rig-image" type="file" accept=".webp,image/webp"></label>
+  <div class="playbar"><button id="rig-apply" type="button">Preview authored sprites</button><button id="rig-reset" type="button">Reset character preview</button></div>
+  <output id="rig-status" aria-live="polite">Awaiting authored sprite frames. The visible hunters are prototype placeholders.</output>
+  <p class="muted">Preview art is local and not shared with online peers, and is cleared when the page is reloaded. Export the verified atlas and manifest through the normal GitHub asset-review process before any public release.</p>
+ </div></details></section>
+ <section class="panel"><h2>Replay & takeover</h2>
+  <div class="row"><button id="review" disabled>Review last bout</button><button id="takeover" disabled>Take over Veil</button><button id="resume" disabled>Play replay</button></div>
+  <label>Replay frame <input type="range" id="replay-seek" min="0" max="0" step="1" value="0" disabled></label><output id="replay-frame">0 / 0</output>
+  <div class="row"><button id="frame-back" disabled>− 1 frame</button><button id="frame-next" disabled>+ 1 frame</button></div>
+  <label class="file">Import compatible replay <input id="import-replay" type="file" accept=".json,application/json"></label>
+  <p id="replay-status" role="status">Recordings stay on this device unless explicitly saved as a file. Takeover replaces only Veil's future inputs.</p>
+ </section>
+ <section class="panel"><h2>Combat field guide</h2>
+  <p class="muted">Startup, active and recovery are authoritative simulation frames at 60 Hz. All attacks must overlap the defender's physical hurtbox.</p>
+  <table id="frame-table"><thead><tr><th>Action</th><th>Start</th><th>Active</th><th>Recovery</th><th>Range</th><th>Damage</th></tr></thead><tbody></tbody></table>
+  <p class="muted">Perfect guard: first four guarded frames, if facing the attacker. Crouching passes under high pistol fire. Jump once per upward key press. Quickstep evades within its bounded startup window.</p>
+ </section>
+ <section class="panel"><h2>Remappable inputs</h2>
+  <p class="muted">Your existing Seamless Fight keyboard/gamepad profile is used. Click a binding below to set a new combat key or movement key. The guard key is specific to the side-view lab.</p>
+  <div id="bindings" class="bindings"></div><button id="bindings-reset">Restore side-view defaults</button>
+  <p id="bind-message" role="status"></p>
+  <p id="pad-guide">Standard gamepad: left stick / D-pad move; Up jumps; Down crouches. A / Cross quicksteps; X / Square cuts; Y / Triangle heavy; right bumper fires; left bumper feints; left trigger holds guard.</p>
+ </section>
+<section class="panel frame-inspector"><h2>Live combat inspector</h2><p class="muted">Real horizontal center spacing, active attack rectangles and recovery are read from the currently simulated frame. Nothing is uploaded or inferred from opponent intent.</p><p id="live-spacing">Center distance — · body gap —</p><div class="readouts"><div><strong>VEIL</strong><output id="live-phase-0">Awaiting state</output><output id="live-contact-0"></output></div><div><strong>CINDER</strong><output id="live-phase-1">Awaiting state</output><output id="live-contact-1"></output></div></div><p class="muted" id="live-performance">Local render frame pacing: collecting samples</p></section>
+</section>
+<footer class="footer"><span>SEAMLESS FIGHT · SIDE-VIEW LAB</span><span>Original procedural visuals and score. No Bloodborne assets, website binaries or proprietary music are redistributed.</span></footer>
+</main>
+<section id="touch" class="touch" aria-label="Touch movement and combat" hidden>
+ <div class="touch-group"><button data-held="left">←</button><button data-held="right">→</button><button data-held="jump">Jump</button><button data-held="crouch">Duck</button></div>
+ <div class="touch-group"><button data-act="cut">Cut</button><button data-act="hew">Heavy</button><button data-act="shot">Gun</button><button data-act="step">Step</button><button data-act="feint">Feint</button><button data-held="guard">Guard</button></div>
+</section>
+</body></html>

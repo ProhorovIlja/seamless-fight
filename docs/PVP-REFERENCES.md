@@ -1,0 +1,67 @@
+# PvP design references
+
+- [For Honor terminology guide](https://www.ubisoft.com/en-us/game/for-honor/news-updates/6XEM2qUiwcokp753uCzgkz/for-honor-terminology-guide): feints create a read against defensive reactions. Seamless Fight uses its own early heavy cancel window, a second stamina cost, and fixed recovery. No free cancel, no guardbreak import.
+- [Nidhogg](https://messhof.com/nidhogg): keep spacing and weapon commitment legible with a small move set. The evasion drill isolates missed swings and recovery punishes without more content.
+- [Ikemen GO](https://ikemen-engine.github.io/) and [GGPO](https://www.ggpo.net/): compare sync instrumentation and rollback approaches before replacing the current authoritative transport. No third-party gameplay code or assets imported.
+
+Evaluation: can a player recognize the heavy, deliberately bait a quickstep, then close or punish without creating a dominant feint loop? Compare drill and live duel results; measure attacker/defender input-to-feedback separately across latency and jitter. The animation is original Canvas art; this change does not claim final animation quality or latency parity.
+
+- [Street Fighter 6: Training Mode Recording Tips](https://game.capcom.com/manual/SF6/en/ps5/page/8/6): record a dummy's inputs and reproduce the setup. The duel lab adds one local recording and three built-in scenarios, using the same tick logic as the online duel without altering its protocol.
+- [Ikemen GO replay issue](https://github.com/ikemen-engine/Ikemen-GO/issues/3457): a reminder to regression-test replay reconstruction. Local drill playback is not online rollback or a match replay format.
+
+- [Tekken 8: My Replays & Tips](https://tk8.tekken-official.jp/en/mode/replay.php): retry a specific moment rather than restart the entire practice sequence. Duel Lab reconstructs the chosen tick from the original inputs, then replaces only Veil’s future inputs. Cinder keeps following the same tape, not reacting as a human would. This is a short local drill, not a saved online match; a future match replay format needs simulation versioning and tests across updates.
+
+- [Brawlhalla custom-lobby spectating](https://www.brawlhalla.com/news/battle-pass-season-11-patch-9-04): keep watching separate from fighter participation. Seamless Fight uses distinct, revocable watch links and a bounded read-only gallery. No third-party code or assets were imported.
+
+- [Gaffer on Games: Snapshot Interpolation](https://www.gafferongames.com/post/snapshot_interpolation/): jitter and presentation delay are separate tradeoffs. The browser test injects ordered delays in both directions using [Playwright WebSocket routing](https://playwright.dev/docs/api/class-websocketroute); it does not change live snapshot cadence or claim latency improvement.
+
+- [Tekken 8 replay takeover](https://tk8.tekken-official.jp/en/mode/replay.php) and [Street Fighter 6 replay compatibility](https://game.capcom.com/manual/SF6/en/ps5/page/7/2): support branching a recorded exchange and reject incompatible simulation versions rather than silently showing different combat. GGPO is a determinism reference, not a transport dependency. The recorded stream captures server-applied actions, not arrival-time packets.
+
+- [Street Fighter 6 configurable controls](https://game.capcom.com/manual/SF6/en/steam/page/2/1) informed action rebinding. [MDN Gamepad API](https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API) documents standardized browser mappings. No third-party gameplay code or assets imported.
+
+- [VALORANT gameplay consistency](https://playvalorant.com/en-us/news/game-updates/valorant-gameplay-consistency-update-2/) and [Rocket League network graphs](https://www.epicgames.com/help/c-37599050/a11386071?lang=en-US): present latency variation separately from frame pacing and input processing. The panel reports browser-observed values, not one-way delay, packet loss, or input-to-photon. GGPO remains a comparison point, not a dependency.
+
+- [The Art of VALORANT Map Environments](https://playvalorant.com/en-us/news/dev/the-art-of-valorant-map-environments/): place stronger decoration outside the fighting area and keep materials in the play space lower-contrast than the fighters. The Cistern changes presentation only; no assets were imported.
+
+- [Street Fighter 6 input history](https://www.playstation.com/en-us/games/street-fighter-6/everything-you-need-to-know-about-street-fighter-6/) and [Tekken 8 Practice](https://tk8.tekken-official.jp/mode/offline.php): make inputs and combat phase separately inspectable when repeating a setup. No third-party code or assets used.
+
+- [Fighting Game Glossary: Whiff Punish](https://glossary.infil.net/?t=Whiff+Punish): distinguish a missed attack from the follow-up hit during its recovery. [Street Fighter 6 training recording](https://game.capcom.com/manual/SF6/en/ps5/page/8/6) provides the repeatable-exchange reference. No external combat code imported.
+
+- [Brawlhalla cosmetics](https://brawlhalla.wiki.gg/wiki/Cosmetics) and [Guilty Gear Strive appearance locks](https://www.guiltygear.com/ggst/en/news/post-2963/): keep customization outside combat and let viewers suppress it locally. All coat and sigil art is original Canvas drawing.
+
+- [VALORANT Gameplay Consistency Update 2](https://playvalorant.com/en-gb/news/game-updates/valorant-gameplay-consistency-update-2/): balancing buffered motion against responsiveness. Seamless Fight buffers only neutral remote poses and preserves immediate authoritative action cues; this is not rollback or an input delay.
+
+- Street Fighter 6’s separate battle audio and accessibility cues are a reference for optional visual cue captions; those captions use observed simulation events, not client input. No third-party audio imported in this pass.
+
+- [Street Fighter 6 detailed sound settings](https://www.pcgamingwiki.com/wiki/Street_Fighter_6#Audio) document distance-to-opponent cues and independent sound controls. Seamless Fight's three original spacing tones are opt-in and limited to training. No audio was copied.
+
+- [Street Fighter 6 battle controls](https://game.capcom.com/manual/SF6/en/ps5/page/2/3) and [MDN Gamepad API](https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API): independent battle bindings and standard browser button indices; no third-party input code imported.
+
+- [Street Fighter 6 training recording](https://game.capcom.com/manual/SF6/en/ps5/page/8/6) informed fast repeatable review. [Battle Settings](https://game.capcom.com/manual/SF6/en/ps5/page/6/7) documents training while queued, a reference for future queue design, not an implemented feature.
+
+### Competitive queue boundaries
+
+[Tekken 8's online mode separation](https://tk8.tekken-official.jp/en/mode/online.php) is the reference for keeping casual, private player matches and eventually ranked distinct. [MDN's connection type reference](https://developer.mozilla.org/en-US/docs/Web/API/NetworkInformation/type) explains why connection medium is only an optional hint. Use server-timed pings for quality caps and never label unknown as wired. The queue does not alter the tick rate or implement [GGPO-style rollback](https://github.com/pond3r/ggpo/blob/master/doc/README.md).
+
+Before enabling a ranked queue: establish authenticated player IDs and an idempotent, server-written match-result ledger; define disconnect/no-contest and repeat-opponent abuse rules; validate a rating model against expected outcomes and traffic; then test rank windows and provisional placements before publishing a leaderboard. Never rate local practice or private-room captures. Keep latency caps independent of rank windows.
+
+- [Tekken 8 Super Ghost Battle](https://tk8.tekken-official.jp/en/mode/offline.php) is the reference for training against learned behavior rather than a fixed replay. Seamless Fight uses explicit local replay training and a bounded context-frequency model, not Tekken's Q-learning, online collection or public ghost library.
+
+## Deterministic state reconstruction regression
+
+The new `test/sync.test.mjs` exercises 2,400 seeded input frames, reconstructs the game from 20 intermediate snapshots, compares checkpoint fingerprints across different branches and confirms exact input-tape replay reconstruction. It has no remote networking, rollback logic, prediction override, player-facing delay claims or nondeterministic source input. It is intended as a **rollback-readiness prerequisite**, not a claim that the live authoritative WebSocket server has GGPO-style netcode. For full rollback see the [GGPO developer guide](https://github.com/pond3r/ggpo/blob/master/doc/DeveloperGuide.md), which requires save/load and deterministic one-frame simulation with no rendering side effects. Actual online rollback would additionally require versioned state serialization, input confirmation/ack windows, prediction limits, resimulation benchmarks, and audiovisual effect deduplication.
+
+
+### Separate genuine side-view ruleset
+
+The in-development `/fight/side/` local combat lab is now a distinct horizontal fighter simulation, not the existing overhead multiplayer ruleset. The data-driven move tables and isolated display/physics boundary were compared with the MIT-released [shoto-fighter-godot](https://github.com/aminRX/shoto-fighter-godot), and deterministic replay/versioning gates use the [GGPO Developer Guide](https://github.com/pond3r/ggpo/blob/master/doc/DeveloperGuide.md) as reference. No third-party code or character sprites were copied. Asset trials compare the independently licensed [Dark Knight 2D Character Sprites](https://opengameart.org/content/dark-knight-2d-character-sprites) and [GothicVania Cemetery](https://ansimuz.itch.io/gothicvania-cemetery). Do not confuse free-to-download with verified compatible public redistribution rights.
+
+
+## November 21, 2026 — native PC research source references (not imported gameplay)
+
+- [Godot 4.7: C++ GDExtension system](https://docs.godotengine.org/en/4.7/engine_details/engine_api/gdextension/index.html) and [official godot-cpp source](https://github.com/godotengine/godot-cpp) inform a direct deterministic C++ engine-to-native-renderer bridge. A GDExtension is a native shared library; source must compile for the exact target platform and compatible Godot API. The official examples are **references, not a full fighter or netcode package**.
+- [Guilty Gear Strive online/how-to](https://www.guiltygear.com/ggst/en/howto/online/) documents training-mode matchmaking and private-room restrictions as meaningful player-flow reference. No live training queue has been integrated into the Godot client.
+- [Street Fighter 6 official training recording guidance](https://game.capcom.com/manual/SF6/en/ps5/page/8/6) supports record/replay-and-takeover usability goals. The browser drill already has replay features, but those do not imply native UI parity.
+- [AMD November 16, 2026 FSR 4.1.2 official Unreal plugin](https://gpuopen.com/learn/amd-fsr-ue-plugin-412/) applies to UE 5.3–5.8 configurations, not automatically to the Godot prototype or all graphics cards. No modern vendor neural SDK is falsely advertised as installed.
+
+For serious release acceptance, exercise on an actual Win10/11 GPU and display at 60/120/144/240 Hz, quantify input-to-photon and 1% lows with physical measurements, test controller dead zones, wireless/wired RTT jitter and loss independently, and benchmark hardware-cost impact of authored character rigs and shader-heavy stage passes. Marketing claims of zero input lag or AAA quality cannot follow from compiler, headless, or browser CI alone.

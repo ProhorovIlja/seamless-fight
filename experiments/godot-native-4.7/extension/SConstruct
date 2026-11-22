@@ -1,0 +1,11 @@
+# Build native combat GDExtension against Godot 4.7 API with official godot-cpp.
+# CI clones godot-cpp; no external source libraries are vendored in the game.
+import os
+env = SConscript("godot-cpp/SConstruct", {"api_version": "4.7"})
+if env["platform"] == "linux":
+    env.Append(CXXFLAGS=["-ffp-contract=off", "-fno-fast-math"])
+elif env["platform"] == "windows":
+    env.Append(CXXFLAGS=["/fp:strict"])
+name = "sf_combat.{}.{}.{}".format(env["platform"], env["target"], env["arch"])
+extension = env.SharedLibrary(target=os.path.join("..", "bin", name + env["SHLIBSUFFIX"]), source=["side_native.cpp"])
+Default(extension)

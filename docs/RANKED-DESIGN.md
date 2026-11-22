@@ -1,0 +1,20 @@
+# Ranked 1v1 design: rating foundations, not a live ranked mode
+
+The repository contains a pure, independently testable [Glicko-2](https://www.glicko.net/glicko/glicko2.html) calculator in `server/rating.mjs`. It reproduces the worked example reported by Glickman (1500 / 200 / 0.06 against 1400, 1550 and 1700), including volatility and rating uncertainty. **It is not connected to casual matchmaking, the browser, or a leaderboard.** Scores from local practice and unverified client messages must never update rankings.
+
+## Requirements before activating a ranked queue
+
+1. **Authenticated durable identities and privacy:** distinct player identifiers, protected credentials/session rotation, disconnect recovery, export/deletion controls, abuse/block policy, and no raw opponent ghost sharing by default.
+2. **Server-authored result ledger:** one globally unique idempotency key per match and season, match ID tied to two authenticated IDs, server-signed outcome, transaction that writes once, and reconciliation after a crash. Reject replay imports, stale rooms, invalid versions, duplicate/contradictory claims and client-submitted ratings.
+3. **No-contest and penalties:** disconnect versus round win handling, liveness and reconnect grace, data-center failure voids, exploit/hack reports, rematch farming prevention, collusion detection, queue dodging and appeal/audit process. Do not infer cheating solely from network instability.
+4. **Quality-first matchmaking:** compatible game/build versions, region, both players' server-measured RTT and jitter caps, opt-in reported connection-medium preferences, then rating/uncertainty windows with a clear bounded search horizon. Never silently relax a user's explicit ping cap. Connection medium is an optional unverified browser hint, not proof of Ethernet.
+5. **Rating periods:** choose atomic rating batches and season boundaries; update both players only from finalized eligible outcomes; treat draws as 0.5 and inactivity as increased uncertainty. Provisional ratings must remain provisional until uncertainty and minimum-set criteria pass. Disclose uncertainty separately from cosmetic rank tiers; tiers must not grant stat advantages.
+6. **Validation:** seed thousands of simulated and anonymized consented match histories, assess calibration by rating gap, rank stability, cold-start time, queue length, regional distribution, repeat-opponent exposure, high-ping fairness and season reset incentives. Validate team queues separately; a 1v1 Glicko-2 model does not establish fair 2v2 ratings.
+
+The [Glicko-2 paper](https://glicko.net/glicko/glicko2.pdf) is the algorithmic baseline; [TrueSkill](https://www.microsoft.com/en-us/research/project/trueskill-ranking-system/) is a team-rating alternative to evaluate before implementing 2v2. [Tekken 8](https://tk8.tekken-official.jp/en/mode/online.php) is a useful model for separating player/private, casual and ranked matches. No claim of zero latency, fair rankings, ranked tiers or global leaderboards is made by this development-only module.
+
+The current deployment remains a single-instance, in-memory casual matchmaking server running on Debian 13 staging configuration. Ranked requires persistent storage, identities and operational controls before anyone can legitimately earn or lose points.
+
+A drawn six-round match with equal round scores must be treated as a **no-rating-change outcome until the ranked policy decides whether a completed match draw should count as 0.5 for both fighters**. The rating calculator supports draws; the current live server remains unranked and stores no match results. Any tournament or ranked application must specify whether a six-round cap winner (with fewer than two round wins) is valid, before implementing rating persistence.
+
+A separate [durable ledger candidate](RANKED-LEDGER.md) now provides an offline-only, SQLite-backed, transaction-tested exactly-once set-result store. It is not connected to public matchmaking or player account authentication.

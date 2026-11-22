@@ -1,0 +1,19 @@
+# IMPORT ONLY INSIDE the existing seamlesshunt.com Caddy site block.
+# Preserve the original Caddyfile and BBSC paths; this does not configure HTTPS.
+#
+# IMPORTANT: /fight is an application-owned namespace. NEVER use handle_path
+# because it strips /fight, breaking WebSocket upgrade and HTTP asset routes.
+# If the existing site has a catch-all "handle" block, import this alongside
+# that block (before the fallback), then inspect `caddy adapt` output.
+@seamless_fight {
+	path /fight /fight/*
+}
+handle @seamless_fight {
+	reverse_proxy 127.0.0.1:18080 {
+		transport http {
+			dial_timeout 3s
+			read_timeout 30s
+			write_timeout 30s
+		}
+	}
+}

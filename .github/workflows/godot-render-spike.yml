@@ -1,0 +1,119 @@
+name: Godot 4.7.2 2.5D Renderer Spike
+on:
+  push:
+    branches: [feat/lantern-court]
+    paths:
+      - 'experiments/godot-4.7/**'
+      - '.github/workflows/godot-render-spike.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  parse-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official MIT-licensed stable Godot 4.7.2 editor
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 2 --max-time 150 --silent --show-error \
+            https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip \
+            --output "${RUNNER_TEMP}/godot.zip"
+          unzip -q "${RUNNER_TEMP}/godot.zip" -d "${RUNNER_TEMP}"
+          chmod +x "${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          "${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64" --headless --version
+      - name: Import and validate full Godot scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          "${GODOT}" --headless --path experiments/godot-4.7 --editor --import --quit
+          "${GODOT}" --headless --path experiments/godot-4.7 --script res://tests/verify_stage.gd --quit-after 240
+      - name: Obtain the matching official WebGL2 export template
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL=https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
+          curl --fail --location --retry 2 --max-time 240 --silent --show-error "$URL" --output "${RUNNER_TEMP}/godot-templates.tpz"
+          TARGET="${HOME}/.local/share/godot/export_templates/4.7.2.stable"
+          mkdir -p "$TARGET"
+          unzip -p "${RUNNER_TEMP}/godot-templates.tpz" templates/web_nothreads_release.zip > "$TARGET/web_nothreads_release.zip"
+          unzip -p "${RUNNER_TEMP}/godot-templates.tpz" templates/windows_release_x86_64.exe > "$TARGET/windows_release_x86_64.exe"
+          unzip -p "${RUNNER_TEMP}/godot-templates.tpz" templates/version.txt > "$TARGET/version.txt"
+          test -s "$TARGET/web_nothreads_release.zip"
+          test -s "$TARGET/windows_release_x86_64.exe"
+          echo "Validated Godot $(cat "$TARGET/version.txt") WebGL2 export template"
+      - name: Build actual browser version of stage experiment
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          mkdir -p artifacts/godot-web
+          "${GODOT}" --headless --path experiments/godot-4.7 --export-release Web             "$PWD/artifacts/godot-web/index.html"
+          test -s artifacts/godot-web/index.html
+          test -s artifacts/godot-web/index.wasm
+          test -s artifacts/godot-web/index.pck
+          du -h artifacts/godot-web/* | sort -h
+          echo "GODOT_WEB_EXPORT_COMPILED=YES" >> "${GITHUB_STEP_SUMMARY}"
+          echo "Renderer: Compatibility / WebGL2, threads disabled, original painted asset only" >> "${GITHUB_STEP_SUMMARY}"
+          echo "This export is a rendering experiment, not a finished playable PvP client" >> "${GITHUB_STEP_SUMMARY}"
+      - name: Build a native Windows x64 executable for renderer evaluation
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          mkdir -p artifacts/godot-windows
+          "${GODOT}" --headless --path experiments/godot-4.7 --export-release "Windows Desktop" \
+            "$PWD/artifacts/godot-windows/SeamlessFight-RendererSpike.exe"
+          test -s artifacts/godot-windows/SeamlessFight-RendererSpike.exe
+          test -s artifacts/godot-windows/SeamlessFight-RendererSpike.pck
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("artifacts/godot-windows/SeamlessFight-RendererSpike.exe")
+          assert p.read_bytes()[:2]==b'MZ', "Expected actual native Windows PE executable"
+          print("GODOT_WINDOWS_NATIVE_PE_OK",p.stat().st_size)
+          PY
+          echo "GODOT_WINDOWS_NATIVE_RENDER_SPIKE=EXPORTED_NOT_PLAYTESTED" >> "${GITHUB_STEP_SUMMARY}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test two actual Godot native transports against the existing Node 1v1 server
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --ignore-scripts --no-audit --no-fund
+          HOST=127.0.0.1 PORT=18893 PUBLIC_ORIGIN=http://127.0.0.1:18893 node server.mjs > "${RUNNER_TEMP}/pvp-server.log" 2>&1 &
+          GAME_SERVER_PID=$!
+          trap 'kill "$GAME_SERVER_PID" 2>/dev/null || true; cat "${RUNNER_TEMP}/pvp-server.log"' EXIT
+          for i in {1..70}; do
+            if curl --silent --fail http://127.0.0.1:18893/fight/health >/dev/null; then break; fi
+            sleep .1
+          done
+          curl --fail --silent http://127.0.0.1:18893/fight/health
+          GODOT="${RUNNER_TEMP}/Godot_v4.7.2-stable_linux.x86_64"
+          "${GODOT}" --headless --path experiments/godot-4.7 \
+            --script res://tests/verify_side_online.gd --quit-after 720
+      - name: Set up real Chromium runtime (GPU software fallback)
+        run: |
+          npm install --ignore-scripts --no-audit --no-save playwright@1.58.2
+          npx --no-install playwright install --with-deps chromium
+      - name: Run the real exported Godot WebGL2 game in Chromium
+        run: node experiments/godot-4.7/tests/web-browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: godot-472-painted-stage-webgl2-render-spike
+          path: |
+            artifacts/godot-web/
+            artifacts/godot-472-painted-stage-runtime.png
+          if-no-files-found: warn
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: godot-472-native-windows-x64-render-spike
+          path: artifacts/godot-windows/
+          if-no-files-found: warn
+          retention-days: 7

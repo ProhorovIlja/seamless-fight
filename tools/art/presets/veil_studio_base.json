@@ -1,0 +1,29 @@
+{
+  "schema": "sf-studio-human/1",
+  "id": "veil_studio_base",
+  "rig": "game_engine",
+  "macros": {
+    "gender": 0.5,
+    "age": 0.5,
+    "muscle": 0.58,
+    "weight": 0.48,
+    "height": 0.53,
+    "proportions": 0.52
+  },
+  "skin": "young_caucasian_female.mhmat",
+  "parts": {
+    "eyes": "low-poly.mhclo",
+    "eyebrows": "eyebrow001.mhclo",
+    "eyelashes": "eyelashes01.mhclo",
+    "tongue": "tongue01.mhclo",
+    "teeth": "teeth_base.mhclo",
+    "hair": "long01.mhclo"
+  },
+  "clothing": [
+    "female_casualsuit01.mhclo"
+  ],
+  "license": {
+    "core": "CC0-1.0",
+    "third_party_audited": true
+  }
+}

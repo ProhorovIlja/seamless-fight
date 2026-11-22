@@ -1,0 +1,182 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {HUNT_RULESET,HUNT_MOVES,huntMatch,huntStep,huntInput} from '../public/side-hunt-lab.mjs';
+import {createHuntReplay} from '../public/side-hunt-replay.mjs';
+import {analyzeHuntReplay,HUNT_STATS_SCHEMA} from '../public/hunt-match-analytics.mjs';
+import {huntPracticeSession} from '../public/hunt-practice-suite.mjs';
+const cmd=(act='',x=0,y=0)=>({act,x,y,guard:false});
+const fresh=()=>{const s=huntMatch();s.ready=0;s.p[0].x=400;s.p[1].x=500;return s;};
+test('offline 1v1 metrics never fabricate Elo, friends, ranked wins or online identity',()=>{
+ const replay=createHuntReplay({initialState:fresh()});
+ const x=analyzeHuntReplay(replay.capture());
+ assert.equal(x.schema,HUNT_STATS_SCHEMA);
+ assert.equal(x.rules,HUNT_RULESET);
+ assert.equal(x.mode,'unrated-local-1v1');
+ assert.equal(x.language,'en');
+ assert.equal(x.verifiedCompetitiveResult,false);
+ assert.equal(x.offlineReplayIntegrityChecked,true);
+ assert.equal(x.observedFrames,0);
+ assert.equal(x.observedSeconds,0);
+ assert.equal(x.matchComplete,false);
+ assert.equal(x.winner,null);
+ assert.equal(x.players.length,2);
+ assert.equal(x.players[0].firearmAccuracy,null);
+ assert.deepEqual(x.rounds,[]);
+ assert(!Object.hasOwn(x,'rank'));
+ assert(!Object.hasOwn(x,'accountId'));
+});
+test('gunfire that correctly parries gives one accurate hit plus bounded real damage',()=>{
+ const s=fresh();
+ s.p[0].act='shot';s.p[0].age=HUNT_MOVES.shot.startup;
+ s.p[1].act='foldedHeavy';s.p[1].age=HUNT_MOVES.foldedHeavy.startup-2;
+ const replay=createHuntReplay({initialState:s});
+ replay.append([cmd(),cmd()]);
+ const out=analyzeHuntReplay(replay.capture());
+ assert.equal(out.observedFrames,1);
+ assert.equal(out.players[0].firearmShots,1);
+ assert.equal(out.players[0].firearmHits,1);
+ assert.equal(out.players[0].firearmParries,1);
+ assert.deepEqual(out.players[0].parriesByInterruptedAction,{foldedHeavy:1});
+ assert.deepEqual(out.players[0].parryImpactWindows,[{
+  tick:1,move:'foldedHeavy',age:HUNT_MOVES.foldedHeavy.startup-2
+ }]);
+ assert.equal(out.players[0].firearmAccuracy,100);
+ assert.equal(out.players[0].damageFromConfirmedEvents,4);
+ assert.equal(out.players[1].damageTakenFromConfirmedEvents,4);
+ assert.equal(out.players[1].finalHealth,96);
+ assert.equal(out.players[1].firearmShots,0);
+ assert.equal(out.players[1].firearmAccuracy,null);
+});
+test('melee damage, whiffs and stamina-paid hitstun escape are source-derived',()=>{
+ const s=fresh();
+ s.p[1].x=463;
+ s.p[0].act='foldedLight';s.p[0].age=HUNT_MOVES.foldedLight.startup;
+ const replay=createHuntReplay({initialState:s});
+ replay.append([cmd(),cmd()]);
+ const hit=analyzeHuntReplay(replay.capture());
+ assert.equal(hit.players[0].meleeHits,1);
+ assert.equal(hit.players[0].damageFromConfirmedEvents,15);
+ assert.equal(hit.players[1].damageTakenFromConfirmedEvents,15);
+ assert.equal(hit.players[0].maxCombo,1);
+ const s2=fresh();
+ s2.p[1].x=750;
+ const missed=createHuntReplay({initialState:s2});
+ missed.append([cmd('light'),cmd()]);
+ for(let i=0;i<16;i++)missed.append([cmd(),cmd()]);
+ const missedStats=analyzeHuntReplay(missed.capture());
+ assert.equal(missedStats.players[0].meleeStarts,1);
+ assert.equal(missedStats.players[0].meleeWhiffs,1);
+ assert.equal(missedStats.players[0].meleeHits,0);
+ assert.equal(missedStats.players[0].meleeContactRate,0);
+ const s3=fresh();s3.p[1].act='stun';s3.p[1].age=8;
+ const escape=createHuntReplay({initialState:s3});
+ escape.append([cmd(),cmd('step',-1)]);
+ const e=analyzeHuntReplay(escape.capture());
+ assert.equal(e.players[1].quicksteps,1);
+ assert.equal(e.players[1].dodgeEscapes,1);
+ assert.equal(e.players[1].finalStamina,75);
+});
+test('analytics reject imported stale or corrupted non-cryptographic replays',()=>{
+ const replay=createHuntReplay({initialState:fresh()});
+ replay.append([cmd('light'),cmd()]);
+ const original=replay.capture();
+ assert.throws(()=>analyzeHuntReplay({...original,rules:'sf-hunt-lab/2'}),/incompatible/i);
+ assert.throws(()=>analyzeHuntReplay({...original,fingerprint:'00000000'}),/mismatched/);
+ assert.equal(analyzeHuntReplay(original).players[0].actionStarts,1);
+});
+test('statistics reproduce exactly across capture JSON serialization and 600 replay ticks',()=>{
+ const replay=createHuntReplay({initialState:fresh(),maxFrames:610});
+ for(let i=0;i<600;i++)replay.append([
+  cmd(i%29===0?'shot':i%17===0?'step':'',i%11<3?1:0),
+  cmd(i%31===0?'light':'',i%13<4?-1:0)
+ ]);
+ const a=analyzeHuntReplay(replay.capture());
+ const b=analyzeHuntReplay(JSON.parse(JSON.stringify(replay.capture())));
+ assert.deepEqual(a,b);
+ assert.equal(a.observedFrames,600);
+ assert.equal(a.observedSeconds,10);
+ assert.equal(a.players[0].slot,0);
+ assert.equal(a.players[1].slot,1);
+});
+
+test('three different neutral punish counters come only from confirmed replay hit phases',()=>{
+ const setups=[
+  {targetMove:'foldedHeavy',targetAge:24,key:'recoveryPunishes'},
+  {targetMove:'step',targetAge:10,key:'dodgeRecoveryPunishes'},
+  {targetMove:'foldedHeavy',targetAge:9,key:'startupInterrupts'}
+ ];
+ for(const {targetMove,targetAge,key} of setups){
+  const state=fresh();
+  state.p[1].x=463;
+  state.p[0].act='foldedLight';
+  state.p[0].age=HUNT_MOVES.foldedLight.startup;
+  state.p[1].act=targetMove;
+  state.p[1].age=targetAge;
+  const replay=createHuntReplay({initialState:state});
+  replay.append([cmd(),cmd()]);
+  const out=analyzeHuntReplay(replay.capture());
+  assert.equal(out.players[0].meleeHits,1,key+' requires real melee contact');
+  assert.equal(out.players[0][key],1,key+' is derived from opponent phase');
+  for(const other of ['recoveryPunishes','dodgeRecoveryPunishes','startupInterrupts'])
+   if(other!==key)assert.equal(out.players[0][other],0,'three types stay distinct');
+  assert.equal(out.players[1][key],0,'defender never earns fake neutral reads');
+ }
+ const idle=analyzeHuntReplay(createHuntReplay({initialState:fresh()}).capture());
+ assert.equal(idle.players[0].recoveryPunishes,0);
+ assert.equal(idle.players[0].dodgeRecoveryPunishes,0);
+ assert.equal(idle.players[0].startupInterrupts,0);
+});
+
+
+test('source replay counts gun whiffs and actual gun recovery punishes, never mere presses',()=>{
+ for(const weapon of ['mournweave','thornwake']){
+  const s=huntMatch({weapons:[weapon,weapon]});s.ready=0;
+  const hunter=s.p[0],gunner=s.p[1];
+  hunter.x=420;hunter.vx=0;hunter.dir=1;
+  gunner.x=500;gunner.vx=0;gunner.dir=1;
+  hunter.act='foldedLight';hunter.age=weapon==='mournweave'?6:4;
+  gunner.act='shot';gunner.age=HUNT_MOVES.shot.startup;
+  gunner.ammo=6;
+  const replay=createHuntReplay({initialState:s});
+  replay.append([cmd(),cmd()]);
+  replay.append([cmd(),cmd()]);
+  const out=analyzeHuntReplay(replay.capture());
+  assert.equal(out.players[1].firearmShots,1);
+  assert.equal(out.players[1].firearmWhiffs,1);
+  assert.equal(out.players[1].firearmHits,0);
+  assert.equal(out.players[0].firearmRecoveryPunishes,1);
+  assert.equal(out.players[0].recoveryPunishes,1);
+  assert.equal(out.players[0].meleeHits,1);
+  assert.equal(out.players[0].dodgeVulnerableTailPunishes,0);
+  assert.equal(out.players[1].firearmRecoveryPunishes,0);
+ }
+});
+test('an i-frame tail hit is NOT a dodge recovery hit and each metric records its true source window',()=>{
+ for(const age of [7,10]){
+  const s=fresh();
+  s.p[1].x=463;
+  s.p[0].act='foldedLight';s.p[0].age=HUNT_MOVES.foldedLight.startup;
+  s.p[1].act='step';s.p[1].age=age;s.p[1].vx=0;
+  const replay=createHuntReplay({initialState:s});
+  replay.append([cmd(),cmd()]);
+  const p=analyzeHuntReplay(replay.capture()).players[0];
+  assert.equal(p.meleeHits,1);
+  assert.equal(p.dodgeVulnerableTailPunishes,age===7?1:0);
+  assert.equal(p.dodgeRecoveryPunishes,age===10?1:0);
+  assert.equal(p.recoveryPunishes,0,
+   'step has a distinct recovery punish channel, not a melee or firearm whiff');
+ }
+});
+test('real two-sided corner exits count only after paid physical crossing',()=>{
+ for(const wall of ['left','right']){
+  const practice=huntPracticeSession({
+   drill:wall==='left'?'corner-escape':'corner-escape-right'
+  });
+  for(let t=1;t<=66;t++)assert(practice.append(
+   t===48?cmd('step',wall==='left'?1:-1):cmd()));
+  const stats=analyzeHuntReplay(practice.save());
+  assert.equal(stats.players[0].cornerEscapes,1);
+  assert.equal(stats.players[1].cornerEscapes,0);
+  assert.equal(stats.players[0].quicksteps,1);
+ }
+});

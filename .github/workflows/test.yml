@@ -1,0 +1,63 @@
+name: Duel checks
+on: [push, pull_request]
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  studio-art-source-audit:
+    name: Original hunter art studio presets / stdlib only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check original MakeHuman-based character-creation input and asset-root safety
+        run: |
+          python3 -m py_compile tools/art/hunter_preset.py tools/art/build_hunter_base.py tools/art/audit_glb.py
+          python3 -m unittest discover -s test/python -p 'test_hunter_*.py' -v
+          python3 tools/art/hunter_preset.py tools/art/presets/veil_studio_base.json
+          echo 'STUDIO_ART_PRESET_VALIDATE_ONLY=PASS (No Blender, model, game-ready rig or license certification was produced)' >> "$GITHUB_STEP_SUMMARY"
+  test:
+    name: Debian 13 / Node ${{ matrix.node }}
+    runs-on: ubuntu-24.04
+    container:
+      image: node:${{ matrix.node }}-trixie
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Debian base
+        run: |
+          . /etc/os-release
+          test "$ID" = debian
+          test "${VERSION_ID%%.*}" = 13
+          bash -n deploy/debian-13-preflight.sh
+          bash deploy/debian-13-preflight.sh --ci
+      - run: npm install --ignore-scripts --no-audit
+      - run: node --check public/game.mjs
+      - run: npm test
+  browser:
+    name: Debian 13 / Chromium smoke
+    runs-on: ubuntu-24.04
+    container:
+      image: node:22-trixie
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          . /etc/os-release
+          test "$ID" = debian
+          test "${VERSION_ID%%.*}" = 13
+      - run: npm install --ignore-scripts --no-audit --no-save playwright@1.58.2
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: node scripts/browser-smoke.mjs
+      - run: node scripts/side-browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: duel-debian13-presentation-screenshots
+          path: artifacts/*.png
+          if-no-files-found: warn
