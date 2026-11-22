@@ -36,6 +36,10 @@ test('gunfire that correctly parries gives one accurate hit plus bounded real da
  assert.equal(out.players[0].firearmShots,1);
  assert.equal(out.players[0].firearmHits,1);
  assert.equal(out.players[0].firearmParries,1);
+ assert.deepEqual(out.players[0].parriesByInterruptedAction,{foldedHeavy:1});
+ assert.deepEqual(out.players[0].parryImpactWindows,[{
+  tick:1,move:'foldedHeavy',age:HUNT_MOVES.foldedHeavy.startup-2
+ }]);
  assert.equal(out.players[0].firearmAccuracy,100);
  assert.equal(out.players[0].damageFromConfirmedEvents,4);
  assert.equal(out.players[1].damageTakenFromConfirmedEvents,4);
