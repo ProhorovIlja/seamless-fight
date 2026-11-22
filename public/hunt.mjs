@@ -552,13 +552,19 @@ $('metrics').addEventListener('click',()=>{
   $('rally').textContent=String(a.rallyHealthReclaimed);
   const interrupted=Object.entries(a.parriesByInterruptedAction)
    .map(([move,count])=>move+' ×'+count).join(', ')||'none';
+  const latestWhiff=a.confirmedWhiffPunishWindows.at(-1);
+  const punishEvidence=latestWhiff?
+   ' Last proven whiff punish: '+latestWhiff.move+' at tick '+
+   latestWhiff.whiffTick+' → impact tick '+latestWhiff.hitTick+
+   ' ('+(latestWhiff.hitTick-latestWhiff.whiffTick)+'F later, '+
+   latestWhiff.remainingRecovery+'F recovery remaining).':'';
   status('Analyzed '+data.observedFrames+' verified local simulation frames · UNRATED 1v1.'+
    ' Neutral reads: '+a.confirmedWhiffRecoveryPunishes+
    ' source-confirmed whiff punishes ('+a.confirmedGunWhiffRecoveryPunishes+
    ' firearm), '+a.recoveryPunishes+' recovery-phase hits, '+
    a.dodgeRecoveryPunishes+' dodge punishes, '+
    a.startupInterrupts+' startup interrupts.'+
-   ' Actual gun parry interrupts: '+interrupted+'.');
+   ' Actual gun parry interrupts: '+interrupted+'.'+punishEvidence);
  }catch(err){status('Local analysis failed: '+err.message);}
 });
 const categories=new Map();
