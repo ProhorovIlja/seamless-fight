@@ -28,7 +28,7 @@ test('a no-block footsies whiff must arise from a real R2 action and ALL of its 
   const spec=huntMoveSpec({
    weapon:r.attackerWeapon,act:r.attackerForm+r.attackerHeavy
   });
-  assert.equal(r.distance,spec.reach+32);
+  assert.equal(r.distance,spec.reach+48);
   assert.equal(r.whiffTick,spec.startup+spec.active,
    'observed whiff tick must be physical startup + active, not a seeded age');
   assert.equal(Object.hasOwn(r,'sourceEvents'),false,
