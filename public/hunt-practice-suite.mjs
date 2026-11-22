@@ -73,6 +73,7 @@ function scoreProjection(tickEvents,beforePlayerAction,beforeOpponentAction,
   playerWall:e.kind==='action'?wallBeforeTick:wallAfterTick,
   playerAirborne:player.y<HUNT_FLOOR,
   opponentAirborne:opponent.y<HUNT_FLOOR,
+  playerX:player.x,
   playerStartedStunned:beforePlayerAction==='stun',
   distance:Math.abs(player.x-opponent.x),
   confirmedDodgeEvade:e.kind==='whiff'&&e.actor===1&&e.move==='shot'&&
@@ -88,7 +89,7 @@ function scoreProjection(tickEvents,beforePlayerAction,beforeOpponentAction,
    opponent.act===''){
   scored.push({tick:confirmedState.tick,kind:'feintReadWindowClosed',
    actor:1,move:'feint',sourceStateVerified:true,
-   distance:Math.abs(player.x-opponent.x)});
+   distance:Math.abs(player.x-opponent.x),playerX:player.x});
  }
  return scored;
 }
