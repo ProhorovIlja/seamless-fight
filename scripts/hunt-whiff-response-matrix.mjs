@@ -10,18 +10,21 @@ import {
 export const HUNT_NEUTRAL_RESPONSE_DELAYS=Object.freeze([0,2,5,9]);
 export const HUNT_NEUTRAL_RESPONSE_ACTIONS=Object.freeze(['light','shot','step']);
 export const HUNT_NEUTRAL_HEAVIES=Object.freeze(['Heavy','Charged']);
+export const HUNT_NEUTRAL_ARENAS=Object.freeze(['center','left','right']);
 const insist=(valid,why)=>{if(!valid)throw TypeError(why);};
 
 export function huntWhiffResponseTrial({
  attackerWeapon='mournweave',defenderWeapon='mournweave',
  attackerForm='folded',attackerHeavy='Heavy',
- defenderSlot=0,answer='light',responseDelay=0,distance=70,frames=45
+ defenderSlot=0,answer='light',responseDelay=0,distance=70,frames=45,
+ arenaSide='center'
 }={}){
  insist(HUNT_WEAPONS.includes(attackerWeapon),'Unknown original attacker weapon');
  insist(HUNT_WEAPONS.includes(defenderWeapon),'Unknown original defender weapon');
  insist(HUNT_FORMS.includes(attackerForm),'Unknown original trick form');
  insist(HUNT_NEUTRAL_HEAVIES.includes(attackerHeavy),'Heavy or charged R2 required');
  insist(defenderSlot===0||defenderSlot===1,'Exactly two player slots');
+ insist(HUNT_NEUTRAL_ARENAS.includes(arenaSide),'Unknown original arena side');
  insist(HUNT_NEUTRAL_RESPONSE_ACTIONS.includes(answer),'Unknown no-guard answer');
  insist(Number.isInteger(responseDelay)&&responseDelay>=0&&responseDelay<frames,
   'Invalid response delay');
@@ -36,9 +39,11 @@ export function huntWhiffResponseTrial({
  const defender=state.p[defenderSlot],attacker=state.p[attackerSlot];
  // Mirror across the 960-unit arena: player-slot order must not change
  // attack read, gun counter, recovery punishment, or movement outcomes.
- defender.x=defenderSlot===0?430:530;
- attacker.x=defender.x+(defenderSlot===0?distance:-distance);
- defender.dir=defenderSlot===0?1:-1;
+ defender.x=arenaSide==='left'?65:arenaSide==='right'?895:
+  defenderSlot===0?430:530;
+ defender.dir=arenaSide==='left'?1:arenaSide==='right'?-1:
+  defenderSlot===0?1:-1;
+ attacker.x=defender.x+defender.dir*distance;
  attacker.dir=-defender.dir;
  defender.vx=0;attacker.vx=0;defender.st=100;attacker.st=100;
  defender.form='folded';defender.act='';defender.age=0;
@@ -78,7 +83,7 @@ export function huntWhiffResponseTrial({
   counterHit?'otherMeleeContact':gunChip?'gunChipNotParry':'noOffensiveCounter';
  return Object.freeze({
   rules:state.rules,hz:HUNT_HZ,attackerWeapon,defenderWeapon,
-  attackerForm,attackerHeavy,defenderSlot,answer,responseDelay,
+  attackerForm,attackerHeavy,defenderSlot,answer,responseDelay,arenaSide,
   distance,frames,category,
   // True geometry and actual hit reaction, never scored by key press.
   whiffRecoveryPunish,transformStartupInterrupt,gunParry:Boolean(gunParry),
@@ -98,24 +103,29 @@ export function huntWhiffResponseTrial({
 
 export function huntWhiffResponseMatrix({
  delays=HUNT_NEUTRAL_RESPONSE_DELAYS,
- answers=HUNT_NEUTRAL_RESPONSE_ACTIONS
+ answers=HUNT_NEUTRAL_RESPONSE_ACTIONS,
+ arenaSides=['center']
 }={}){
  insist(Array.isArray(delays)&&delays.length>0&&
   delays.every(x=>Number.isInteger(x)&&x>=0&&x<45),'Invalid trial delays');
  insist(Array.isArray(answers)&&answers.length>0&&
   answers.every(x=>HUNT_NEUTRAL_RESPONSE_ACTIONS.includes(x)),
   'Invalid no-guard response actions');
+ insist(Array.isArray(arenaSides)&&arenaSides.length>0&&
+  arenaSides.every(x=>HUNT_NEUTRAL_ARENAS.includes(x)),
+  'Invalid source-grounded arena sides');
  const rows=[];
  for(const attackerWeapon of HUNT_WEAPONS)
   for(const defenderWeapon of HUNT_WEAPONS)
    for(const attackerForm of HUNT_FORMS)
     for(const attackerHeavy of HUNT_NEUTRAL_HEAVIES)
-     for(const defenderSlot of [0,1])
+     for(const arenaSide of arenaSides)
+      for(const defenderSlot of [0,1])
       for(const answer of answers)
        for(const responseDelay of delays){
         const result=huntWhiffResponseTrial({
          attackerWeapon,defenderWeapon,attackerForm,attackerHeavy,
-         defenderSlot,answer,responseDelay
+         defenderSlot,answer,responseDelay,arenaSide
         });
         // Preserve source-backed outcomes and the projected input horizon,
         // but avoid duplicating thousands of frame events in the report.
