@@ -25,6 +25,14 @@ export function huntRecordedNeutralTakeover(
  const d=recorded.defenderSlot;
  need((d===0||d===1)&&tick>0&&tick<original.frames.length,
   'Valid real whiff tick and fighter slot required');
+ // Reject misleading labels even if a captured tape itself is intact:
+ // an "original answer" must describe the exact recorded input frame.
+ need(HUNT_TAKEOVER_ANSWERS.includes(recorded.answer)&&
+  Number.isInteger(recorded.responseDelay)&&
+  recorded.responseDelay>=0&&recorded.responseDelay<=40&&
+  recorded.answerRequestedTick===tick+1+recorded.responseDelay&&
+  original.frames[recorded.answerRequestedTick-1]?.[d]?.act===recorded.answer,
+  'Original answer metadata does not match authenticated input tape');
  // Independently reconstruct BEFORE branching. Metadata alone MUST NOT
  // fabricate an "opponent missed" event.
  const pre=structuredClone(original.startState),sourceEvidence=[];
