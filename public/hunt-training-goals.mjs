@@ -104,8 +104,12 @@ export function evaluateHuntTrainingGoal(drill,evidence=[]){
     if(is(e,'action',0,'step')&&e.playerStartedStunned===true)success(e);
     break;
    case 'dodge-shot':
-    if(is(e,'whiff',1,'shot')&&
-       earlier(entries,i,p=>is(p,'action',0,'step')&&p.distance<=300,0,18)&&
+    // A firearm can miss because it was too far away or fired backward.
+    // Only score a true dodge when the practice projection confirms that
+    // the shot's active hitbox overlapped the player's actual hurtbox
+    // during existing quickstep i-frames (not mere distance or keypress).
+    if(is(e,'whiff',1,'shot')&&e.confirmedDodgeEvade===true&&
+       earlier(entries,i,p=>is(p,'action',0,'step'),0,18)&&
        earlier(entries,i,p=>is(p,'action',1,'shot'),0,40))success(e);
     break;
    case 'anti-air':
