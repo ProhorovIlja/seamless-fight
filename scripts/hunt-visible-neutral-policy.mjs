@@ -7,6 +7,7 @@ import {
  huntInput,huntMatch,huntStep
 } from '../public/side-hunt-lab.mjs';
 import {createHuntReplay,huntReplayFingerprint} from '../public/side-hunt-replay.mjs';
+import {huntSourceWhiffPunishes} from '../public/hunt-punish-provenance.mjs';
 
 export const HUNT_VISIBLE_THREATS=Object.freeze([
  'light','heavy','charged','feint','shot','idle'
@@ -117,12 +118,19 @@ export function huntVisibleNeutralTrial({
  const shotHit=events.some(e=>e.kind==='bulletHit'&&e.actor===defenderSlot);
  const enemyHit=events.find(e=>e.kind==='hit'&&
   e.actor===attackerSlot&&e.target===defenderSlot);
- const recoveryPunish=Boolean(defenderHit?.punishedRecovery);
+ // The recovery phase alone does NOT establish a whiff punish. Resolve
+ // the SAME source-emitted missed move through subsequent physical contact,
+ // invalidating it if the opponent started another action or was interrupted.
+ // This evidence is for AFTER-ACTION study only, never visible to the policy.
+ const punishEvidence=huntSourceWhiffPunishes(events,defenderSlot,attackerSlot);
+ const recoveryPhaseContact=punishEvidence.recoveryPhaseContacts>0;
+ const recoveryPunish=punishEvidence.sourceConfirmedWhiffPunishes>0;
  const startupInterrupt=Boolean(defenderHit?.hitDuringStartup);
  const escape=events.some(e=>e.kind==='cornerEscape'&&e.actor===defenderSlot);
  const category=gunParry?'realGunParry':
   recoveryPunish?'realRecoveryPunish':
   startupInterrupt?'realStartupInterrupt':
+  recoveryPhaseContact?'recoveryContactNoProvenWhiff':
   defenderHit?'otherMeleeContact':shotHit?'firearmHitNoParry':
   escape?'physicalCornerEscape':'noConfirmedCounter';
  return Object.freeze({
@@ -133,7 +141,11 @@ export function huntVisibleNeutralTrial({
   perceivedAt,firstCue,submittedAt,
   attackerOpened:events.some(e=>e.kind==='action'&&e.actor===attackerSlot),
   attackerFeinted:events.some(e=>e.kind==='action'&&e.actor===attackerSlot&&e.move==='feint'),
-  realGunParry:gunParry,recoveryPunish,startupInterrupt,
+  realGunParry:gunParry,recoveryPunish,recoveryPhaseContact,
+  confirmedWhiffPunishes:punishEvidence.sourceConfirmedWhiffPunishes,
+  recoveryPhaseContacts:punishEvidence.recoveryPhaseContacts,
+  unconfirmedRecoveryContacts:punishEvidence.unconfirmedRecoveryContacts,
+  startupInterrupt,
   defenderMeleeHit:Boolean(defenderHit),enemyMeleeHit:Boolean(enemyHit),
   defenderHp:d.hp,attackerHp:a.hp,
   defenderShotHit:shotHit,cornerEscaped:escape,
